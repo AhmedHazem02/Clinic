@@ -97,7 +97,6 @@ export function DoctorDashboardClient() {
               checked={isAvailable}
               onCheckedChange={setIsAvailable}
               aria-label="Doctor availability status"
-              disabled
             />
           </CardHeader>
           <CardContent>
