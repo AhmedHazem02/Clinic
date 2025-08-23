@@ -43,13 +43,13 @@ export default function NurseLayout({
                 <UserPlus />
                 Register Patient
               </SidebarMenuButton>
-            </-sidebar-menu-item>
+            </SidebarMenuItem>
             <SidebarMenuItem>
               <SidebarMenuButton>
                 <Settings />
                 Settings
               </SidebarMenuButton>
-            </-sidebar-menu-item>
+            </SidebarMenuItem>
           </SidebarMenu>
         </SidebarContent>
         <SidebarFooter className="p-4">
