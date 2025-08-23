@@ -18,10 +18,9 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  webpack: (config) => {
-    config.externals.push("@firebase/auth");
-    return config;
-  }
+  experimental: {
+    serverComponentsExternalPackages: ['@firebase/auth'],
+  },
 };
 
 export default nextConfig;
