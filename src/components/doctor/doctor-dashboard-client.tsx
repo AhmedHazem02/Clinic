@@ -143,105 +143,122 @@ export function DoctorDashboardClient() {
   return (
     <>
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        <Card>
-          <CardHeader className="flex flex-row items-start justify-between">
-            <div>
-              <CardTitle className="font-headline">Your Status</CardTitle>
-              <CardDescription>Set your availability.</CardDescription>
-            </div>
-            <Switch
-              checked={isAvailable}
-              onCheckedChange={setIsAvailable}
-              aria-label="Doctor availability status"
-            />
-          </CardHeader>
-          <CardContent className="space-y-4">
-             <div>
-                <p className={`text-lg font-semibold ${isAvailable ? 'text-green-600' : 'text-red-600'}`}>
-                {isAvailable ? "Available for Consultation" : "Not Available"}
-                </p>
-             </div>
-             <div className="space-y-2">
-                <Label htmlFor="doctor-message">Patient Message</Label>
-                <Textarea 
-                    id="doctor-message"
-                    placeholder="e.g., Running 15 minutes late."
-                    value={doctorMessage}
-                    onChange={(e) => setDoctorMessage(e.target.value)}
+        <div className="lg:col-span-2 space-y-6">
+            <Card>
+            <CardHeader className="flex flex-row items-start justify-between">
+                <div>
+                <CardTitle className="font-headline">Your Status</CardTitle>
+                <CardDescription>Set your availability.</CardDescription>
+                </div>
+                <Switch
+                checked={isAvailable}
+                onCheckedChange={setIsAvailable}
+                aria-label="Doctor availability status"
                 />
-             </div>
-          </CardContent>
-          <CardFooter>
-            <Button onClick={handleUpdateMessage} disabled={isUpdatingMessage}>
-              <MessageSquarePlus /> {isUpdatingMessage ? 'Updating...' : 'Update Message'}
-            </Button>
-          </CardFooter>
-        </Card>
-        
-        <Card>
+            </CardHeader>
+            <CardContent className="space-y-4">
+                <div>
+                    <p className={`text-lg font-semibold ${isAvailable ? 'text-green-600' : 'text-red-600'}`}>
+                    {isAvailable ? "Available for Consultation" : "Not Available"}
+                    </p>
+                </div>
+                <div className="space-y-2">
+                    <Label htmlFor="doctor-message">Patient Message</Label>
+                    <Textarea 
+                        id="doctor-message"
+                        placeholder="e.g., Running 15 minutes late."
+                        value={doctorMessage}
+                        onChange={(e) => setDoctorMessage(e.target.value)}
+                    />
+                </div>
+            </CardContent>
+            <CardFooter>
+                <Button onClick={handleUpdateMessage} disabled={isUpdatingMessage}>
+                <MessageSquarePlus /> {isUpdatingMessage ? 'Updating...' : 'Update Message'}
+                </Button>
+            </CardFooter>
+            </Card>
+
+            <Card>
             <CardHeader>
                 <CardTitle className="font-headline flex items-center gap-2">
-                    <DollarSign className="text-primary"/> Today's Revenue
+                    <User className="text-primary"/> Current Patient
                 </CardTitle>
-                <CardDescription>Total earnings from finished consultations today.</CardDescription>
+                <CardDescription>
+                    {currentPatient ? "Patient waiting for consultation." : "No patient is currently in consultation."}
+                </CardDescription>
             </CardHeader>
-            <CardContent>
-                {isLoading ? (
-                    <Skeleton className="h-10 w-24" />
-                ) : (
-                    <p className="text-3xl font-bold">
-                        ${todaysRevenue.toFixed(2)}
+            {isLoading ? (
+                <CardContent className="space-y-2">
+                    <Skeleton className="h-7 w-1/2" />
+                    <Skeleton className="h-5 w-1/4" />
+                    <Skeleton className="h-5 w-3/4" />
+                </CardContent>
+            ) : currentPatient ? (
+                <CardContent className="space-y-2">
+                    <h3 className="text-xl font-bold">{currentPatient.name}</h3>
+                    <p className="text-sm"><strong className="font-medium">Age:</strong> {currentPatient.age || 'N/A'}</p>
+                    <p className="text-sm flex items-start">
+                        <HeartPulse className="h-4 w-4 mr-2 mt-0.5 text-destructive flex-shrink-0"/> 
+                        <strong className="font-medium">Chronic Diseases:</strong> {currentPatient.chronicDiseases || 'None'}
                     </p>
-                )}
-            </CardContent>
-        </Card>
-
-        <Card className="md:col-span-2 lg:col-span-1">
-          <CardHeader>
-            <CardTitle className="font-headline flex items-center gap-2">
-                <User className="text-primary"/> Current Patient
-            </CardTitle>
-            <CardDescription>
-                {currentPatient ? "Patient waiting for consultation." : "No patient is currently in consultation."}
-            </CardDescription>
-          </CardHeader>
-          {isLoading ? (
-             <CardContent className="space-y-2">
-                <Skeleton className="h-7 w-1/2" />
-                <Skeleton className="h-5 w-1/4" />
-                <Skeleton className="h-5 w-3/4" />
-             </CardContent>
-          ) : currentPatient ? (
-            <CardContent className="space-y-2">
-                <h3 className="text-xl font-bold">{currentPatient.name}</h3>
-                <p className="text-sm"><strong className="font-medium">Age:</strong> {currentPatient.age || 'N/A'}</p>
-                <p className="text-sm flex items-start">
-                    <HeartPulse className="h-4 w-4 mr-2 mt-0.5 text-destructive flex-shrink-0"/> 
-                    <strong className="font-medium">Chronic Diseases:</strong> {currentPatient.chronicDiseases || 'None'}
-                </p>
-            </CardContent>
-          ) : (
-            <CardContent>
-                 <p className="text-muted-foreground">Waiting to call the next patient.</p>
-            </CardContent>
-          )}
-          <CardFooter>
-            {currentPatient ? (
-                <div className="flex gap-2">
-                     <Button onClick={handleFinishConsultation} variant="outline">
-                        <CheckCircle /> Finish Consultation
-                    </Button>
-                    <Button onClick={handleCallNext} disabled={!nextPatient}>
-                        <LogIn /> Finish & Call Next
-                    </Button>
-                </div>
+                </CardContent>
             ) : (
-                <Button onClick={handleCallNext} disabled={!nextPatient || !isAvailable}>
-                    <LogIn /> Call Next Patient
-                </Button>
+                <CardContent>
+                    <p className="text-muted-foreground">Waiting to call the next patient.</p>
+                </CardContent>
             )}
-          </CardFooter>
-        </Card>
+            <CardFooter>
+                {currentPatient ? (
+                    <div className="flex gap-2">
+                        <Button onClick={handleFinishConsultation} variant="outline">
+                            <CheckCircle /> Finish Consultation
+                        </Button>
+                        <Button onClick={handleCallNext} disabled={!nextPatient}>
+                            <LogIn /> Finish & Call Next
+                        </Button>
+                    </div>
+                ) : (
+                    <Button onClick={handleCallNext} disabled={!nextPatient || !isAvailable}>
+                        <LogIn /> Call Next Patient
+                    </Button>
+                )}
+            </CardFooter>
+            </Card>
+        </div>
+
+        <div className="lg:col-span-1 space-y-6">
+            <Card>
+                <CardHeader>
+                    <CardTitle className="font-headline flex items-center gap-2">
+                        <DollarSign className="text-primary"/> Today's Revenue
+                    </CardTitle>
+                    <CardDescription>Total earnings from finished consultations today.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    {isLoading ? (
+                        <Skeleton className="h-10 w-24" />
+                    ) : (
+                        <p className="text-3xl font-bold">
+                            ${todaysRevenue.toFixed(2)}
+                        </p>
+                    )}
+                </CardContent>
+            </Card>
+
+            <Card>
+                <CardHeader>
+                    <CardTitle className="font-headline">Patient Data</CardTitle>
+                    <CardDescription>Download patient data report.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <Button className="w-full">
+                        <Download className="mr-2" /> Download 30-Day Report
+                    </Button>
+                </CardContent>
+            </Card>
+        </div>
+        
 
         <Card className="md:col-span-2 lg:col-span-3">
           <CardHeader>
@@ -271,18 +288,6 @@ export function DoctorDashboardClient() {
               <Send className="mr-2" /> Send to WhatsApp
             </Button>
           </CardFooter>
-        </Card>
-        
-        <Card>
-            <CardHeader>
-                <CardTitle className="font-headline">Patient Data</CardTitle>
-                <CardDescription>Download patient data report.</CardDescription>
-            </CardHeader>
-            <CardContent>
-                <Button className="w-full">
-                    <Download className="mr-2" /> Download 30-Day Report
-                </Button>
-            </CardContent>
         </Card>
 
       </div>
