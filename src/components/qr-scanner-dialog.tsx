@@ -28,48 +28,55 @@ export function QrScannerDialog({
   const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const { toast } = useToast();
+  const codeReader = new BrowserMultiFormatReader();
 
   useEffect(() => {
-    if (!isOpen) return;
-
-    const codeReader = new BrowserMultiFormatReader();
-    let selectedDeviceId: string;
-
-    const startScanner = async () => {
+    let controls: any;
+    if (isOpen) {
+      const getCameraPermissionAndStart = async () => {
         try {
-            const videoInputDevices = await codeReader.listVideoInputDevices();
-            if (videoInputDevices.length === 0) {
-                setHasCameraPermission(false);
-                return;
-            }
-            setHasCameraPermission(true);
-            selectedDeviceId = videoInputDevices[0].deviceId;
-            
-            if (videoRef.current) {
-                 const controls = await codeReader.decodeFromVideoDevice(selectedDeviceId, videoRef.current, (result, err) => {
-                    if (result) {
-                        onScanSuccess(result.getText());
-                    }
-                    if (err && !(err instanceof NotFoundException)) {
-                        console.error(err);
-                        toast({
-                            variant: "destructive",
-                            title: "Scan Error",
-                            description: "An error occurred while scanning.",
-                        });
-                    }
-                });
-            }
-        } catch (error) {
-            console.error('Error accessing camera:', error);
-            setHasCameraPermission(false);
-        }
-    };
+          const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+          setHasCameraPermission(true);
 
-    startScanner();
+          if (videoRef.current) {
+            videoRef.current.srcObject = stream;
+            // Start decoding after the video stream is ready
+            controls = await codeReader.decodeFromVideoElement(videoRef.current, (result, err) => {
+              if (result) {
+                onScanSuccess(result.getText());
+              }
+              if (err && !(err instanceof NotFoundException)) {
+                console.error("QR Scan Error:", err);
+                toast({
+                  variant: "destructive",
+                  title: "Scan Error",
+                  description: "An error occurred while scanning.",
+                });
+              }
+            });
+          }
+        } catch (error) {
+          console.error('Error accessing camera:', error);
+          setHasCameraPermission(false);
+          toast({
+            variant: 'destructive',
+            title: 'Camera Access Denied',
+            description: 'Please enable camera permissions in your browser settings to use the scanner.',
+          });
+        }
+      };
+
+      getCameraPermissionAndStart();
+    }
 
     return () => {
+      // Reset scanner and turn off camera when dialog closes or component unmounts
       codeReader.reset();
+      if (videoRef.current && videoRef.current.srcObject) {
+        const stream = videoRef.current.srcObject as MediaStream;
+        stream.getTracks().forEach(track => track.stop());
+        videoRef.current.srcObject = null;
+      }
     };
   }, [isOpen, onScanSuccess, toast]);
 
@@ -84,7 +91,7 @@ export function QrScannerDialog({
           </DialogDescription>
         </DialogHeader>
         <div className="mt-4">
-          <video ref={videoRef} className="w-full aspect-video rounded-md" />
+          <video ref={videoRef} className="w-full aspect-video rounded-md" autoPlay muted playsInline/>
 
           {hasCameraPermission === false && (
             <Alert variant="destructive" className="mt-4">
