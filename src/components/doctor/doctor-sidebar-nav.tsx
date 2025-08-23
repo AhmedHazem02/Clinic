@@ -36,8 +36,8 @@ export function DoctorSidebarNav() {
                   </Link>
                 </SidebarMenuItem>
                 <SidebarMenuItem>
-                  <Link href="#">
-                    <SidebarMenuButton>
+                  <Link href="/doctor/history">
+                    <SidebarMenuButton isActive={pathname === '/doctor/history'}>
                       <User />
                       Patient History
                     </SidebarMenuButton>
