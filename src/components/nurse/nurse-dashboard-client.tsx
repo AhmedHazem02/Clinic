@@ -20,7 +20,7 @@ export function NurseDashboardClient() {
                     <PatientRegistrationForm onPatientRegistered={handlePatientRegistered} />
                 </div>
                 <div className="lg:col-span-2">
-                    <QueueList />
+                    <QueueList onShowQrCode={setQrCodeData} />
                 </div>
             </div>
             <QrCodeDialog 
