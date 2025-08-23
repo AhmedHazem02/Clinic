@@ -11,7 +11,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
 export default function PatientStatusPage({ params }: { params: { phone: string } }) {
-  const { phone } = params;
+  const phone = params.phone;
   const [patientData, setPatientData] = useState<PatientInQueue | null>(null);
   const [peopleAhead, setPeopleAhead] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
