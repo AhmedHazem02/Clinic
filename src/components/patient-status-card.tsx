@@ -1,20 +1,15 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { User, Clock, HeartPulse, Hash } from "lucide-react";
 import { Separator } from "./ui/separator";
-
-export type PatientData = {
-  name: string;
-  queueNumber: number;
-  estimatedTime: number;
-  age: number;
-  chronicDiseases: string;
-};
+import { type PatientInQueue } from "@/services/queueService";
 
 interface PatientStatusCardProps {
-  data: PatientData;
+  data: PatientInQueue;
 }
 
 export function PatientStatusCard({ data }: PatientStatusCardProps) {
+    const estimatedTime = 0; // This can be calculated if needed
+
   return (
     <Card className="w-full animate-in fade-in-50 duration-500">
       <CardHeader>
@@ -33,14 +28,14 @@ export function PatientStatusCard({ data }: PatientStatusCardProps) {
             <div className="bg-primary/10 p-4 rounded-lg">
                 <Clock className="mx-auto h-6 w-6 text-primary mb-1" />
                 <p className="text-sm text-muted-foreground">Est. Wait Time</p>
-                <p className="text-3xl font-bold">{data.estimatedTime} <span className="text-xl">min</span></p>
+                <p className="text-3xl font-bold">{estimatedTime} <span className="text-xl">min</span></p>
             </div>
         </div>
         
         <Separator/>
 
         <div className="space-y-2 text-sm">
-            <p><strong className="font-medium text-foreground">Age:</strong> {data.age}</p>
+            {data.age && <p><strong className="font-medium text-foreground">Age:</strong> {data.age}</p>}
             <div className="flex items-start">
                 <HeartPulse className="h-4 w-4 mr-2 mt-0.5 text-destructive flex-shrink-0" />
                 <p><strong className="font-medium text-foreground">Chronic Diseases:</strong> {data.chronicDiseases || 'None'}</p>

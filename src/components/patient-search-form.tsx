@@ -13,40 +13,40 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { QrCode, Phone } from "lucide-react";
-import { PatientStatusCard, type PatientData } from "./patient-status-card";
+import { PatientStatusCard } from "./patient-status-card";
 import { Separator } from "./ui/separator";
+import { getPatientByPhone, type PatientInQueue } from "@/services/queueService";
 
 export function PatientSearchForm() {
   const [phoneNumber, setPhoneNumber] = useState("");
-  const [patientData, setPatientData] = useState<PatientData | null>(null);
+  const [patientData, setPatientData] = useState<PatientInQueue | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const mockSearch = () => {
+  const handleSearch = async () => {
     setIsLoading(true);
     setError(null);
     setPatientData(null);
 
-    setTimeout(() => {
-      if (phoneNumber === "1234567890") {
-        setPatientData({
-          name: "John Doe",
-          queueNumber: 5,
-          estimatedTime: 45, // 3 patients ahead * 15 mins
-          age: 34,
-          chronicDiseases: "Hypertension",
-        });
+    try {
+      const result = await getPatientByPhone(phoneNumber);
+      if (result) {
+        setPatientData(result);
       } else {
         setError("No patient found with this phone number for today's queue.");
       }
-      setIsLoading(false);
-    }, 1500);
+    } catch (err) {
+        console.error("Error searching for patient:", err);
+        setError("An error occurred while searching. Please try again.");
+    } finally {
+        setIsLoading(false);
+    }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if(phoneNumber.trim()){
-        mockSearch();
+        handleSearch();
     } else {
         setError("Please enter a valid phone number.")
     }
