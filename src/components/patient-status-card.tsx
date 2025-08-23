@@ -1,14 +1,17 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { User, Clock, HeartPulse, Hash } from "lucide-react";
+import { User, Clock, HeartPulse, Hash, Users } from "lucide-react";
 import { Separator } from "./ui/separator";
 import { type PatientInQueue } from "@/services/queueService";
 
+const CONSULTATION_TIME = 15; // in minutes
+
 interface PatientStatusCardProps {
   data: PatientInQueue;
+  peopleAhead: number;
 }
 
-export function PatientStatusCard({ data }: PatientStatusCardProps) {
-    const estimatedTime = 0; // This can be calculated if needed
+export function PatientStatusCard({ data, peopleAhead }: PatientStatusCardProps) {
+    const estimatedTime = peopleAhead * CONSULTATION_TIME;
 
   return (
     <Card className="w-full animate-in fade-in-50 duration-500">
@@ -19,11 +22,16 @@ export function PatientStatusCard({ data }: PatientStatusCardProps) {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-center">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
             <div className="bg-primary/10 p-4 rounded-lg">
                 <Hash className="mx-auto h-6 w-6 text-primary mb-1" />
                 <p className="text-sm text-muted-foreground">Queue Number</p>
                 <p className="text-3xl font-bold">{data.queueNumber}</p>
+            </div>
+             <div className="bg-primary/10 p-4 rounded-lg">
+                <Users className="mx-auto h-6 w-6 text-primary mb-1" />
+                <p className="text-sm text-muted-foreground">People Ahead</p>
+                <p className="text-3xl font-bold">{peopleAhead}</p>
             </div>
             <div className="bg-primary/10 p-4 rounded-lg">
                 <Clock className="mx-auto h-6 w-6 text-primary mb-1" />

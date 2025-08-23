@@ -71,7 +71,10 @@ export const addPatientToQueue = async (patientData: NewPatient) => {
 }
 
 // Listen for real-time updates to today's queue
-export const listenToTodaysQueue = (callback: (patients: PatientInQueue[]) => void) => {
+export const listenToTodaysQueue = (
+    callback: (patients: PatientInQueue[]) => void,
+    errorCallback?: (error: Error) => void
+) => {
     const queueCollection = getTodaysQueueCollection();
     const q = query(queueCollection, orderBy("queueNumber"));
 
@@ -83,8 +86,9 @@ export const listenToTodaysQueue = (callback: (patients: PatientInQueue[]) => vo
         callback(patients);
     }, (error) => {
         console.error("Error listening to queue:", error);
-        // Optionally, you could pass an error state to the callback
-        callback([]); // Send empty array on error
+        if (errorCallback) {
+            errorCallback(error);
+        }
     });
 
     return unsubscribe; // Return the unsubscribe function to clean up the listener

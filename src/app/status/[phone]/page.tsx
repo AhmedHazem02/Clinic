@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getPatientByPhone, type PatientInQueue } from "@/services/queueService";
+import { listenToTodaysQueue, type PatientInQueue } from "@/services/queueService";
 import { PatientStatusCard } from "@/components/patient-status-card";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -11,30 +11,38 @@ import { Button } from "@/components/ui/button";
 
 export default function PatientStatusPage({ params }: { params: { phone: string } }) {
   const [patientData, setPatientData] = useState<PatientInQueue | null>(null);
+  const [peopleAhead, setPeopleAhead] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { phone } = params;
 
   useEffect(() => {
     if (phone) {
-      const fetchPatientData = async () => {
-        setIsLoading(true);
-        setError(null);
-        try {
-          const result = await getPatientByPhone(phone);
-          if (result) {
-            setPatientData(result);
-          } else {
-            setError("No patient found with this phone number for today's queue.");
-          }
-        } catch (err) {
+      setIsLoading(true);
+      setError(null);
+
+      const unsubscribe = listenToTodaysQueue((queue) => {
+        const currentPatient = queue.find(p => p.phone === phone);
+
+        if (currentPatient) {
+          const patientsAhead = queue.filter(p => 
+            p.status === 'Waiting' && p.queueNumber < currentPatient.queueNumber
+          ).length;
+          
+          setPatientData(currentPatient);
+          setPeopleAhead(patientsAhead);
+        } else {
+          setError("No patient found with this phone number for today's queue.");
+        }
+        setIsLoading(false);
+      }, (err) => {
           console.error("Error fetching patient status:", err);
           setError("An error occurred while fetching the patient status.");
-        } finally {
           setIsLoading(false);
-        }
-      };
-      fetchPatientData();
+      });
+
+      // Cleanup subscription on component unmount
+      return () => unsubscribe();
     }
   }, [phone]);
 
@@ -56,7 +64,8 @@ export default function PatientStatusPage({ params }: { params: { phone: string 
                         <Skeleton className="h-8 w-48" />
                     </CardHeader>
                     <CardContent className="space-y-4">
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                            <Skeleton className="h-28 w-full" />
                             <Skeleton className="h-28 w-full" />
                             <Skeleton className="h-28 w-full" />
                         </div>
@@ -83,7 +92,7 @@ export default function PatientStatusPage({ params }: { params: { phone: string 
             )}
 
             {patientData && (
-                <PatientStatusCard data={patientData} />
+                <PatientStatusCard data={patientData} peopleAhead={peopleAhead} />
             )}
         </div>
     </main>
