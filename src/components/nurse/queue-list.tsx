@@ -107,7 +107,7 @@ export function QueueList({ onShowQrCode }: QueueListProps) {
     <Card>
       <CardHeader>
         <CardTitle className="font-headline flex items-center gap-2">
-            <Users className="text-primary"/> Today's Queue
+            <Users className="text-primary"/> Queue
         </CardTitle>
         <CardDescription>
           Live view of patients waiting for consultation.
@@ -133,7 +133,7 @@ export function QueueList({ onShowQrCode }: QueueListProps) {
             </TableHeader>
             <TableBody>
                 {patients.length > 0 ? (
-                    patients.filter(p => p.status !== 'Finished').map((patient) => (
+                    patients.map((patient) => (
                     <TableRow key={patient.id}>
                         <TableCell className="font-bold text-lg">{patient.queueNumber}</TableCell>
                         <TableCell className="font-medium">{patient.name}</TableCell>

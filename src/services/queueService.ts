@@ -81,10 +81,7 @@ export const listenToQueue = (
         const patients: PatientInQueue[] = [];
         querySnapshot.forEach((doc) => {
             const patient = { id: doc.id, ...doc.data() } as PatientInQueue;
-            // Filter for only 'Waiting' and 'Consulting' statuses on the client
-            if (patient.status === 'Waiting' || patient.status === 'Consulting') {
-                patients.push(patient);
-            }
+             patients.push(patient);
         });
         callback(patients);
     }, (error) => {
