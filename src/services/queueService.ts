@@ -13,7 +13,8 @@ import {
     updateDoc,
     writeBatch,
     deleteDoc,
-    or
+    or,
+    and
 } from "firebase/firestore";
 
 export type PatientStatus = 'Waiting' | 'Consulting' | 'Finished';
@@ -100,8 +101,10 @@ export const listenToQueue = (
 export const getPatientByPhone = async (phone: string): Promise<PatientInQueue | null> => {
     const q = query(
         patientsCollection, 
-        where("phone", "==", phone), 
-        or(where("status", "==", "Waiting"), where("status", "==", "Consulting")),
+        and(
+            where("phone", "==", phone), 
+            or(where("status", "==", "Waiting"), where("status", "==", "Consulting"))
+        ),
         limit(1)
     );
     
