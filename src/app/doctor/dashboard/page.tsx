@@ -1,0 +1,13 @@
+import { DoctorDashboardClient } from "@/components/doctor/doctor-dashboard-client";
+
+export default function DoctorDashboardPage() {
+    return (
+        <div className="space-y-6">
+            <div>
+                <h1 className="text-3xl font-bold font-headline">Doctor Dashboard</h1>
+                <p className="text-muted-foreground">Manage your consultations and prescriptions.</p>
+            </div>
+            <DoctorDashboardClient />
+        </div>
+    );
+}
