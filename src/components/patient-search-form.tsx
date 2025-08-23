@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -13,17 +14,16 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { QrCode, Phone } from "lucide-react";
-import { PatientStatusCard } from "./patient-status-card";
 import { Separator } from "./ui/separator";
-import { getPatientByPhone, type PatientInQueue } from "@/services/queueService";
+import { getPatientByPhone } from "@/services/queueService";
 import { QrScannerDialog } from "./qr-scanner-dialog";
 
 export function PatientSearchForm() {
   const [phoneNumber, setPhoneNumber] = useState("");
-  const [patientData, setPatientData] = useState<PatientInQueue | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isScannerOpen, setIsScannerOpen] = useState(false);
+  const router = useRouter();
 
   const handleSearch = async (phone: string) => {
     if (!phone.trim()) {
@@ -33,12 +33,11 @@ export function PatientSearchForm() {
     
     setIsLoading(true);
     setError(null);
-    setPatientData(null);
 
     try {
       const result = await getPatientByPhone(phone);
       if (result) {
-        setPatientData(result);
+        router.push(`/status/${phone}`);
       } else {
         setError("No patient found with this phone number for today's queue.");
       }
@@ -106,12 +105,6 @@ export function PatientSearchForm() {
       </Card>
 
       {error && <p className="mt-4 text-center text-sm text-destructive">{error}</p>}
-
-      {patientData && (
-        <div className="mt-6">
-          <PatientStatusCard data={patientData} />
-        </div>
-      )}
 
       <QrScannerDialog 
         isOpen={isScannerOpen}
