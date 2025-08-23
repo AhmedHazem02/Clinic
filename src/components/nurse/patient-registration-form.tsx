@@ -25,6 +25,8 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { UserPlus } from "lucide-react";
+import { addPatientToQueue } from "@/services/queueService";
+import { useState } from "react";
 
 const formSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters."),
@@ -35,23 +37,42 @@ const formSchema = z.object({
 
 export function PatientRegistrationForm() {
   const { toast } = useToast();
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: "",
       phone: "",
-      age: "" as any,
+      age: undefined,
       diseases: "",
     },
   });
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
-    console.log(values);
-    toast({
-      title: "Patient Registered",
-      description: `${values.name} has been added to the queue.`,
-    });
-    form.reset();
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    setIsSubmitting(true);
+    try {
+      await addPatientToQueue({
+        name: values.name,
+        phone: values.phone,
+        age: values.age || null,
+        chronicDiseases: values.diseases || null,
+      });
+
+      toast({
+        title: "Patient Registered",
+        description: `${values.name} has been added to the queue.`,
+      });
+      form.reset();
+    } catch (error) {
+       toast({
+        variant: "destructive",
+        title: "Registration Failed",
+        description: "Could not add patient to the queue. Please try again.",
+      });
+      console.error("Failed to register patient:", error);
+    } finally {
+        setIsSubmitting(false);
+    }
   }
 
   return (
@@ -98,7 +119,7 @@ export function PatientRegistrationForm() {
                 <FormItem>
                   <FormLabel>Patient Age (optional)</FormLabel>
                   <FormControl>
-                    <Input type="number" placeholder="35" {...field} />
+                    <Input type="number" placeholder="35" {...field} value={field.value ?? ''} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -114,6 +135,7 @@ export function PatientRegistrationForm() {
                     <Textarea
                       placeholder="e.g., Hypertension, Diabetes"
                       {...field}
+                      value={field.value ?? ''}
                     />
                   </FormControl>
                   <FormMessage />
@@ -122,7 +144,9 @@ export function PatientRegistrationForm() {
             />
           </CardContent>
           <CardFooter>
-            <Button type="submit" className="w-full">Add to Queue</Button>
+            <Button type="submit" className="w-full" disabled={isSubmitting}>
+                {isSubmitting ? "Adding..." : "Add to Queue"}
+            </Button>
           </CardFooter>
         </form>
       </Form>

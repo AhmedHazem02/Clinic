@@ -1,5 +1,7 @@
 import { NurseDashboardClient } from "@/components/nurse/nurse-dashboard-client";
 
+export const dynamic = 'force-dynamic';
+
 export default function NurseDashboardPage() {
     return (
         <div className="space-y-6">

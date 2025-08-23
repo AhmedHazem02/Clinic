@@ -18,43 +18,36 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Users } from 'lucide-react';
+import { listenToTodaysQueue, type PatientInQueue } from '@/services/queueService';
+import { Skeleton } from '../ui/skeleton';
 
-type Patient = {
-    queueNumber: number;
-    name: string;
-    phone: string;
-    status: 'Waiting' | 'Consulting' | 'Finished';
-};
-
-interface QueueListProps {
-    initialPatients: Patient[];
-}
 
 const CONSULTATION_TIME = 15; // in minutes
 
-export function QueueList({ initialPatients }: QueueListProps) {
-    const [patients, setPatients] = useState(initialPatients);
+export function QueueList() {
+    const [patients, setPatients] = useState<PatientInQueue[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
     
-    // Simulate real-time updates
     useEffect(() => {
-        const interval = setInterval(() => {
-            // This is a mock update. In a real app, this would be handled by a Firestore listener.
-            // For example, moving the next patient to 'Consulting'.
-        }, 30000); // update every 30 seconds
-        return () => clearInterval(interval);
+        const unsubscribe = listenToTodaysQueue((updatedQueue) => {
+            setPatients(updatedQueue);
+            setIsLoading(false);
+        });
+
+        // Cleanup subscription on component unmount
+        return () => unsubscribe();
     }, []);
 
     const calculateWaitTime = (queueNumber: number) => {
         const consultingPatient = patients.find(p => p.status === 'Consulting');
         if (!consultingPatient) return 0;
 
-        const patientsAhead = queueNumber - consultingPatient.queueNumber - 1;
-        if (patientsAhead < 0) return 0; // Already consulting or finished
+        const patientsAhead = patients.filter(p => p.status === 'Waiting' && p.queueNumber < queueNumber).length;
         
-        return (patientsAhead + 1) * CONSULTATION_TIME;
+        return (patientsAhead) * CONSULTATION_TIME;
     }
 
-    const getStatusBadgeVariant = (status: Patient['status']) => {
+    const getStatusBadgeVariant = (status: PatientInQueue['status']) => {
         switch (status) {
             case 'Consulting':
                 return 'default';
@@ -78,28 +71,44 @@ export function QueueList({ initialPatients }: QueueListProps) {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-[80px]">Queue #</TableHead>
-              <TableHead>Name</TableHead>
-              <TableHead>Est. Wait</TableHead>
-              <TableHead className="text-right">Status</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {patients.filter(p => p.status !== 'Finished').map((patient) => (
-              <TableRow key={patient.queueNumber}>
-                <TableCell className="font-bold text-lg">{patient.queueNumber}</TableCell>
-                <TableCell className="font-medium">{patient.name}</TableCell>
-                <TableCell>{patient.status === 'Waiting' ? `${calculateWaitTime(patient.queueNumber)} min` : '-'}</TableCell>
-                <TableCell className="text-right">
-                    <Badge variant={getStatusBadgeVariant(patient.status)}>{patient.status}</Badge>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+        {isLoading ? (
+             <div className="space-y-2">
+                <Skeleton className="h-12 w-full" />
+                <Skeleton className="h-12 w-full" />
+                <Skeleton className="h-12 w-full" />
+             </div>
+        ) : (
+            <Table>
+            <TableHeader>
+                <TableRow>
+                <TableHead className="w-[80px]">Queue #</TableHead>
+                <TableHead>Name</TableHead>
+                <TableHead>Est. Wait</TableHead>
+                <TableHead className="text-right">Status</TableHead>
+                </TableRow>
+            </TableHeader>
+            <TableBody>
+                {patients.length > 0 ? (
+                    patients.filter(p => p.status !== 'Finished').map((patient) => (
+                    <TableRow key={patient.id}>
+                        <TableCell className="font-bold text-lg">{patient.queueNumber}</TableCell>
+                        <TableCell className="font-medium">{patient.name}</TableCell>
+                        <TableCell>{patient.status === 'Waiting' ? `${calculateWaitTime(patient.queueNumber)} min` : '-'}</TableCell>
+                        <TableCell className="text-right">
+                            <Badge variant={getStatusBadgeVariant(patient.status)}>{patient.status}</Badge>
+                        </TableCell>
+                    </TableRow>
+                    ))
+                ) : (
+                    <TableRow>
+                        <TableCell colSpan={4} className="text-center text-muted-foreground">
+                            No patients in the queue yet.
+                        </TableCell>
+                    </TableRow>
+                )}
+            </TableBody>
+            </Table>
+        )}
       </CardContent>
     </Card>
   );
