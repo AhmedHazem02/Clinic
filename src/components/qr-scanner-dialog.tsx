@@ -10,7 +10,8 @@ import {
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { useState, useEffect, useRef } from "react";
 import { CameraOff } from "lucide-react";
-import { BrowserMultiFormatReader, NotFoundException } from '@zxing/browser';
+import { BrowserMultiFormatReader } from '@zxing/browser';
+import { NotFoundException } from '@zxing/library';
 import { useToast } from "@/hooks/use-toast";
 
 interface QrScannerDialogProps {
