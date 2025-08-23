@@ -145,41 +145,6 @@ export function DoctorDashboardClient() {
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         <div className="lg:col-span-2 space-y-6">
             <Card>
-            <CardHeader className="flex flex-row items-start justify-between">
-                <div>
-                <CardTitle className="font-headline">Your Status</CardTitle>
-                <CardDescription>Set your availability.</CardDescription>
-                </div>
-                <Switch
-                checked={isAvailable}
-                onCheckedChange={setIsAvailable}
-                aria-label="Doctor availability status"
-                />
-            </CardHeader>
-            <CardContent className="space-y-4">
-                <div>
-                    <p className={`text-lg font-semibold ${isAvailable ? 'text-green-600' : 'text-red-600'}`}>
-                    {isAvailable ? "Available for Consultation" : "Not Available"}
-                    </p>
-                </div>
-                <div className="space-y-2">
-                    <Label htmlFor="doctor-message">Patient Message</Label>
-                    <Textarea 
-                        id="doctor-message"
-                        placeholder="e.g., Running 15 minutes late."
-                        value={doctorMessage}
-                        onChange={(e) => setDoctorMessage(e.target.value)}
-                    />
-                </div>
-            </CardContent>
-            <CardFooter>
-                <Button onClick={handleUpdateMessage} disabled={isUpdatingMessage}>
-                <MessageSquarePlus /> {isUpdatingMessage ? 'Updating...' : 'Update Message'}
-                </Button>
-            </CardFooter>
-            </Card>
-
-            <Card>
             <CardHeader>
                 <CardTitle className="font-headline flex items-center gap-2">
                     <User className="text-primary"/> Current Patient
@@ -228,6 +193,40 @@ export function DoctorDashboardClient() {
         </div>
 
         <div className="lg:col-span-1 space-y-6">
+            <Card>
+            <CardHeader className="flex flex-row items-start justify-between">
+                <div>
+                <CardTitle className="font-headline">Your Status</CardTitle>
+                <CardDescription>Set your availability.</CardDescription>
+                </div>
+                <Switch
+                checked={isAvailable}
+                onCheckedChange={setIsAvailable}
+                aria-label="Doctor availability status"
+                />
+            </CardHeader>
+            <CardContent className="space-y-4">
+                <div>
+                    <p className={`text-lg font-semibold ${isAvailable ? 'text-green-600' : 'text-red-600'}`}>
+                    {isAvailable ? "Available for Consultation" : "Not Available"}
+                    </p>
+                </div>
+                <div className="space-y-2">
+                    <Label htmlFor="doctor-message">Patient Message</Label>
+                    <Textarea 
+                        id="doctor-message"
+                        placeholder="e.g., Running 15 minutes late."
+                        value={doctorMessage}
+                        onChange={(e) => setDoctorMessage(e.target.value)}
+                    />
+                </div>
+            </CardContent>
+            <CardFooter>
+                <Button onClick={handleUpdateMessage} disabled={isUpdatingMessage}>
+                <MessageSquarePlus /> {isUpdatingMessage ? 'Updating...' : 'Update Message'}
+                </Button>
+            </CardFooter>
+            </Card>
             <Card>
                 <CardHeader>
                     <CardTitle className="font-headline flex items-center gap-2">
