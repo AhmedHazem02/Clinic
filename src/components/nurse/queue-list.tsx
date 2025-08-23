@@ -29,8 +29,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from '@/components/ui/button';
-import { Users, QrCode, Trash2 } from 'lucide-react';
-import { listenToQueue, removePatientFromQueue, type PatientInQueue, listenToClinicSettings } from '@/services/queueService';
+import { Users, QrCode, Trash2, PlayCircle } from 'lucide-react';
+import { listenToQueue, removePatientFromQueue, type PatientInQueue, listenToClinicSettings, updatePatientStatus } from '@/services/queueService';
 import { Skeleton } from '../ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
@@ -79,6 +79,32 @@ export function QueueList({ onShowQrCode, searchQuery }: QueueListProps) {
             patientDate.includes(searchTerm)
         )
     });
+
+    const isDoctorBusy = patients.some(p => p.status === 'Consulting');
+
+    const handleStartConsultation = async (patient: PatientInQueue) => {
+        if (isDoctorBusy) {
+            toast({
+                variant: "destructive",
+                title: "Cannot start consultation",
+                description: "Another patient is already in consultation.",
+            });
+            return;
+        }
+        try {
+            await updatePatientStatus(patient.id, 'Consulting');
+            toast({
+                title: "Consultation Started",
+                description: `${patient.name} is now in consultation.`,
+            });
+        } catch (error) {
+             toast({
+                variant: "destructive",
+                title: "Error",
+                description: "Could not start the consultation.",
+            });
+        }
+    };
 
     const calculateWaitTime = (queueNumber: number) => {
         const consultingPatient = patients.find(p => p.status === 'Consulting');
@@ -166,9 +192,15 @@ export function QueueList({ onShowQrCode, searchQuery }: QueueListProps) {
                             <Badge variant={getStatusBadgeVariant(patient.status)}>{patient.status}</Badge>
                         </TableCell>
                         <TableCell className="text-right space-x-2">
+                            {patient.status === 'Waiting' && (
+                                <Button variant="outline" size="sm" onClick={() => handleStartConsultation(patient)} disabled={isDoctorBusy}>
+                                    <PlayCircle className="mr-2 h-4 w-4" />
+                                    Start
+                                </Button>
+                            )}
                             <Button variant="outline" size="sm" onClick={() => onShowQrCode(patient)}>
                                 <QrCode className="mr-2 h-4 w-4" />
-                                Show QR
+                                QR
                             </Button>
                             <Button variant="ghost" size="sm" className="text-destructive hover:bg-destructive/10" onClick={() => setPatientToCancel(patient)}>
                                 <Trash2 className="mr-2 h-4 w-4" />
