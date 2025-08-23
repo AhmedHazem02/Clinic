@@ -190,6 +190,36 @@ export function DoctorDashboardClient() {
                 )}
             </CardFooter>
             </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="font-headline">Create Prescription</CardTitle>
+                <CardDescription>
+                  {currentPatient ? `Write a prescription for ${currentPatient.name}. Use AI assist for suggestions.` : "No active patient."}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <Textarea
+                  placeholder="e.g., Take one tablet of Paracetamol 500mg..."
+                  className="min-h-[150px]"
+                  value={prescription}
+                  onChange={(e) => setPrescription(e.target.value)}
+                  disabled={!currentPatient}
+                />
+                <Button variant="outline" onClick={() => setIsAiDialogOpen(true)} disabled={!currentPatient}>
+                  <Bot className="mr-2" />
+                  AI Assist
+                </Button>
+              </CardContent>
+              <CardFooter className="gap-2 justify-end">
+                <Button variant="secondary" onClick={handlePrint} disabled={!currentPatient || !prescription.trim()}>
+                  <Printer className="mr-2" /> Print
+                </Button>
+                <Button onClick={handleSendToWhatsApp} disabled={!currentPatient || !prescription.trim()}>
+                  <Send className="mr-2" /> Send to WhatsApp
+                </Button>
+              </CardFooter>
+            </Card>
         </div>
 
         <div className="lg:col-span-1 space-y-6">
@@ -257,38 +287,6 @@ export function DoctorDashboardClient() {
                 </CardContent>
             </Card>
         </div>
-        
-
-        <Card className="md:col-span-2 lg:col-span-3">
-          <CardHeader>
-            <CardTitle className="font-headline">Create Prescription</CardTitle>
-            <CardDescription>
-              {currentPatient ? `Write a prescription for ${currentPatient.name}. Use AI assist for suggestions.` : "No active patient."}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <Textarea
-              placeholder="e.g., Take one tablet of Paracetamol 500mg..."
-              className="min-h-[150px]"
-              value={prescription}
-              onChange={(e) => setPrescription(e.target.value)}
-              disabled={!currentPatient}
-            />
-            <Button variant="outline" onClick={() => setIsAiDialogOpen(true)} disabled={!currentPatient}>
-              <Bot className="mr-2" />
-              AI Assist
-            </Button>
-          </CardContent>
-          <CardFooter className="gap-2 justify-end">
-            <Button variant="secondary" onClick={handlePrint} disabled={!currentPatient || !prescription.trim()}>
-              <Printer className="mr-2" /> Print
-            </Button>
-            <Button onClick={handleSendToWhatsApp} disabled={!currentPatient || !prescription.trim()}>
-              <Send className="mr-2" /> Send to WhatsApp
-            </Button>
-          </CardFooter>
-        </Card>
-
       </div>
        {currentPatient && (
             <AiAssistDialog
