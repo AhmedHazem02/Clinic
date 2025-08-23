@@ -1,9 +1,11 @@
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { User, Clock, HeartPulse, Hash, Users } from "lucide-react";
 import { Separator } from "./ui/separator";
-import { type PatientInQueue } from "@/services/queueService";
+import { type PatientInQueue, listenToClinicSettings } from "@/services/queueService";
+import { useEffect, useState } from "react";
 
-const CONSULTATION_TIME = 15; // in minutes
+const DEFAULT_CONSULTATION_TIME = 15; // in minutes
 
 interface PatientStatusCardProps {
   data: PatientInQueue;
@@ -11,7 +13,18 @@ interface PatientStatusCardProps {
 }
 
 export function PatientStatusCard({ data, peopleAhead }: PatientStatusCardProps) {
-    const estimatedTime = peopleAhead * CONSULTATION_TIME;
+  const [consultationTime, setConsultationTime] = useState(DEFAULT_CONSULTATION_TIME);
+  
+  useEffect(() => {
+    const unsubscribe = listenToClinicSettings((settings) => {
+      if (settings) {
+        setConsultationTime(settings.consultationTime);
+      }
+    });
+    return () => unsubscribe();
+  }, []);
+
+  const estimatedTime = peopleAhead * consultationTime;
 
   return (
     <Card className="w-full animate-in fade-in-50 duration-500">

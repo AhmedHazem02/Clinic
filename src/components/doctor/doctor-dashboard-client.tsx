@@ -17,10 +17,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Download, Bot, Send, Printer, User, HeartPulse, LogIn, CheckCircle, MessageSquarePlus, DollarSign } from "lucide-react";
 import { AiAssistDialog } from "./ai-assist-dialog";
 import { useToast } from "@/hooks/use-toast";
-import { listenToQueue, type PatientInQueue, finishAndCallNext, updatePatientStatus, updateDoctorMessage, listenToDoctorMessage } from "@/services/queueService";
+import { listenToQueue, type PatientInQueue, finishAndCallNext, updatePatientStatus, updateDoctorMessage, listenToDoctorMessage, listenToClinicSettings } from "@/services/queueService";
 import { Skeleton } from "../ui/skeleton";
 
-const CONSULTATION_COST = 50; // As defined in settings
+const DEFAULT_CONSULTATION_COST = 50;
 
 export function DoctorDashboardClient() {
   const [isAvailable, setIsAvailable] = useState(true);
@@ -33,21 +33,17 @@ export function DoctorDashboardClient() {
   const [doctorMessage, setDoctorMessage] = useState("");
   const [isUpdatingMessage, setIsUpdatingMessage] = useState(false);
   const [todaysRevenue, setTodaysRevenue] = useState(0);
+  const [consultationCost, setConsultationCost] = useState(DEFAULT_CONSULTATION_COST);
 
   useEffect(() => {
+     const unsubscribeSettings = listenToClinicSettings((settings) => {
+      if (settings) {
+        setConsultationCost(settings.consultationCost);
+      }
+    });
+
     const unsubscribeQueue = listenToQueue((updatedQueue) => {
       setQueue(updatedQueue);
-
-      const today = new Date();
-      const todaysFinishedPatients = updatedQueue.filter(p => {
-        const bookingDate = p.bookingDate;
-        return p.status === 'Finished' &&
-               bookingDate.getDate() === today.getDate() &&
-               bookingDate.getMonth() === today.getMonth() &&
-               bookingDate.getFullYear() === today.getFullYear();
-      });
-      setTodaysRevenue(todaysFinishedPatients.length * CONSULTATION_COST);
-
       setIsLoading(false);
     });
     
@@ -58,8 +54,22 @@ export function DoctorDashboardClient() {
     return () => {
       unsubscribeQueue();
       unsubscribeMessage();
+      unsubscribeSettings();
     };
   }, []);
+
+  useEffect(() => {
+    const today = new Date();
+    const todaysFinishedPatients = queue.filter(p => {
+        const bookingDate = p.bookingDate;
+        return p.status === 'Finished' &&
+                bookingDate.getDate() === today.getDate() &&
+                bookingDate.getMonth() === today.getMonth() &&
+                bookingDate.getFullYear() === today.getFullYear();
+    });
+    setTodaysRevenue(todaysFinishedPatients.length * consultationCost);
+  }, [queue, consultationCost]);
+
 
   const currentPatient = queue.find(p => p.status === 'Consulting');
   const nextPatient = queue.find(p => p.status === 'Waiting');

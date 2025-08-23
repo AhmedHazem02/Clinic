@@ -30,13 +30,12 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from '@/components/ui/button';
 import { Users, QrCode, Trash2 } from 'lucide-react';
-import { listenToQueue, removePatientFromQueue, type PatientInQueue } from '@/services/queueService';
+import { listenToQueue, removePatientFromQueue, type PatientInQueue, listenToClinicSettings } from '@/services/queueService';
 import { Skeleton } from '../ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 
-
-const CONSULTATION_TIME = 15; // in minutes
+const DEFAULT_CONSULTATION_TIME = 15; // in minutes
 
 interface QueueListProps {
     onShowQrCode: (patient: PatientInQueue) => void;
@@ -48,15 +47,25 @@ export function QueueList({ onShowQrCode, searchQuery }: QueueListProps) {
     const [isLoading, setIsLoading] = useState(true);
     const [patientToCancel, setPatientToCancel] = useState<PatientInQueue | null>(null);
     const { toast } = useToast();
+    const [consultationTime, setConsultationTime] = useState(DEFAULT_CONSULTATION_TIME);
     
     useEffect(() => {
-        const unsubscribe = listenToQueue((updatedQueue) => {
+        const unsubscribeQueue = listenToQueue((updatedQueue) => {
             setPatients(updatedQueue);
             setIsLoading(false);
         });
+        
+        const unsubscribeSettings = listenToClinicSettings((settings) => {
+            if (settings) {
+                setConsultationTime(settings.consultationTime);
+            }
+        });
 
         // Cleanup subscription on component unmount
-        return () => unsubscribe();
+        return () => {
+            unsubscribeQueue();
+            unsubscribeSettings();
+        };
     }, []);
 
     const filteredPatients = patients.filter(patient => {
@@ -75,10 +84,10 @@ export function QueueList({ onShowQrCode, searchQuery }: QueueListProps) {
         const consultingPatient = patients.find(p => p.status === 'Consulting');
         const patientsAhead = patients.filter(p => p.status === 'Waiting' && p.queueNumber < queueNumber).length;
         
-        let waitTime = patientsAhead * CONSULTATION_TIME;
+        let waitTime = patientsAhead * consultationTime;
         if (consultingPatient) {
             // A simple assumption that a consultation is halfway through on average
-            waitTime += CONSULTATION_TIME / 2;
+            waitTime += consultationTime / 2;
         }
         
         return Math.round(waitTime);

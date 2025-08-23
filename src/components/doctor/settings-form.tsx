@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useForm } from "react-hook-form";
@@ -23,7 +24,9 @@ import {
   CardFooter
 } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { updateClinicSettings, listenToClinicSettings, type ClinicSettings } from "@/services/queueService";
+import { Skeleton } from "../ui/skeleton";
 
 const settingsSchema = z.object({
   consultationTime: z.coerce.number().min(5, "Must be at least 5 minutes.").max(60, "Cannot exceed 60 minutes."),
@@ -35,8 +38,8 @@ type SettingsFormValues = z.infer<typeof settingsSchema>;
 export function SettingsForm() {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // In a real app, you would fetch these default values from a database.
   const form = useForm<SettingsFormValues>({
     resolver: zodResolver(settingsSchema),
     defaultValues: {
@@ -45,18 +48,36 @@ export function SettingsForm() {
     },
   });
 
+  useEffect(() => {
+    const unsubscribe = listenToClinicSettings((settings) => {
+      if (settings) {
+        form.reset({
+          consultationTime: settings.consultationTime,
+          consultationCost: settings.consultationCost
+        });
+      }
+      setIsLoading(false);
+    });
+    return () => unsubscribe();
+  }, [form]);
+
   async function onSubmit(values: SettingsFormValues) {
     setIsSubmitting(true);
-    console.log("Saving settings:", values);
-
-    // Mock saving the data
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    toast({
-      title: "Settings Saved",
-      description: "Your consultation settings have been updated.",
-    });
-    setIsSubmitting(false);
+    try {
+      await updateClinicSettings(values);
+      toast({
+        title: "Settings Saved",
+        description: "Your consultation settings have been updated.",
+      });
+    } catch (error) {
+       toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Could not save settings. Please try again.",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   return (
@@ -67,6 +88,20 @@ export function SettingsForm() {
           Set the average time and cost for each consultation.
         </CardDescription>
       </CardHeader>
+      {isLoading ? (
+        <CardContent className="space-y-6">
+            <div className="space-y-2">
+                <Skeleton className="h-5 w-40" />
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-4 w-3/4" />
+            </div>
+             <div className="space-y-2">
+                <Skeleton className="h-5 w-40" />
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-4 w-3/4" />
+            </div>
+        </CardContent>
+      ) : (
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)}>
           <CardContent className="space-y-6">
@@ -104,12 +139,13 @@ export function SettingsForm() {
             />
           </CardContent>
           <CardFooter>
-            <Button type="submit" disabled={isSubmitting}>
+            <Button type="submit" disabled={isSubmitting || isLoading}>
                 {isSubmitting ? "Saving..." : "Save Settings"}
             </Button>
           </CardFooter>
         </form>
       </Form>
+      )}
     </Card>
   );
 }

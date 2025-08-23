@@ -1,3 +1,4 @@
+
 import { db } from "@/lib/firebase";
 import { 
     collection, 
@@ -34,6 +35,12 @@ export interface PatientInQueue extends NewPatient {
     status: PatientStatus;
     createdAt: Timestamp;
 }
+
+export interface ClinicSettings {
+    consultationTime: number;
+    consultationCost: number;
+}
+
 
 // Get the main patients collection
 const patientsCollection = collection(db, 'patients');
@@ -187,6 +194,25 @@ export const listenToDoctorMessage = (callback: (message: string) => void) => {
             callback(doc.data().doctorMessage || "");
         } else {
             callback("");
+        }
+    });
+    return unsubscribe;
+};
+
+// Update clinic settings
+export const updateClinicSettings = async (settings: ClinicSettings) => {
+    const settingsDocRef = doc(clinicInfoCollection, 'settings');
+    return await setDoc(settingsDocRef, settings, { merge: true });
+};
+
+// Listen to clinic settings
+export const listenToClinicSettings = (callback: (settings: ClinicSettings | null) => void) => {
+    const settingsDocRef = doc(clinicInfoCollection, 'settings');
+    const unsubscribe = onSnapshot(settingsDocRef, (doc) => {
+        if (doc.exists()) {
+            callback(doc.data() as ClinicSettings);
+        } else {
+            callback(null);
         }
     });
     return unsubscribe;
