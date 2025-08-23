@@ -22,6 +22,7 @@ export type PatientStatus = 'Waiting' | 'Consulting' | 'Finished';
 export interface NewPatient {
     name: string;
     phone: string;
+    bookingDate: Date;
     age: number | null;
     chronicDiseases: string | null;
 }
@@ -67,6 +68,7 @@ export const addPatientToQueue = async (patientData: NewPatient) => {
 
     const newPatientDoc = {
         ...patientData,
+        bookingDate: Timestamp.fromDate(patientData.bookingDate),
         queueNumber,
         status: 'Waiting' as PatientStatus,
         createdAt: Timestamp.now(),
@@ -88,8 +90,19 @@ export const listenToQueue = (
     const unsubscribe = onSnapshot(q, (querySnapshot) => {
         const patients: PatientInQueue[] = [];
         querySnapshot.forEach((doc) => {
-            const patient = { id: doc.id, ...doc.data() } as PatientInQueue;
-             patients.push(patient);
+            const data = doc.data();
+            const patient: PatientInQueue = {
+                id: doc.id,
+                name: data.name,
+                phone: data.phone,
+                bookingDate: data.bookingDate.toDate(),
+                age: data.age,
+                chronicDiseases: data.chronicDiseases,
+                queueNumber: data.queueNumber,
+                status: data.status,
+                createdAt: data.createdAt,
+            };
+            patients.push(patient);
         });
         callback(patients);
     }, (error) => {
@@ -120,7 +133,12 @@ export const getPatientByPhone = async (phone: string): Promise<PatientInQueue |
     }
 
     const doc = snapshot.docs[0];
-    return { id: doc.id, ...doc.data() } as PatientInQueue;
+    const data = doc.data();
+    return { 
+        id: doc.id,
+        ...data,
+        bookingDate: data.bookingDate.toDate(),
+    } as PatientInQueue;
 }
 
 
