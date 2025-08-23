@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { QRCodeSVG } from "qrcode.react";
 import { type PatientInQueue } from "@/services/queueService";
 import { Printer } from "lucide-react";
+import { useEffect, useState } from "react";
 
 interface QrCodeDialogProps {
   patient: PatientInQueue | null;
@@ -20,6 +21,14 @@ interface QrCodeDialogProps {
 }
 
 export function QrCodeDialog({ patient, isOpen, onClose }: QrCodeDialogProps) {
+  const [statusUrl, setStatusUrl] = useState("");
+
+  useEffect(() => {
+    if (patient && typeof window !== "undefined") {
+      setStatusUrl(`${window.location.origin}/status/${patient.phone}`);
+    }
+  }, [patient]);
+
   if (!patient) return null;
 
   const handlePrint = () => {
@@ -37,7 +46,7 @@ export function QrCodeDialog({ patient, isOpen, onClose }: QrCodeDialogProps) {
         </DialogHeader>
         <div className="flex flex-col items-center justify-center p-4 gap-4">
             <div className="p-4 bg-white rounded-lg border">
-                 <QRCodeSVG value={patient.phone} size={200} />
+                 {statusUrl && <QRCodeSVG value={statusUrl} size={200} />}
             </div>
           <div className="text-center">
             <p className="font-bold text-lg">{patient.name}</p>

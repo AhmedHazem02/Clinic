@@ -49,7 +49,19 @@ export function QrScannerDialog({
           // Start decoding from the video element
           codeReader.decodeFromVideoDevice(undefined, videoRef.current, (result, err) => {
             if (result) {
-              onScanSuccess(result.getText());
+              // Extract phone number from URL if it's a URL
+              let scanResult = result.getText();
+              try {
+                const url = new URL(scanResult);
+                const pathParts = url.pathname.split('/');
+                const phone = pathParts[pathParts.length - 1];
+                if (phone) {
+                  scanResult = phone;
+                }
+              } catch (e) {
+                // Not a URL, use the result as is
+              }
+              onScanSuccess(scanResult);
             }
             if (err && !(err instanceof NotFoundException)) {
               console.error("QR Scan Error:", err);
