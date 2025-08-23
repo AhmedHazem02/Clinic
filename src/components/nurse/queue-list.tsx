@@ -16,11 +16,22 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from '@/components/ui/button';
-import { Users, QrCode } from 'lucide-react';
-import { listenToTodaysQueue, type PatientInQueue } from '@/services/queueService';
+import { Users, QrCode, Trash2 } from 'lucide-react';
+import { listenToTodaysQueue, removePatientFromQueue, type PatientInQueue } from '@/services/queueService';
 import { Skeleton } from '../ui/skeleton';
+import { useToast } from '@/hooks/use-toast';
 
 
 const CONSULTATION_TIME = 15; // in minutes
@@ -32,6 +43,8 @@ interface QueueListProps {
 export function QueueList({ onShowQrCode }: QueueListProps) {
     const [patients, setPatients] = useState<PatientInQueue[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [patientToCancel, setPatientToCancel] = useState<PatientInQueue | null>(null);
+    const { toast } = useToast();
     
     useEffect(() => {
         const unsubscribe = listenToTodaysQueue((updatedQueue) => {
@@ -65,7 +78,28 @@ export function QueueList({ onShowQrCode }: QueueListProps) {
         }
     }
 
+    const handleCancelReservation = async () => {
+        if (!patientToCancel) return;
+        try {
+            await removePatientFromQueue(patientToCancel.id);
+            toast({
+                title: "Reservation Cancelled",
+                description: `${patientToCancel.name}'s reservation has been cancelled.`,
+            });
+        } catch (error) {
+            console.error("Error cancelling reservation:", error);
+            toast({
+                variant: "destructive",
+                title: "Error",
+                description: "Could not cancel the reservation.",
+            });
+        } finally {
+            setPatientToCancel(null);
+        }
+    }
+
   return (
+    <>
     <Card>
       <CardHeader>
         <CardTitle className="font-headline flex items-center gap-2">
@@ -103,10 +137,14 @@ export function QueueList({ onShowQrCode }: QueueListProps) {
                         <TableCell>
                             <Badge variant={getStatusBadgeVariant(patient.status)}>{patient.status}</Badge>
                         </TableCell>
-                        <TableCell className="text-right">
+                        <TableCell className="text-right space-x-2">
                             <Button variant="outline" size="sm" onClick={() => onShowQrCode(patient)}>
                                 <QrCode className="mr-2 h-4 w-4" />
                                 Show QR
+                            </Button>
+                            <Button variant="ghost" size="sm" className="text-destructive" onClick={() => setPatientToCancel(patient)}>
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Cancel
                             </Button>
                         </TableCell>
                     </TableRow>
@@ -123,5 +161,22 @@ export function QueueList({ onShowQrCode }: QueueListProps) {
         )}
       </CardContent>
     </Card>
+    <AlertDialog open={!!patientToCancel} onOpenChange={(open) => !open && setPatientToCancel(null)}>
+        <AlertDialogContent>
+            <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+                This will permanently cancel the reservation for {patientToCancel?.name}. This action cannot be undone.
+            </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+            <AlertDialogCancel>Back</AlertDialogCancel>
+            <AlertDialogAction onClick={handleCancelReservation}>
+                Yes, cancel reservation
+            </AlertDialogAction>
+            </AlertDialogFooter>
+        </AlertDialogContent>
+    </AlertDialog>
+    </>
   );
 }

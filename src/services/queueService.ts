@@ -11,7 +11,8 @@ import {
     limit,
     doc,
     updateDoc,
-    writeBatch
+    writeBatch,
+    deleteDoc
 } from "firebase/firestore";
 
 export type PatientStatus = 'Waiting' | 'Consulting' | 'Finished';
@@ -133,3 +134,10 @@ export const finishAndCallNext = async (finishedPatientId: string, nextPatientId
     
     await batch.commit();
 }
+
+// Remove a patient from the queue
+export const removePatientFromQueue = async (patientId: string) => {
+    const queueCollection = getTodaysQueueCollection();
+    const patientDocRef = doc(queueCollection, patientId);
+    return await deleteDoc(patientDocRef);
+};

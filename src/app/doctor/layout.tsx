@@ -10,6 +10,7 @@ import {
   SidebarMenuButton,
   SidebarFooter,
   SidebarInset,
+  SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { Home, User, Settings, LogOut, Stethoscope } from "lucide-react";
 import Link from "next/link";
@@ -69,7 +70,11 @@ export default function DoctorLayout({
         </SidebarFooter>
       </Sidebar>
       <SidebarInset>
-        <main className="min-h-screen bg-background p-4 sm:p-6 lg:p-8">
+        <header className="p-4 sm:p-6 lg:p-8 flex items-center gap-4">
+            <SidebarTrigger className="md:hidden" />
+            <h1 className="text-3xl font-bold font-headline md:hidden">Doctor Dashboard</h1>
+        </header>
+        <main className="min-h-screen bg-background p-4 sm:p-6 lg:p-8 pt-0">
             {children}
         </main>
       </SidebarInset>
