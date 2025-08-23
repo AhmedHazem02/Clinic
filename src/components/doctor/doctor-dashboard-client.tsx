@@ -20,7 +20,7 @@ import { listenToTodaysQueue, type PatientInQueue, finishAndCallNext, updatePati
 import { Skeleton } from "../ui/skeleton";
 
 export function DoctorDashboardClient() {
-  const [isAvailable, setIsAvailable] = useState(true);
+  const [isAvailable, setIsAvailable] = useState(false);
   const [prescription, setPrescription] = useState("");
   const [isAiDialogOpen, setIsAiDialogOpen] = useState(false);
   const { toast } = useToast();
@@ -97,6 +97,7 @@ export function DoctorDashboardClient() {
               checked={isAvailable}
               onCheckedChange={setIsAvailable}
               aria-label="Doctor availability status"
+              disabled
             />
           </CardHeader>
           <CardContent>
