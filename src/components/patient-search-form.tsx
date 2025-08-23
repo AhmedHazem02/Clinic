@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -16,40 +16,49 @@ import { QrCode, Phone } from "lucide-react";
 import { PatientStatusCard } from "./patient-status-card";
 import { Separator } from "./ui/separator";
 import { getPatientByPhone, type PatientInQueue } from "@/services/queueService";
+import { QrScannerDialog } from "./qr-scanner-dialog";
 
 export function PatientSearchForm() {
   const [phoneNumber, setPhoneNumber] = useState("");
   const [patientData, setPatientData] = useState<PatientInQueue | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isScannerOpen, setIsScannerOpen] = useState(false);
 
-  const handleSearch = async () => {
+  const handleSearch = async (phone: string) => {
+    if (!phone.trim()) {
+      setError("Please enter a valid phone number.");
+      return;
+    }
+    
     setIsLoading(true);
     setError(null);
     setPatientData(null);
 
     try {
-      const result = await getPatientByPhone(phoneNumber);
+      const result = await getPatientByPhone(phone);
       if (result) {
         setPatientData(result);
       } else {
         setError("No patient found with this phone number for today's queue.");
       }
     } catch (err) {
-        console.error("Error searching for patient:", err);
-        setError("An error occurred while searching. Please try again.");
+      console.error("Error searching for patient:", err);
+      setError("An error occurred while searching. Please try again.");
     } finally {
-        setIsLoading(false);
+      setIsLoading(false);
     }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if(phoneNumber.trim()){
-        handleSearch();
-    } else {
-        setError("Please enter a valid phone number.")
-    }
+    handleSearch(phoneNumber);
+  };
+
+  const handleScanSuccess = (result: string) => {
+    setPhoneNumber(result);
+    setIsScannerOpen(false);
+    handleSearch(result);
   };
 
   return (
@@ -84,25 +93,31 @@ export function PatientSearchForm() {
               {isLoading ? "Searching..." : "Check Status"}
             </Button>
             <div className="my-4 flex items-center">
-                <Separator className="flex-1" />
-                <span className="mx-4 text-xs text-muted-foreground">OR</span>
-                <Separator className="flex-1" />
+              <Separator className="flex-1" />
+              <span className="mx-4 text-xs text-muted-foreground">OR</span>
+              <Separator className="flex-1" />
             </div>
-            <Button variant="outline" className="w-full" type="button">
+            <Button variant="outline" className="w-full" type="button" onClick={() => setIsScannerOpen(true)}>
               <QrCode className="mr-2 h-4 w-4" />
               Scan QR Code
             </Button>
           </CardFooter>
         </form>
       </Card>
-      
+
       {error && <p className="mt-4 text-center text-sm text-destructive">{error}</p>}
 
       {patientData && (
         <div className="mt-6">
-            <PatientStatusCard data={patientData} />
+          <PatientStatusCard data={patientData} />
         </div>
       )}
+
+      <QrScannerDialog 
+        isOpen={isScannerOpen}
+        onClose={() => setIsScannerOpen(false)}
+        onScanSuccess={handleScanSuccess}
+      />
     </>
   );
 }
