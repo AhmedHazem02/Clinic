@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/sidebar";
 import { Home, User, Settings, Stethoscope } from "lucide-react";
 import { SignOutButton } from "@/components/sign-out-button";
+import Link from 'next/link';
 
 export function DoctorSidebarNav() {
     const pathname = usePathname();
@@ -27,22 +28,28 @@ export function DoctorSidebarNav() {
             <SidebarContent>
               <SidebarMenu>
                 <SidebarMenuItem>
-                  <SidebarMenuButton href="/doctor/dashboard" isActive={pathname === '/doctor/dashboard'}>
-                    <Home />
-                    Dashboard
-                  </SidebarMenuButton>
+                  <Link href="/doctor/dashboard">
+                    <SidebarMenuButton isActive={pathname === '/doctor/dashboard'}>
+                      <Home />
+                      Dashboard
+                    </SidebarMenuButton>
+                  </Link>
                 </SidebarMenuItem>
                 <SidebarMenuItem>
-                  <SidebarMenuButton href="#">
-                    <User />
-                    Patient History
-                  </SidebarMenuButton>
+                  <Link href="#">
+                    <SidebarMenuButton>
+                      <User />
+                      Patient History
+                    </SidebarMenuButton>
+                  </Link>
                 </SidebarMenuItem>
                 <SidebarMenuItem>
-                  <SidebarMenuButton href="/doctor/settings" isActive={pathname === '/doctor/settings'}>
-                    <Settings />
-                    Settings
-                  </SidebarMenuButton>
+                  <Link href="/doctor/settings">
+                    <SidebarMenuButton isActive={pathname === '/doctor/settings'}>
+                      <Settings />
+                      Settings
+                    </SidebarMenuButton>
+                  </Link>
                 </SidebarMenuItem>
               </SidebarMenu>
             </SidebarContent>
