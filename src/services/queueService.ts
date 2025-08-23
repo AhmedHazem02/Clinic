@@ -121,7 +121,7 @@ export const updatePatientStatus = async (patientId: string, status: PatientStat
 }
 
 // Finish a consultation and call the next patient
-export const finishAndCallNext = async (finishedPatientId: string | null, nextPatientId: string | null) => {
+export const finishAndCallNext = async (finishedPatientId: string | null, nextPatientId: string) => {
     const queueCollection = getTodaysQueueCollection();
     const batch = writeBatch(db);
 
@@ -130,10 +130,8 @@ export const finishAndCallNext = async (finishedPatientId: string | null, nextPa
         batch.update(finishedPatientRef, { status: 'Finished' });
     }
 
-    if (nextPatientId) {
-        const nextPatientRef = doc(queueCollection, nextPatientId);
-        batch.update(nextPatientRef, { status: 'Consulting' });
-    }
+    const nextPatientRef = doc(queueCollection, nextPatientId);
+    batch.update(nextPatientRef, { status: 'Consulting' });
     
     await batch.commit();
 }
