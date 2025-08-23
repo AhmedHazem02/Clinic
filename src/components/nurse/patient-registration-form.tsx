@@ -40,7 +40,7 @@ export function PatientRegistrationForm() {
     defaultValues: {
       name: "",
       phone: "",
-      age: undefined,
+      age: "" as any,
       diseases: "",
     },
   });
