@@ -25,7 +25,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { UserPlus } from "lucide-react";
-import { addPatientToQueue } from "@/services/queueService";
+import { addPatientToQueue, getPatientByPhone, type PatientInQueue } from "@/services/queueService";
 import { useState } from "react";
 
 const formSchema = z.object({
@@ -35,7 +35,11 @@ const formSchema = z.object({
   diseases: z.string().optional(),
 });
 
-export function PatientRegistrationForm() {
+interface PatientRegistrationFormProps {
+    onPatientRegistered: (patient: PatientInQueue) => void;
+}
+
+export function PatientRegistrationForm({ onPatientRegistered }: PatientRegistrationFormProps) {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const form = useForm<z.infer<typeof formSchema>>({
@@ -57,6 +61,11 @@ export function PatientRegistrationForm() {
         age: values.age || null,
         chronicDiseases: values.diseases || null,
       });
+
+      const newPatient = await getPatientByPhone(values.phone);
+      if (newPatient) {
+        onPatientRegistered(newPatient);
+      }
 
       toast({
         title: "Patient Registered",
