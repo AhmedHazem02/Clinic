@@ -30,7 +30,7 @@ import { useState } from "react";
 
 const formSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters."),
-  phone: z.string().regex(/^\d{10}$/, "Please enter a valid 10-digit phone number."),
+  phone: z.string().regex(/^\d{11}$/, "Please enter a valid 11-digit phone number."),
   age: z.coerce.number().optional(),
   diseases: z.string().optional(),
 });
@@ -115,7 +115,7 @@ export function PatientRegistrationForm({ onPatientRegistered }: PatientRegistra
                 <FormItem>
                   <FormLabel>Phone Number</FormLabel>
                   <FormControl>
-                    <Input placeholder="1234567890" {...field} />
+                    <Input placeholder="01234567890" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

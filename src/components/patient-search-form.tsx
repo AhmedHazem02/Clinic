@@ -78,7 +78,7 @@ export function PatientSearchForm() {
                 <Input
                   id="phone"
                   type="tel"
-                  placeholder="e.g., 1234567890"
+                  placeholder="e.g., 01234567890"
                   value={phoneNumber}
                   onChange={(e) => setPhoneNumber(e.target.value)}
                   className="pl-10"
