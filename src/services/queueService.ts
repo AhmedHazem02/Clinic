@@ -20,6 +20,7 @@ import {
 } from "firebase/firestore";
 
 export type PatientStatus = 'Waiting' | 'Consulting' | 'Finished';
+export type QueueType = 'Consultation' | 'Re-consultation';
 
 export interface NewPatient {
     name: string;
@@ -27,6 +28,7 @@ export interface NewPatient {
     bookingDate: Date;
     age: number | null;
     chronicDiseases: string | null;
+    queueType: QueueType;
 }
 
 export interface PatientInQueue extends NewPatient {
@@ -113,6 +115,7 @@ export const listenToQueue = (
                 queueNumber: data.queueNumber,
                 status: data.status,
                 createdAt: data.createdAt,
+                queueType: data.queueType || 'Consultation',
             };
             patients.push(patient);
         });

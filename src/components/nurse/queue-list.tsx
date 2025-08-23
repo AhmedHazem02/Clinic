@@ -30,7 +30,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from '@/components/ui/button';
 import { Users, QrCode, Trash2, PlayCircle } from 'lucide-react';
-import { listenToQueue, removePatientFromQueue, type PatientInQueue, listenToClinicSettings, updatePatientStatus } from '@/services/queueService';
+import { removePatientFromQueue, type PatientInQueue, listenToClinicSettings, updatePatientStatus } from '@/services/queueService';
 import { Skeleton } from '../ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
@@ -38,23 +38,20 @@ import { format } from 'date-fns';
 const DEFAULT_CONSULTATION_TIME = 15; // in minutes
 
 interface QueueListProps {
+    title: string;
+    allPatients: PatientInQueue[];
+    queuePatients: PatientInQueue[];
     onShowQrCode: (patient: PatientInQueue) => void;
     searchQuery: string;
+    isLoading: boolean;
 }
 
-export function QueueList({ onShowQrCode, searchQuery }: QueueListProps) {
-    const [patients, setPatients] = useState<PatientInQueue[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
+export function QueueList({ title, allPatients, queuePatients, onShowQrCode, searchQuery, isLoading }: QueueListProps) {
     const [patientToCancel, setPatientToCancel] = useState<PatientInQueue | null>(null);
     const { toast } = useToast();
     const [consultationTime, setConsultationTime] = useState(DEFAULT_CONSULTATION_TIME);
     
     useEffect(() => {
-        const unsubscribeQueue = listenToQueue((updatedQueue) => {
-            setPatients(updatedQueue);
-            setIsLoading(false);
-        });
-        
         const unsubscribeSettings = listenToClinicSettings((settings) => {
             if (settings) {
                 setConsultationTime(settings.consultationTime);
@@ -63,12 +60,11 @@ export function QueueList({ onShowQrCode, searchQuery }: QueueListProps) {
 
         // Cleanup subscription on component unmount
         return () => {
-            unsubscribeQueue();
             unsubscribeSettings();
         };
     }, []);
 
-    const filteredPatients = patients.filter(patient => {
+    const filteredPatients = queuePatients.filter(patient => {
         const searchTerm = searchQuery.toLowerCase();
         const patientDate = format(patient.bookingDate, 'PPP').toLowerCase();
 
@@ -80,7 +76,7 @@ export function QueueList({ onShowQrCode, searchQuery }: QueueListProps) {
         )
     });
 
-    const isDoctorBusy = patients.some(p => p.status === 'Consulting');
+    const isDoctorBusy = allPatients.some(p => p.status === 'Consulting');
 
     const handleStartConsultation = async (patient: PatientInQueue) => {
         if (isDoctorBusy) {
@@ -107,8 +103,8 @@ export function QueueList({ onShowQrCode, searchQuery }: QueueListProps) {
     };
 
     const calculateWaitTime = (queueNumber: number) => {
-        const consultingPatient = patients.find(p => p.status === 'Consulting');
-        const patientsAhead = patients.filter(p => p.status === 'Waiting' && p.queueNumber < queueNumber).length;
+        const consultingPatient = allPatients.find(p => p.status === 'Consulting');
+        const patientsAhead = allPatients.filter(p => p.status === 'Waiting' && p.queueNumber < queueNumber).length;
         
         let waitTime = patientsAhead * consultationTime;
         if (consultingPatient) {
@@ -157,7 +153,7 @@ export function QueueList({ onShowQrCode, searchQuery }: QueueListProps) {
     <Card>
       <CardHeader>
         <CardTitle className="font-headline flex items-center gap-2">
-            <Users className="text-primary"/> Queue
+            <Users className="text-primary"/> {title}
         </CardTitle>
         <CardDescription>
           Live view of patients waiting for consultation.

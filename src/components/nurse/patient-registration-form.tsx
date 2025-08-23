@@ -35,8 +35,9 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { UserPlus } from "lucide-react";
-import { addPatientToQueue, getPatientByPhone, type PatientInQueue } from "@/services/queueService";
+import { addPatientToQueue, getPatientByPhone, type PatientInQueue, type QueueType } from "@/services/queueService";
 import { useState, useEffect } from "react";
+import { RadioGroup, RadioGroupItem } from "../ui/radio-group";
 
 const formSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters."),
@@ -46,6 +47,7 @@ const formSchema = z.object({
   }),
   age: z.coerce.number().optional(),
   diseases: z.string().optional(),
+  queueType: z.enum(["Consultation", "Re-consultation"]),
 });
 
 interface PatientRegistrationFormProps {
@@ -62,6 +64,7 @@ export function PatientRegistrationForm({ onPatientRegistered }: PatientRegistra
       phone: "",
       age: undefined,
       diseases: "",
+      queueType: "Consultation",
     },
   });
 
@@ -81,6 +84,7 @@ export function PatientRegistrationForm({ onPatientRegistered }: PatientRegistra
         bookingDate: values.bookingDate,
         age: values.age || null,
         chronicDiseases: values.diseases || null,
+        queueType: values.queueType as QueueType,
       });
 
       const newPatient = await getPatientByPhone(values.phone);
@@ -98,6 +102,7 @@ export function PatientRegistrationForm({ onPatientRegistered }: PatientRegistra
         age: undefined,
         diseases: "",
         bookingDate: new Date(),
+        queueType: "Consultation",
       });
     } catch (error: any) {
        toast({
@@ -185,6 +190,40 @@ export function PatientRegistrationForm({ onPatientRegistered }: PatientRegistra
                       />
                     </PopoverContent>
                   </Popover>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+             <FormField
+              control={form.control}
+              name="queueType"
+              render={({ field }) => (
+                <FormItem className="space-y-3">
+                  <FormLabel>Queue Type</FormLabel>
+                  <FormControl>
+                    <RadioGroup
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                      className="flex space-x-4"
+                    >
+                      <FormItem className="flex items-center space-x-2 space-y-0">
+                        <FormControl>
+                          <RadioGroupItem value="Consultation" />
+                        </FormControl>
+                        <FormLabel className="font-normal">
+                          Consultation
+                        </FormLabel>
+                      </FormItem>
+                      <FormItem className="flex items-center space-x-2 space-y-0">
+                        <FormControl>
+                          <RadioGroupItem value="Re-consultation" />
+                        </FormControl>
+                        <FormLabel className="font-normal">
+                          Re-consultation
+                        </FormLabel>
+                      </FormItem>
+                    </RadioGroup>
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
