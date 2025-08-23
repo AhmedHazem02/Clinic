@@ -30,17 +30,24 @@ export function QrScannerDialog({
   const { toast } = useToast();
 
   useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+
     const codeReader = new BrowserMultiFormatReader();
     let stream: MediaStream | null = null;
 
     const startScanner = async () => {
-      if (videoRef.current) {
-        try {
-          stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
-          setHasCameraPermission(true);
+      try {
+        // Request camera access and get the stream
+        stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+        setHasCameraPermission(true);
+        
+        // Attach the stream to the video element
+        if (videoRef.current) {
           videoRef.current.srcObject = stream;
-          
-          await codeReader.decodeFromStream(stream, videoRef.current, (result, err) => {
+          // Start decoding from the video element
+          codeReader.decodeFromVideoDevice(undefined, videoRef.current, (result, err) => {
             if (result) {
               onScanSuccess(result.getText());
             }
@@ -53,25 +60,22 @@ export function QrScannerDialog({
               });
             }
           });
-
-        } catch (error) {
-          console.error('Error accessing camera:', error);
-          setHasCameraPermission(false);
-          toast({
-            variant: 'destructive',
-            title: 'Camera Access Denied',
-            description: 'Please enable camera permissions in your browser settings to use the scanner.',
-          });
         }
+      } catch (error) {
+        console.error('Error accessing camera:', error);
+        setHasCameraPermission(false);
+        toast({
+          variant: 'destructive',
+          title: 'Camera Access Denied',
+          description: 'Please enable camera permissions in your browser settings to use the scanner.',
+        });
       }
     };
 
-    if (isOpen) {
-      startScanner();
-    }
+    startScanner();
 
+    // Cleanup function to stop the camera when the component unmounts or dialog closes
     return () => {
-      // Turn off camera when dialog closes or component unmounts
       if (stream) {
         stream.getTracks().forEach(track => track.stop());
       }
