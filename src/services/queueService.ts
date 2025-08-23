@@ -50,8 +50,16 @@ const getNextQueueNumber = async (): Promise<number> => {
 // Add a new patient to the queue
 export const addPatientToQueue = async (patientData: NewPatient) => {
     // Check if patient with the same phone number is already waiting or consulting
-    const existingPatient = await getPatientByPhone(patientData.phone);
-    if (existingPatient) {
+    const existingPatientQuery = query(
+        patientsCollection,
+        and(
+            where("phone", "==", patientData.phone),
+            or(where("status", "==", "Waiting"), where("status", "==", "Consulting"))
+        )
+    );
+    const existingPatientSnapshot = await getDocs(existingPatientQuery);
+
+    if (!existingPatientSnapshot.empty) {
         throw new Error("A patient with this phone number is already in the queue.");
     }
 
