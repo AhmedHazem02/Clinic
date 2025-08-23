@@ -71,8 +71,8 @@ export default function NurseLayout({
       </Sidebar>
       <SidebarInset>
         <header className="p-4 sm:p-6 lg:p-8 flex items-center gap-4">
-            <SidebarTrigger className="md:hidden" />
-            <h1 className="text-3xl font-bold font-headline md:hidden">Nurse Panel</h1>
+            <SidebarTrigger />
+            <h1 className="text-3xl font-bold font-headline">Nurse Panel</h1>
         </header>
         <main className="bg-background p-4 sm:p-6 lg:p-8 pt-0">
             {children}
