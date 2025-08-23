@@ -1,5 +1,4 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
 import {
   Sidebar,
   SidebarProvider,
@@ -12,8 +11,7 @@ import {
   SidebarInset,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
-import { Home, User, Settings, LogOut, Stethoscope } from "lucide-react";
-import Link from "next/link";
+import { Home, User, Settings, Stethoscope } from "lucide-react";
 import { SignOutButton } from "@/components/sign-out-button";
 
 export default function DoctorLayout({
@@ -37,19 +35,19 @@ export default function DoctorLayout({
                 <Home />
                 Dashboard
               </SidebarMenuButton>
-            </-sidebar-menu-item>
+            </SidebarMenuItem>
             <SidebarMenuItem>
               <SidebarMenuButton>
                 <User />
                 Patient History
               </SidebarMenuButton>
-            </-sidebar-menu-item>
+            </SidebarMenuItem>
             <SidebarMenuItem>
               <SidebarMenuButton>
                 <Settings />
                 Settings
               </SidebarMenuButton>
-            </-sidebar-menu-item>
+            </SidebarMenuItem>
           </SidebarMenu>
         </SidebarContent>
         <SidebarFooter className="p-4">

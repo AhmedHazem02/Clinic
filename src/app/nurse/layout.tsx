@@ -1,5 +1,4 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
 import {
   Sidebar,
   SidebarProvider,
@@ -12,8 +11,7 @@ import {
   SidebarInset,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
-import { Home, UserPlus, Settings, LogOut, Stethoscope } from "lucide-react";
-import Link from "next/link";
+import { Home, UserPlus, Settings, Stethoscope } from "lucide-react";
 import { SignOutButton } from "@/components/sign-out-button";
 
 export default function NurseLayout({
@@ -71,7 +69,7 @@ export default function NurseLayout({
             <SidebarTrigger />
             <h1 className="text-3xl font-bold font-headline">Nurse Panel</h1>
         </header>
-        <main className="bg-background p-4 sm:p-6 lg:p-8 pt-0">
+        <main className="min-h-screen bg-background p-4 sm:p-6 lg:p-8 pt-0">
             {children}
         </main>
       </SidebarInset>
