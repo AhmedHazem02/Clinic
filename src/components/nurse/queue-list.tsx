@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState } from 'react';
@@ -32,15 +33,17 @@ import { Users, QrCode, Trash2 } from 'lucide-react';
 import { listenToQueue, removePatientFromQueue, type PatientInQueue } from '@/services/queueService';
 import { Skeleton } from '../ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
+import { format } from 'date-fns';
 
 
 const CONSULTATION_TIME = 15; // in minutes
 
 interface QueueListProps {
     onShowQrCode: (patient: PatientInQueue) => void;
+    searchQuery: string;
 }
 
-export function QueueList({ onShowQrCode }: QueueListProps) {
+export function QueueList({ onShowQrCode, searchQuery }: QueueListProps) {
     const [patients, setPatients] = useState<PatientInQueue[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [patientToCancel, setPatientToCancel] = useState<PatientInQueue | null>(null);
@@ -55,6 +58,18 @@ export function QueueList({ onShowQrCode }: QueueListProps) {
         // Cleanup subscription on component unmount
         return () => unsubscribe();
     }, []);
+
+    const filteredPatients = patients.filter(patient => {
+        const searchTerm = searchQuery.toLowerCase();
+        const patientDate = format(patient.bookingDate, 'PPP').toLowerCase();
+
+        return (
+            patient.name.toLowerCase().includes(searchTerm) ||
+            patient.phone.includes(searchTerm) ||
+            patient.queueNumber.toString().includes(searchTerm) ||
+            patientDate.includes(searchTerm)
+        )
+    });
 
     const calculateWaitTime = (queueNumber: number) => {
         const consultingPatient = patients.find(p => p.status === 'Consulting');
@@ -132,8 +147,8 @@ export function QueueList({ onShowQrCode }: QueueListProps) {
                 </TableRow>
             </TableHeader>
             <TableBody>
-                {patients.length > 0 ? (
-                    patients.map((patient) => (
+                {filteredPatients.length > 0 ? (
+                    filteredPatients.map((patient) => (
                     <TableRow key={patient.id}>
                         <TableCell className="font-bold text-lg">{patient.queueNumber}</TableCell>
                         <TableCell className="font-medium">{patient.name}</TableCell>
@@ -156,7 +171,7 @@ export function QueueList({ onShowQrCode }: QueueListProps) {
                 ) : (
                     <TableRow>
                         <TableCell colSpan={5} className="text-center text-muted-foreground">
-                            No patients in the queue yet.
+                            {searchQuery ? "No patients match your search." : "No patients in the queue yet."}
                         </TableCell>
                     </TableRow>
                 )}
