@@ -36,6 +36,12 @@ const settingsSchema = z.object({
 
 type SettingsFormValues = z.infer<typeof settingsSchema>;
 
+const defaultFormValues: SettingsFormValues = {
+  consultationTime: 15,
+  consultationCost: 50,
+  reConsultationCost: 25,
+};
+
 export function SettingsForm() {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -43,20 +49,16 @@ export function SettingsForm() {
 
   const form = useForm<SettingsFormValues>({
     resolver: zodResolver(settingsSchema),
-    defaultValues: {
-      consultationTime: 15,
-      consultationCost: 50,
-      reConsultationCost: 25,
-    },
+    defaultValues: defaultFormValues,
   });
 
   useEffect(() => {
     const unsubscribe = listenToClinicSettings((settings) => {
       if (settings) {
         form.reset({
-          consultationTime: settings.consultationTime,
-          consultationCost: settings.consultationCost,
-          reConsultationCost: settings.reConsultationCost,
+          consultationTime: settings.consultationTime || 15,
+          consultationCost: settings.consultationCost || 50,
+          reConsultationCost: settings.reConsultationCost || 25,
         });
       }
       setIsLoading(false);
