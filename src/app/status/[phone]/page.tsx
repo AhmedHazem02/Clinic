@@ -9,12 +9,11 @@ import { AlertTriangle, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
-export default function PatientStatusPage({ params }: { params: { phone: string } }) {
+export default function PatientStatusPage({ params: { phone } }: { params: { phone: string } }) {
   const [patientData, setPatientData] = useState<PatientInQueue | null>(null);
   const [peopleAhead, setPeopleAhead] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { phone } = params;
 
   useEffect(() => {
     if (phone) {
