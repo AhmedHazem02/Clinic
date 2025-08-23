@@ -14,7 +14,8 @@ import {
     writeBatch,
     deleteDoc,
     or,
-    and
+    and,
+    setDoc
 } from "firebase/firestore";
 
 export type PatientStatus = 'Waiting' | 'Consulting' | 'Finished';
@@ -36,6 +37,8 @@ export interface PatientInQueue extends NewPatient {
 
 // Get the main patients collection
 const patientsCollection = collection(db, 'patients');
+const clinicInfoCollection = collection(db, 'clinicInfo');
+
 
 // Get the next queue number
 const getNextQueueNumber = async (): Promise<number> => {
@@ -168,4 +171,23 @@ export const finishAndCallNext = async (finishedPatientId: string, nextPatientId
 export const removePatientFromQueue = async (patientId: string) => {
     const patientDocRef = doc(patientsCollection, patientId);
     return await deleteDoc(patientDocRef);
+};
+
+// Update the doctor's global message
+export const updateDoctorMessage = async (message: string) => {
+    const statusDocRef = doc(clinicInfoCollection, 'status');
+    return await setDoc(statusDocRef, { doctorMessage: message }, { merge: true });
+};
+
+// Listen to the doctor's global message
+export const listenToDoctorMessage = (callback: (message: string) => void) => {
+    const statusDocRef = doc(clinicInfoCollection, 'status');
+    const unsubscribe = onSnapshot(statusDocRef, (doc) => {
+        if (doc.exists()) {
+            callback(doc.data().doctorMessage || "");
+        } else {
+            callback("");
+        }
+    });
+    return unsubscribe;
 };

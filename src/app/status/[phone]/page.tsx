@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { listenToQueue, type PatientInQueue } from "@/services/queueService";
+import { listenToQueue, type PatientInQueue, listenToDoctorMessage } from "@/services/queueService";
 import { PatientStatusCard } from "@/components/patient-status-card";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { AlertTriangle, ArrowLeft } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { AlertTriangle, ArrowLeft, Info } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
@@ -15,13 +16,14 @@ export default function PatientStatusPage({ params }: { params: { phone: string 
   const [peopleAhead, setPeopleAhead] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [doctorMessage, setDoctorMessage] = useState<string | null>(null);
 
   useEffect(() => {
     if (phone) {
       setIsLoading(true);
       setError(null);
 
-      const unsubscribe = listenToQueue((queue) => {
+      const unsubscribeQueue = listenToQueue((queue) => {
         const currentPatient = queue.find(p => p.phone === phone);
 
         if (currentPatient) {
@@ -41,14 +43,21 @@ export default function PatientStatusPage({ params }: { params: { phone: string 
           setIsLoading(false);
       });
 
+      const unsubscribeMessage = listenToDoctorMessage((message) => {
+        setDoctorMessage(message);
+      });
+
       // Cleanup subscription on component unmount
-      return () => unsubscribe();
+      return () => {
+        unsubscribeQueue();
+        unsubscribeMessage();
+      };
     }
   }, [phone]);
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center p-4 sm:p-8 bg-background">
-        <div className="w-full max-w-md mx-auto">
+        <div className="w-full max-w-md mx-auto space-y-6">
             <div className="mb-6">
                 <Button variant="ghost" asChild>
                     <Link href="/">
@@ -57,6 +66,16 @@ export default function PatientStatusPage({ params }: { params: { phone: string 
                     </Link>
                 </Button>
             </div>
+
+            {doctorMessage && (
+                 <Alert>
+                    <Info className="h-4 w-4" />
+                    <AlertTitle>A Message from the Doctor</AlertTitle>
+                    <AlertDescription>
+                        {doctorMessage}
+                    </AlertDescription>
+                </Alert>
+            )}
 
             {isLoading && (
                  <Card className="w-full">

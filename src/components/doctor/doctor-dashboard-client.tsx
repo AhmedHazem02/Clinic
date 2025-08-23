@@ -13,10 +13,10 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Download, Bot, Send, Printer, User, HeartPulse, LogIn, CheckCircle } from "lucide-react";
+import { Download, Bot, Send, Printer, User, HeartPulse, LogIn, CheckCircle, MessageSquarePlus } from "lucide-react";
 import { AiAssistDialog } from "./ai-assist-dialog";
 import { useToast } from "@/hooks/use-toast";
-import { listenToQueue, type PatientInQueue, finishAndCallNext, updatePatientStatus } from "@/services/queueService";
+import { listenToQueue, type PatientInQueue, finishAndCallNext, updatePatientStatus, updateDoctorMessage, listenToDoctorMessage } from "@/services/queueService";
 import { Skeleton } from "../ui/skeleton";
 
 export function DoctorDashboardClient() {
@@ -27,13 +27,23 @@ export function DoctorDashboardClient() {
 
   const [queue, setQueue] = useState<PatientInQueue[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [doctorMessage, setDoctorMessage] = useState("");
+  const [isUpdatingMessage, setIsUpdatingMessage] = useState(false);
 
   useEffect(() => {
-    const unsubscribe = listenToQueue((updatedQueue) => {
+    const unsubscribeQueue = listenToQueue((updatedQueue) => {
       setQueue(updatedQueue);
       setIsLoading(false);
     });
-    return () => unsubscribe();
+    
+    const unsubscribeMessage = listenToDoctorMessage((message) => {
+      setDoctorMessage(message);
+    });
+
+    return () => {
+      unsubscribeQueue();
+      unsubscribeMessage();
+    };
   }, []);
 
   const currentPatient = queue.find(p => p.status === 'Consulting');
@@ -84,24 +94,63 @@ export function DoctorDashboardClient() {
         description: `Your prescription for ${currentPatient.name} is being printed.`,
       });
   }
+  
+  const handleUpdateMessage = async () => {
+    setIsUpdatingMessage(true);
+    try {
+      await updateDoctorMessage(doctorMessage);
+      toast({
+        title: "Message Updated",
+        description: "Your message has been updated for all patients.",
+      });
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Could not update the message.",
+      });
+    } finally {
+      setIsUpdatingMessage(false);
+    }
+  };
+
 
   return (
     <>
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        <Card className="col-span-1">
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="font-headline">Your Status</CardTitle>
+        <Card className="md:col-span-2 lg:col-span-1">
+          <CardHeader className="flex flex-row items-start justify-between">
+            <div>
+              <CardTitle className="font-headline">Your Status</CardTitle>
+              <CardDescription>Set your availability.</CardDescription>
+            </div>
             <Switch
               checked={isAvailable}
               onCheckedChange={setIsAvailable}
               aria-label="Doctor availability status"
             />
           </CardHeader>
-          <CardContent>
-            <p className={`text-lg font-semibold ${isAvailable ? 'text-green-600' : 'text-red-600'}`}>
-              {isAvailable ? "Available for Consultation" : "Not Available"}
-            </p>
+          <CardContent className="space-y-4">
+             <div>
+                <p className={`text-lg font-semibold ${isAvailable ? 'text-green-600' : 'text-red-600'}`}>
+                {isAvailable ? "Available for Consultation" : "Not Available"}
+                </p>
+             </div>
+             <div className="space-y-2">
+                <Label htmlFor="doctor-message">Patient Message</Label>
+                <Textarea 
+                    id="doctor-message"
+                    placeholder="e.g., Running 15 minutes late."
+                    value={doctorMessage}
+                    onChange={(e) => setDoctorMessage(e.target.value)}
+                />
+             </div>
           </CardContent>
+          <CardFooter>
+            <Button onClick={handleUpdateMessage} disabled={isUpdatingMessage}>
+              <MessageSquarePlus /> {isUpdatingMessage ? 'Updating...' : 'Update Message'}
+            </Button>
+          </CardFooter>
         </Card>
 
         <Card className="md:col-span-2 lg:col-span-2">
