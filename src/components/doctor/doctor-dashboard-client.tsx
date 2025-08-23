@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Card,
   CardContent,
@@ -13,16 +13,11 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Download, Bot, Send, Printer, User, HeartPulse } from "lucide-react";
+import { Download, Bot, Send, Printer, User, HeartPulse, LogIn, CheckCircle } from "lucide-react";
 import { AiAssistDialog } from "./ai-assist-dialog";
 import { useToast } from "@/hooks/use-toast";
-
-const currentPatient = {
-  name: "John Doe",
-  age: 34,
-  chronicDiseases: "Hypertension",
-  details: "Patient reports chest pain and shortness of breath. History of high blood pressure, non-smoker."
-};
+import { listenToTodaysQueue, type PatientInQueue, finishAndCallNext, updatePatientStatus } from "@/services/queueService";
+import { Skeleton } from "../ui/skeleton";
 
 export function DoctorDashboardClient() {
   const [isAvailable, setIsAvailable] = useState(true);
@@ -30,7 +25,47 @@ export function DoctorDashboardClient() {
   const [isAiDialogOpen, setIsAiDialogOpen] = useState(false);
   const { toast } = useToast();
 
+  const [queue, setQueue] = useState<PatientInQueue[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const unsubscribe = listenToTodaysQueue((updatedQueue) => {
+      setQueue(updatedQueue);
+      setIsLoading(false);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  const currentPatient = queue.find(p => p.status === 'Consulting');
+  const nextPatient = queue.find(p => p.status === 'Waiting');
+
+  const handleCallNext = async () => {
+    if (!nextPatient) {
+        toast({ variant: "destructive", title: "No patients are waiting." });
+        return;
+    }
+    try {
+        await finishAndCallNext(currentPatient?.id || null, nextPatient.id);
+        setPrescription(""); // Clear prescription for next patient
+        toast({ title: "Success", description: `Calling ${nextPatient.name} for consultation.` });
+    } catch (error) {
+        toast({ variant: "destructive", title: "Error", description: "Could not call the next patient." });
+    }
+  }
+
+  const handleFinishConsultation = async () => {
+      if (!currentPatient) return;
+      try {
+        await updatePatientStatus(currentPatient.id, 'Finished');
+        setPrescription("");
+        toast({ title: "Consultation Finished", description: `${currentPatient.name}'s consultation is complete.` });
+      } catch (error) {
+        toast({ variant: "destructive", title: "Error", description: "Could not finish the consultation." });
+      }
+  }
+
   const handleSendToWhatsApp = () => {
+    if (!currentPatient) return;
     toast({
       title: "Prescription Sent",
       description: `Prescription has been sent to ${currentPatient.name} via WhatsApp.`,
@@ -38,12 +73,12 @@ export function DoctorDashboardClient() {
   }
 
   const handlePrint = () => {
+    if (!currentPatient) return;
     toast({
         title: "Printing Prescription",
         description: `Your prescription for ${currentPatient.name} is being printed.`,
       });
   }
-
 
   return (
     <>
@@ -69,23 +104,53 @@ export function DoctorDashboardClient() {
             <CardTitle className="font-headline flex items-center gap-2">
                 <User className="text-primary"/> Current Patient
             </CardTitle>
-            <CardDescription>Patient waiting for consultation.</CardDescription>
+            <CardDescription>
+                {currentPatient ? "Patient waiting for consultation." : "No patient is currently in consultation."}
+            </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-2">
-            <h3 className="text-xl font-bold">{currentPatient.name}</h3>
-            <p className="text-sm"><strong className="font-medium">Age:</strong> {currentPatient.age}</p>
-            <p className="text-sm flex items-start">
-                <HeartPulse className="h-4 w-4 mr-2 mt-0.5 text-destructive flex-shrink-0"/> 
-                <strong className="font-medium">Chronic Diseases:</strong> {currentPatient.chronicDiseases}
-            </p>
-          </CardContent>
+          {isLoading ? (
+             <CardContent className="space-y-2">
+                <Skeleton className="h-7 w-1/2" />
+                <Skeleton className="h-5 w-1/4" />
+                <Skeleton className="h-5 w-3/4" />
+             </CardContent>
+          ) : currentPatient ? (
+            <CardContent className="space-y-2">
+                <h3 className="text-xl font-bold">{currentPatient.name}</h3>
+                <p className="text-sm"><strong className="font-medium">Age:</strong> {currentPatient.age || 'N/A'}</p>
+                <p className="text-sm flex items-start">
+                    <HeartPulse className="h-4 w-4 mr-2 mt-0.5 text-destructive flex-shrink-0"/> 
+                    <strong className="font-medium">Chronic Diseases:</strong> {currentPatient.chronicDiseases || 'None'}
+                </p>
+            </CardContent>
+          ) : (
+            <CardContent>
+                 <p className="text-muted-foreground">Waiting to call the next patient.</p>
+            </CardContent>
+          )}
+          <CardFooter>
+            {currentPatient ? (
+                <div className="flex gap-2">
+                     <Button onClick={handleFinishConsultation} variant="outline">
+                        <CheckCircle /> Finish Consultation
+                    </Button>
+                    <Button onClick={handleCallNext} disabled={!nextPatient}>
+                        <LogIn /> Finish & Call Next
+                    </Button>
+                </div>
+            ) : (
+                <Button onClick={handleCallNext} disabled={!nextPatient || !isAvailable}>
+                    <LogIn /> Call Next Patient
+                </Button>
+            )}
+          </CardFooter>
         </Card>
 
         <Card className="md:col-span-2 lg:col-span-3">
           <CardHeader>
             <CardTitle className="font-headline">Create Prescription</CardTitle>
             <CardDescription>
-              Write a prescription for {currentPatient.name}. Use AI assist for suggestions.
+              {currentPatient ? `Write a prescription for ${currentPatient.name}. Use AI assist for suggestions.` : "No active patient."}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -94,17 +159,18 @@ export function DoctorDashboardClient() {
               className="min-h-[150px]"
               value={prescription}
               onChange={(e) => setPrescription(e.target.value)}
+              disabled={!currentPatient}
             />
-            <Button variant="outline" onClick={() => setIsAiDialogOpen(true)}>
+            <Button variant="outline" onClick={() => setIsAiDialogOpen(true)} disabled={!currentPatient}>
               <Bot className="mr-2" />
               AI Assist
             </Button>
           </CardContent>
           <CardFooter className="gap-2 justify-end">
-            <Button variant="secondary" onClick={handlePrint}>
+            <Button variant="secondary" onClick={handlePrint} disabled={!currentPatient || !prescription.trim()}>
               <Printer className="mr-2" /> Print
             </Button>
-            <Button onClick={handleSendToWhatsApp}>
+            <Button onClick={handleSendToWhatsApp} disabled={!currentPatient || !prescription.trim()}>
               <Send className="mr-2" /> Send to WhatsApp
             </Button>
           </CardFooter>
@@ -123,15 +189,17 @@ export function DoctorDashboardClient() {
         </Card>
 
       </div>
-      <AiAssistDialog
-        isOpen={isAiDialogOpen}
-        setIsOpen={setIsAiDialogOpen}
-        patient={currentPatient}
-        onInsertSuggestion={(text) => {
-            setPrescription(prev => prev ? `${prev}\n${text}` : text);
-            setIsAiDialogOpen(false);
-        }}
-      />
+       {currentPatient && (
+            <AiAssistDialog
+                isOpen={isAiDialogOpen}
+                setIsOpen={setIsAiDialogOpen}
+                patient={{ name: currentPatient.name, details: `Age: ${currentPatient.age}, Chronic Diseases: ${currentPatient.chronicDiseases || 'None'}` }}
+                onInsertSuggestion={(text) => {
+                    setPrescription(prev => prev ? `${prev}\n${text}` : text);
+                    setIsAiDialogOpen(false);
+                }}
+            />
+       )}
     </>
   );
 }

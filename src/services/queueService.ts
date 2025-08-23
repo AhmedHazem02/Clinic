@@ -8,7 +8,10 @@ import {
     Timestamp,
     onSnapshot,
     orderBy,
-    limit
+    limit,
+    doc,
+    updateDoc,
+    writeBatch
 } from "firebase/firestore";
 
 export type PatientStatus = 'Waiting' | 'Consulting' | 'Finished';
@@ -107,4 +110,30 @@ export const getPatientByPhone = async (phone: string): Promise<PatientInQueue |
 
     const doc = snapshot.docs[0];
     return { id: doc.id, ...doc.data() } as PatientInQueue;
+}
+
+
+// Update a patient's status
+export const updatePatientStatus = async (patientId: string, status: PatientStatus) => {
+    const queueCollection = getTodaysQueueCollection();
+    const patientDocRef = doc(queueCollection, patientId);
+    return await updateDoc(patientDocRef, { status });
+}
+
+// Finish a consultation and call the next patient
+export const finishAndCallNext = async (finishedPatientId: string | null, nextPatientId: string | null) => {
+    const queueCollection = getTodaysQueueCollection();
+    const batch = writeBatch(db);
+
+    if (finishedPatientId) {
+        const finishedPatientRef = doc(queueCollection, finishedPatientId);
+        batch.update(finishedPatientRef, { status: 'Finished' });
+    }
+
+    if (nextPatientId) {
+        const nextPatientRef = doc(queueCollection, nextPatientId);
+        batch.update(nextPatientRef, { status: 'Consulting' });
+    }
+    
+    await batch.commit();
 }
