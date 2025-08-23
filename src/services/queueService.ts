@@ -72,15 +72,18 @@ export const listenToQueue = (
     errorCallback?: (error: Error) => void
 ) => {
     const q = query(
-        patientsCollection, 
-        where("status", "in", ["Waiting", "Consulting"]),
+        patientsCollection,
         orderBy("queueNumber")
     );
 
     const unsubscribe = onSnapshot(q, (querySnapshot) => {
         const patients: PatientInQueue[] = [];
         querySnapshot.forEach((doc) => {
-            patients.push({ id: doc.id, ...doc.data() } as PatientInQueue);
+            const patient = { id: doc.id, ...doc.data() } as PatientInQueue;
+            // Filter for only 'Waiting' and 'Consulting' statuses on the client
+            if (patient.status === 'Waiting' || patient.status === 'Consulting') {
+                patients.push(patient);
+            }
         });
         callback(patients);
     }, (error) => {
