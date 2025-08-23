@@ -45,10 +45,17 @@ export function DoctorDashboardClient() {
         return;
     }
     try {
-        await finishAndCallNext(currentPatient?.id || null, nextPatient.id);
+        // If there's a current patient, finish their consultation first.
+        if (currentPatient) {
+            await finishAndCallNext(currentPatient.id, nextPatient.id);
+        } else {
+            // Otherwise, just call the next patient.
+            await updatePatientStatus(nextPatient.id, 'Consulting');
+        }
         setPrescription(""); // Clear prescription for next patient
         toast({ title: "Success", description: `Calling ${nextPatient.name} for consultation.` });
     } catch (error) {
+        console.error("Error calling next patient:", error);
         toast({ variant: "destructive", title: "Error", description: "Could not call the next patient." });
     }
   }
