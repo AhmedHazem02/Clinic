@@ -58,11 +58,15 @@ export function QueueList({ onShowQrCode }: QueueListProps) {
 
     const calculateWaitTime = (queueNumber: number) => {
         const consultingPatient = patients.find(p => p.status === 'Consulting');
-        if (!consultingPatient) return 0;
-
         const patientsAhead = patients.filter(p => p.status === 'Waiting' && p.queueNumber < queueNumber).length;
         
-        return (patientsAhead) * CONSULTATION_TIME;
+        let waitTime = patientsAhead * CONSULTATION_TIME;
+        if (consultingPatient) {
+            // A simple assumption that a consultation is halfway through on average
+            waitTime += CONSULTATION_TIME / 2;
+        }
+        
+        return Math.round(waitTime);
     }
 
     const getStatusBadgeVariant = (status: PatientInQueue['status']) => {
@@ -142,7 +146,7 @@ export function QueueList({ onShowQrCode }: QueueListProps) {
                                 <QrCode className="mr-2 h-4 w-4" />
                                 Show QR
                             </Button>
-                            <Button variant="ghost" size="sm" className="text-destructive" onClick={() => setPatientToCancel(patient)}>
+                            <Button variant="ghost" size="sm" className="text-destructive hover:bg-destructive/10" onClick={() => setPatientToCancel(patient)}>
                                 <Trash2 className="mr-2 h-4 w-4" />
                                 Cancel
                             </Button>
@@ -171,7 +175,7 @@ export function QueueList({ onShowQrCode }: QueueListProps) {
             </AlertDialogHeader>
             <AlertDialogFooter>
             <AlertDialogCancel>Back</AlertDialogCancel>
-            <AlertDialogAction onClick={handleCancelReservation}>
+            <AlertDialogAction onClick={handleCancelReservation} className="bg-destructive hover:bg-destructive/90">
                 Yes, cancel reservation
             </AlertDialogAction>
             </AlertDialogFooter>

@@ -31,12 +31,11 @@ export interface PatientInQueue extends NewPatient {
     createdAt: Timestamp;
 }
 
-// Function to get today's date in YYYY-MM-DD format
+// Function to get today's date in YYYY-MM-DD format, adjusted for local timezone
 const getTodaysDateStr = () => {
     const today = new Date();
-    // Adjust for timezone to get local date
     const offset = today.getTimezoneOffset();
-    const todayLocal = new Date(today.getTime() - (offset*60*1000));
+    const todayLocal = new Date(today.getTime() - (offset * 60 * 1000));
     return todayLocal.toISOString().split('T')[0];
 }
 
@@ -49,7 +48,6 @@ const getTodaysQueueCollection = () => {
 // Get the next queue number for today
 const getNextQueueNumber = async (): Promise<number> => {
     const queueCollection = getTodaysQueueCollection();
-    // Query to get the last patient to determine the queue number
     const q = query(queueCollection, orderBy("queueNumber", "desc"), limit(1));
     const snapshot = await getDocs(q);
     if (snapshot.empty) {
@@ -61,6 +59,12 @@ const getNextQueueNumber = async (): Promise<number> => {
 
 // Add a new patient to today's queue
 export const addPatientToQueue = async (patientData: NewPatient) => {
+    // Check if patient with the same phone number is already in the queue
+    const existingPatient = await getPatientByPhone(patientData.phone);
+    if (existingPatient) {
+        throw new Error("A patient with this phone number is already registered for today.");
+    }
+
     const queueNumber = await getNextQueueNumber();
     const queueCollection = getTodaysQueueCollection();
 

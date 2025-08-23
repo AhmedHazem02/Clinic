@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/sidebar";
 import { Home, UserPlus, Settings, LogOut, Stethoscope } from "lucide-react";
 import Link from "next/link";
+import { SignOutButton } from "@/components/sign-out-button";
 
 export default function NurseLayout({
   children,
@@ -42,13 +43,13 @@ export default function NurseLayout({
                 <UserPlus />
                 Register Patient
               </SidebarMenuButton>
-            </SidebarMenuItem>
+            </-sidebar-menu-item>
             <SidebarMenuItem>
               <SidebarMenuButton>
                 <Settings />
                 Settings
               </SidebarMenuButton>
-            </SidebarMenuItem>
+            </-sidebar-menu-item>
           </SidebarMenu>
         </SidebarContent>
         <SidebarFooter className="p-4">
@@ -62,11 +63,7 @@ export default function NurseLayout({
                     <span className="text-xs text-muted-foreground">Registered Nurse</span>
                 </div>
             </div>
-          <Button variant="ghost" className="w-full justify-start mt-2" asChild>
-            <Link href="/login">
-                <LogOut className="mr-2" /> Logout
-            </Link>
-          </Button>
+          <SignOutButton />
         </SidebarFooter>
       </Sidebar>
       <SidebarInset>

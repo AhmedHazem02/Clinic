@@ -20,7 +20,7 @@ import { listenToTodaysQueue, type PatientInQueue, finishAndCallNext, updatePati
 import { Skeleton } from "../ui/skeleton";
 
 export function DoctorDashboardClient() {
-  const [isAvailable, setIsAvailable] = useState(false);
+  const [isAvailable, setIsAvailable] = useState(true);
   const [prescription, setPrescription] = useState("");
   const [isAiDialogOpen, setIsAiDialogOpen] = useState(false);
   const { toast } = useToast();
@@ -45,14 +45,12 @@ export function DoctorDashboardClient() {
         return;
     }
     try {
-        // If there's a current patient, finish their consultation first.
         if (currentPatient) {
             await finishAndCallNext(currentPatient.id, nextPatient.id);
         } else {
-            // Otherwise, just call the next patient.
             await updatePatientStatus(nextPatient.id, 'Consulting');
         }
-        setPrescription(""); // Clear prescription for next patient
+        setPrescription(""); 
         toast({ title: "Success", description: `Calling ${nextPatient.name} for consultation.` });
     } catch (error) {
         console.error("Error calling next patient:", error);
