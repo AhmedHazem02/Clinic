@@ -21,6 +21,7 @@ import { listenToQueue, type PatientInQueue, finishAndCallNext, updatePatientSta
 import { Skeleton } from "../ui/skeleton";
 
 const DEFAULT_CONSULTATION_COST = 50;
+const DEFAULT_RECONSULTATION_COST = 25;
 
 export function DoctorDashboardClient() {
   const [isAvailable, setIsAvailable] = useState(true);
@@ -34,11 +35,13 @@ export function DoctorDashboardClient() {
   const [isUpdatingMessage, setIsUpdatingMessage] = useState(false);
   const [todaysRevenue, setTodaysRevenue] = useState(0);
   const [consultationCost, setConsultationCost] = useState(DEFAULT_CONSULTATION_COST);
+  const [reConsultationCost, setReConsultationCost] = useState(DEFAULT_RECONSULTATION_COST);
 
   useEffect(() => {
      const unsubscribeSettings = listenToClinicSettings((settings) => {
       if (settings) {
         setConsultationCost(settings.consultationCost);
+        setReConsultationCost(settings.reConsultationCost);
       }
     });
 
@@ -60,15 +63,21 @@ export function DoctorDashboardClient() {
 
   useEffect(() => {
     const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
     const todaysFinishedPatients = queue.filter(p => {
         const bookingDate = p.bookingDate;
-        return p.status === 'Finished' &&
-                bookingDate.getDate() === today.getDate() &&
-                bookingDate.getMonth() === today.getMonth() &&
-                bookingDate.getFullYear() === today.getFullYear();
+        bookingDate.setHours(0, 0, 0, 0);
+        return p.status === 'Finished' && bookingDate.getTime() === today.getTime();
     });
-    setTodaysRevenue(todaysFinishedPatients.length * consultationCost);
-  }, [queue, consultationCost]);
+
+    const totalRevenue = todaysFinishedPatients.reduce((total, patient) => {
+        const cost = patient.queueType === 'Re-consultation' ? reConsultationCost : consultationCost;
+        return total + cost;
+    }, 0);
+
+    setTodaysRevenue(totalRevenue);
+  }, [queue, consultationCost, reConsultationCost]);
 
 
   const currentPatient = queue.find(p => p.status === 'Consulting');

@@ -41,6 +41,7 @@ export interface PatientInQueue extends NewPatient {
 export interface ClinicSettings {
     consultationTime: number;
     consultationCost: number;
+    reConsultationCost: number;
 }
 
 

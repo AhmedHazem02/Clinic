@@ -31,6 +31,7 @@ import { Skeleton } from "../ui/skeleton";
 const settingsSchema = z.object({
   consultationTime: z.coerce.number().min(5, "Must be at least 5 minutes.").max(60, "Cannot exceed 60 minutes."),
   consultationCost: z.coerce.number().min(0, "Cost cannot be negative."),
+  reConsultationCost: z.coerce.number().min(0, "Cost cannot be negative."),
 });
 
 type SettingsFormValues = z.infer<typeof settingsSchema>;
@@ -45,6 +46,7 @@ export function SettingsForm() {
     defaultValues: {
       consultationTime: 15,
       consultationCost: 50,
+      reConsultationCost: 25,
     },
   });
 
@@ -53,7 +55,8 @@ export function SettingsForm() {
       if (settings) {
         form.reset({
           consultationTime: settings.consultationTime,
-          consultationCost: settings.consultationCost
+          consultationCost: settings.consultationCost,
+          reConsultationCost: settings.reConsultationCost,
         });
       }
       setIsLoading(false);
@@ -100,6 +103,11 @@ export function SettingsForm() {
                 <Skeleton className="h-10 w-full" />
                 <Skeleton className="h-4 w-3/4" />
             </div>
+             <div className="space-y-2">
+                <Skeleton className="h-5 w-40" />
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-4 w-3/4" />
+            </div>
         </CardContent>
       ) : (
       <Form {...form}>
@@ -132,6 +140,22 @@ export function SettingsForm() {
                   </FormControl>
                    <FormDescription>
                     The cost for a single patient consultation.
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="reConsultationCost"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Re-consultation Cost</FormLabel>
+                  <FormControl>
+                    <Input type="number" placeholder="25.00" {...field} />
+                  </FormControl>
+                   <FormDescription>
+                    The cost for a follow-up or re-consultation.
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
