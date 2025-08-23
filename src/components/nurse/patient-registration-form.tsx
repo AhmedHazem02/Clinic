@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useForm } from "react-hook-form";
@@ -35,7 +36,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { UserPlus } from "lucide-react";
 import { addPatientToQueue, getPatientByPhone, type PatientInQueue } from "@/services/queueService";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 const formSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters."),
@@ -59,11 +60,17 @@ export function PatientRegistrationForm({ onPatientRegistered }: PatientRegistra
     defaultValues: {
       name: "",
       phone: "",
-      bookingDate: new Date(),
       age: undefined,
       diseases: "",
     },
   });
+
+  useEffect(() => {
+    form.reset({
+        ...form.getValues(),
+        bookingDate: new Date(),
+    });
+  }, [form]);
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsSubmitting(true);
@@ -85,12 +92,18 @@ export function PatientRegistrationForm({ onPatientRegistered }: PatientRegistra
         title: "Patient Registered",
         description: `${values.name} has been added to the queue.`,
       });
-      form.reset();
-    } catch (error) {
+      form.reset({
+        name: "",
+        phone: "",
+        age: undefined,
+        diseases: "",
+        bookingDate: new Date(),
+      });
+    } catch (error: any) {
        toast({
         variant: "destructive",
         title: "Registration Failed",
-        description: "Could not add patient to the queue. Please try again.",
+        description: error.message || "Could not add patient to the queue. Please try again.",
       });
       console.error("Failed to register patient:", error);
     } finally {
