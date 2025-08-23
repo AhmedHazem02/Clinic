@@ -101,7 +101,7 @@ export function PatientRegistrationForm({ onPatientRegistered }: PatientRegistra
         phone: "",
         age: undefined,
         diseases: "",
-        bookingDate: new Date(),
+        bookingDate: new date(),
         queueType: "Consultation",
       });
     } catch (error: any) {
