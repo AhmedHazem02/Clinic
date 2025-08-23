@@ -28,33 +28,32 @@ export function QrScannerDialog({
   const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const { toast } = useToast();
-  const codeReader = new BrowserMultiFormatReader();
 
   useEffect(() => {
-    let controls: any;
-    if (isOpen) {
-      const getCameraPermissionAndStart = async () => {
-        try {
-          const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-          setHasCameraPermission(true);
+    const codeReader = new BrowserMultiFormatReader();
+    let stream: MediaStream | null = null;
 
-          if (videoRef.current) {
-            videoRef.current.srcObject = stream;
-            // Start decoding after the video stream is ready
-            controls = await codeReader.decodeFromVideoElement(videoRef.current, (result, err) => {
-              if (result) {
-                onScanSuccess(result.getText());
-              }
-              if (err && !(err instanceof NotFoundException)) {
-                console.error("QR Scan Error:", err);
-                toast({
-                  variant: "destructive",
-                  title: "Scan Error",
-                  description: "An error occurred while scanning.",
-                });
-              }
-            });
-          }
+    const startScanner = async () => {
+      if (videoRef.current) {
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({ video: true });
+          setHasCameraPermission(true);
+          videoRef.current.srcObject = stream;
+          
+          await codeReader.decodeFromStream(stream, videoRef.current, (result, err) => {
+            if (result) {
+              onScanSuccess(result.getText());
+            }
+            if (err && !(err instanceof NotFoundException)) {
+              console.error("QR Scan Error:", err);
+              toast({
+                variant: "destructive",
+                title: "Scan Error",
+                description: "An error occurred while scanning.",
+              });
+            }
+          });
+
         } catch (error) {
           console.error('Error accessing camera:', error);
           setHasCameraPermission(false);
@@ -64,17 +63,19 @@ export function QrScannerDialog({
             description: 'Please enable camera permissions in your browser settings to use the scanner.',
           });
         }
-      };
+      }
+    };
 
-      getCameraPermissionAndStart();
+    if (isOpen) {
+      startScanner();
     }
 
     return () => {
-      // Reset scanner and turn off camera when dialog closes or component unmounts
-      codeReader.reset();
-      if (videoRef.current && videoRef.current.srcObject) {
-        const stream = videoRef.current.srcObject as MediaStream;
+      // Turn off camera when dialog closes or component unmounts
+      if (stream) {
         stream.getTracks().forEach(track => track.stop());
+      }
+      if (videoRef.current) {
         videoRef.current.srcObject = null;
       }
     };
