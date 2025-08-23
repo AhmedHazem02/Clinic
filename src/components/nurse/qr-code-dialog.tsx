@@ -9,7 +9,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { QRCode } from "qrcode.react";
+import { QRCodeSVG } from "qrcode.react";
 import { type PatientInQueue } from "@/services/queueService";
 import { Printer } from "lucide-react";
 
@@ -37,7 +37,7 @@ export function QrCodeDialog({ patient, isOpen, onClose }: QrCodeDialogProps) {
         </DialogHeader>
         <div className="flex flex-col items-center justify-center p-4 gap-4">
             <div className="p-4 bg-white rounded-lg border">
-                 <QRCode value={patient.phone} size={200} />
+                 <QRCodeSVG value={patient.phone} size={200} />
             </div>
           <div className="text-center">
             <p className="font-bold text-lg">{patient.name}</p>
