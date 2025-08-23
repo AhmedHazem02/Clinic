@@ -91,11 +91,13 @@ export const listenToQueue = (
         const patients: PatientInQueue[] = [];
         querySnapshot.forEach((doc) => {
             const data = doc.data();
+            // Fallback for bookingDate to prevent crashes if data is missing
+            const bookingDateTimestamp = data.bookingDate || data.createdAt || Timestamp.now();
             const patient: PatientInQueue = {
                 id: doc.id,
                 name: data.name,
                 phone: data.phone,
-                bookingDate: data.bookingDate.toDate(),
+                bookingDate: bookingDateTimestamp.toDate(),
                 age: data.age,
                 chronicDiseases: data.chronicDiseases,
                 queueNumber: data.queueNumber,
@@ -134,10 +136,11 @@ export const getPatientByPhone = async (phone: string): Promise<PatientInQueue |
 
     const doc = snapshot.docs[0];
     const data = doc.data();
+    const bookingDateTimestamp = data.bookingDate || data.createdAt || Timestamp.now();
     return { 
         id: doc.id,
         ...data,
-        bookingDate: data.bookingDate.toDate(),
+        bookingDate: bookingDateTimestamp.toDate(),
     } as PatientInQueue;
 }
 
