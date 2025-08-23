@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { listenToTodaysQueue, type PatientInQueue } from "@/services/queueService";
+import { listenToQueue, type PatientInQueue } from "@/services/queueService";
 import { PatientStatusCard } from "@/components/patient-status-card";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -21,7 +21,7 @@ export default function PatientStatusPage({ params }: { params: { phone: string 
       setIsLoading(true);
       setError(null);
 
-      const unsubscribe = listenToTodaysQueue((queue) => {
+      const unsubscribe = listenToQueue((queue) => {
         const currentPatient = queue.find(p => p.phone === phone);
 
         if (currentPatient) {
@@ -32,7 +32,7 @@ export default function PatientStatusPage({ params }: { params: { phone: string 
           setPatientData(currentPatient);
           setPeopleAhead(patientsAhead);
         } else {
-          setError("No patient found with this phone number for today's queue.");
+          setError("No active patient found with this phone number in the queue.");
         }
         setIsLoading(false);
       }, (err) => {

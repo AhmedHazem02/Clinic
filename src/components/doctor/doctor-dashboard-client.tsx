@@ -16,7 +16,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Download, Bot, Send, Printer, User, HeartPulse, LogIn, CheckCircle } from "lucide-react";
 import { AiAssistDialog } from "./ai-assist-dialog";
 import { useToast } from "@/hooks/use-toast";
-import { listenToTodaysQueue, type PatientInQueue, finishAndCallNext, updatePatientStatus } from "@/services/queueService";
+import { listenToQueue, type PatientInQueue, finishAndCallNext, updatePatientStatus } from "@/services/queueService";
 import { Skeleton } from "../ui/skeleton";
 
 export function DoctorDashboardClient() {
@@ -29,7 +29,7 @@ export function DoctorDashboardClient() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = listenToTodaysQueue((updatedQueue) => {
+    const unsubscribe = listenToQueue((updatedQueue) => {
       setQueue(updatedQueue);
       setIsLoading(false);
     });

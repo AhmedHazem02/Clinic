@@ -12,7 +12,8 @@ import {
     doc,
     updateDoc,
     writeBatch,
-    deleteDoc
+    deleteDoc,
+    or
 } from "firebase/firestore";
 
 export type PatientStatus = 'Waiting' | 'Consulting' | 'Finished';
@@ -31,24 +32,12 @@ export interface PatientInQueue extends NewPatient {
     createdAt: Timestamp;
 }
 
-// Function to get today's date in YYYY-MM-DD format, adjusted for local timezone
-const getTodaysDateStr = () => {
-    const today = new Date();
-    const offset = today.getTimezoneOffset();
-    const todayLocal = new Date(today.getTime() - (offset * 60 * 1000));
-    return todayLocal.toISOString().split('T')[0];
-}
+// Get the main patients collection
+const patientsCollection = collection(db, 'patients');
 
-// Get the queue collection for today
-const getTodaysQueueCollection = () => {
-    const todayStr = getTodaysDateStr();
-    return collection(db, `queues/${todayStr}/patients`);
-}
-
-// Get the next queue number for today
+// Get the next queue number
 const getNextQueueNumber = async (): Promise<number> => {
-    const queueCollection = getTodaysQueueCollection();
-    const q = query(queueCollection, orderBy("queueNumber", "desc"), limit(1));
+    const q = query(patientsCollection, orderBy("queueNumber", "desc"), limit(1));
     const snapshot = await getDocs(q);
     if (snapshot.empty) {
         return 1;
@@ -57,16 +46,15 @@ const getNextQueueNumber = async (): Promise<number> => {
     return (lastPatient.queueNumber || 0) + 1;
 }
 
-// Add a new patient to today's queue
+// Add a new patient to the queue
 export const addPatientToQueue = async (patientData: NewPatient) => {
-    // Check if patient with the same phone number is already in the queue
+    // Check if patient with the same phone number is already waiting or consulting
     const existingPatient = await getPatientByPhone(patientData.phone);
     if (existingPatient) {
-        throw new Error("A patient with this phone number is already registered for today.");
+        throw new Error("A patient with this phone number is already in the queue.");
     }
 
     const queueNumber = await getNextQueueNumber();
-    const queueCollection = getTodaysQueueCollection();
 
     const newPatientDoc = {
         ...patientData,
@@ -75,16 +63,19 @@ export const addPatientToQueue = async (patientData: NewPatient) => {
         createdAt: Timestamp.now(),
     };
 
-    return await addDoc(queueCollection, newPatientDoc);
+    return await addDoc(patientsCollection, newPatientDoc);
 }
 
-// Listen for real-time updates to today's queue
-export const listenToTodaysQueue = (
+// Listen for real-time updates to the queue (waiting and consulting patients)
+export const listenToQueue = (
     callback: (patients: PatientInQueue[]) => void,
     errorCallback?: (error: Error) => void
 ) => {
-    const queueCollection = getTodaysQueueCollection();
-    const q = query(queueCollection, orderBy("queueNumber"));
+    const q = query(
+        patientsCollection, 
+        where("status", "in", ["Waiting", "Consulting"]),
+        orderBy("queueNumber")
+    );
 
     const unsubscribe = onSnapshot(q, (querySnapshot) => {
         const patients: PatientInQueue[] = [];
@@ -102,10 +93,14 @@ export const listenToTodaysQueue = (
     return unsubscribe; // Return the unsubscribe function to clean up the listener
 }
 
-// Get a patient from today's queue by phone number
+// Get an active patient by phone number
 export const getPatientByPhone = async (phone: string): Promise<PatientInQueue | null> => {
-    const queueCollection = getTodaysQueueCollection();
-    const q = query(queueCollection, where("phone", "==", phone), limit(1));
+    const q = query(
+        patientsCollection, 
+        where("phone", "==", phone), 
+        or(where("status", "==", "Waiting"), where("status", "==", "Consulting")),
+        limit(1)
+    );
     
     const snapshot = await getDocs(q);
 
@@ -120,20 +115,18 @@ export const getPatientByPhone = async (phone: string): Promise<PatientInQueue |
 
 // Update a patient's status
 export const updatePatientStatus = async (patientId: string, status: PatientStatus) => {
-    const queueCollection = getTodaysQueueCollection();
-    const patientDocRef = doc(queueCollection, patientId);
+    const patientDocRef = doc(patientsCollection, patientId);
     return await updateDoc(patientDocRef, { status });
 }
 
 // Finish a consultation and call the next patient
 export const finishAndCallNext = async (finishedPatientId: string, nextPatientId: string) => {
-    const queueCollection = getTodaysQueueCollection();
     const batch = writeBatch(db);
 
-    const finishedPatientRef = doc(queueCollection, finishedPatientId);
+    const finishedPatientRef = doc(patientsCollection, finishedPatientId);
     batch.update(finishedPatientRef, { status: 'Finished' });
 
-    const nextPatientRef = doc(queueCollection, nextPatientId);
+    const nextPatientRef = doc(patientsCollection, nextPatientId);
     batch.update(nextPatientRef, { status: 'Consulting' });
     
     await batch.commit();
@@ -141,7 +134,6 @@ export const finishAndCallNext = async (finishedPatientId: string, nextPatientId
 
 // Remove a patient from the queue
 export const removePatientFromQueue = async (patientId: string) => {
-    const queueCollection = getTodaysQueueCollection();
-    const patientDocRef = doc(queueCollection, patientId);
+    const patientDocRef = doc(patientsCollection, patientId);
     return await deleteDoc(patientDocRef);
 };

@@ -29,7 +29,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from '@/components/ui/button';
 import { Users, QrCode, Trash2 } from 'lucide-react';
-import { listenToTodaysQueue, removePatientFromQueue, type PatientInQueue } from '@/services/queueService';
+import { listenToQueue, removePatientFromQueue, type PatientInQueue } from '@/services/queueService';
 import { Skeleton } from '../ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 
@@ -47,7 +47,7 @@ export function QueueList({ onShowQrCode }: QueueListProps) {
     const { toast } = useToast();
     
     useEffect(() => {
-        const unsubscribe = listenToTodaysQueue((updatedQueue) => {
+        const unsubscribe = listenToQueue((updatedQueue) => {
             setPatients(updatedQueue);
             setIsLoading(false);
         });

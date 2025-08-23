@@ -39,7 +39,7 @@ export function PatientSearchForm() {
       if (result) {
         router.push(`/status/${phone}`);
       } else {
-        setError("No patient found with this phone number for today's queue.");
+        setError("No active patient found with this phone number in the queue.");
       }
     } catch (err) {
       console.error("Error searching for patient:", err);
