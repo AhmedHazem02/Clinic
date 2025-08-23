@@ -1,0 +1,14 @@
+
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Allow anyone to read the list of patients for a given day's queue
+    // and allow anyone to create a new patient in the queue.
+    // In a production app, you would restrict 'create' to authenticated nurses.
+    match /queues/{date}/patients/{patientId} {
+      allow read, create: if true;
+      allow update, delete: if false; // Disallow updates and deletes for now
+    }
+  }
+}
