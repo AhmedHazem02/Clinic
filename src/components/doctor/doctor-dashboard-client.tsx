@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState } from "react";
@@ -13,11 +14,13 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Download, Bot, Send, Printer, User, HeartPulse, LogIn, CheckCircle, MessageSquarePlus } from "lucide-react";
+import { Download, Bot, Send, Printer, User, HeartPulse, LogIn, CheckCircle, MessageSquarePlus, DollarSign } from "lucide-react";
 import { AiAssistDialog } from "./ai-assist-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { listenToQueue, type PatientInQueue, finishAndCallNext, updatePatientStatus, updateDoctorMessage, listenToDoctorMessage } from "@/services/queueService";
 import { Skeleton } from "../ui/skeleton";
+
+const CONSULTATION_COST = 50; // As defined in settings
 
 export function DoctorDashboardClient() {
   const [isAvailable, setIsAvailable] = useState(true);
@@ -29,10 +32,22 @@ export function DoctorDashboardClient() {
   const [isLoading, setIsLoading] = useState(true);
   const [doctorMessage, setDoctorMessage] = useState("");
   const [isUpdatingMessage, setIsUpdatingMessage] = useState(false);
+  const [todaysRevenue, setTodaysRevenue] = useState(0);
 
   useEffect(() => {
     const unsubscribeQueue = listenToQueue((updatedQueue) => {
       setQueue(updatedQueue);
+
+      const today = new Date();
+      const todaysFinishedPatients = updatedQueue.filter(p => {
+        const bookingDate = p.bookingDate;
+        return p.status === 'Finished' &&
+               bookingDate.getDate() === today.getDate() &&
+               bookingDate.getMonth() === today.getMonth() &&
+               bookingDate.getFullYear() === today.getFullYear();
+      });
+      setTodaysRevenue(todaysFinishedPatients.length * CONSULTATION_COST);
+
       setIsLoading(false);
     });
     
@@ -118,7 +133,7 @@ export function DoctorDashboardClient() {
   return (
     <>
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        <Card className="md:col-span-2 lg:col-span-1">
+        <Card>
           <CardHeader className="flex flex-row items-start justify-between">
             <div>
               <CardTitle className="font-headline">Your Status</CardTitle>
@@ -152,8 +167,26 @@ export function DoctorDashboardClient() {
             </Button>
           </CardFooter>
         </Card>
+        
+        <Card>
+            <CardHeader>
+                <CardTitle className="font-headline flex items-center gap-2">
+                    <DollarSign className="text-primary"/> Today's Revenue
+                </CardTitle>
+                <CardDescription>Total earnings from finished consultations today.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                {isLoading ? (
+                    <Skeleton className="h-10 w-24" />
+                ) : (
+                    <p className="text-3xl font-bold">
+                        ${todaysRevenue.toFixed(2)}
+                    </p>
+                )}
+            </CardContent>
+        </Card>
 
-        <Card className="md:col-span-2 lg:col-span-2">
+        <Card className="md:col-span-2 lg:col-span-1">
           <CardHeader>
             <CardTitle className="font-headline flex items-center gap-2">
                 <User className="text-primary"/> Current Patient
