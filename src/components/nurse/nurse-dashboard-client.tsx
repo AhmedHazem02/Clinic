@@ -1,3 +1,5 @@
+"use client";
+
 import { PatientRegistrationForm } from "./patient-registration-form";
 import { QueueList } from "./queue-list";
 
