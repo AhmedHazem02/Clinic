@@ -36,7 +36,7 @@ export function QrScannerDialog({
     const startScanner = async () => {
       if (videoRef.current) {
         try {
-          stream = await navigator.mediaDevices.getUserMedia({ video: true });
+          stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
           setHasCameraPermission(true);
           videoRef.current.srcObject = stream;
           
