@@ -2,6 +2,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import {
   Card,
   CardContent,
@@ -10,11 +11,12 @@ import {
   CardTitle,
   CardFooter,
 } from "@/components/ui/card";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Download, Bot, Send, Printer, User, HeartPulse, LogIn, CheckCircle, MessageSquarePlus, DollarSign } from "lucide-react";
+import { Download, Bot, Send, Printer, User, HeartPulse, LogIn, CheckCircle, MessageSquarePlus, DollarSign, Info, Settings } from "lucide-react";
 import { AiAssistDialog } from "./ai-assist-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { listenToQueue, type PatientInQueue, finishAndCallNext, updatePatientStatus, updateDoctorMessage, listenToDoctorMessage, listenToClinicSettings } from "@/services/queueService";
@@ -148,9 +150,24 @@ export function DoctorDashboardClient() {
     }
   };
 
+  const isNewAccount = !isLoading && queue.length === 0;
 
   return (
     <>
+      {isNewAccount && (
+        <Alert className="mb-6">
+            <Info className="h-4 w-4" />
+            <AlertTitle className="font-headline">Welcome to QueueWise!</AlertTitle>
+            <AlertDescription>
+                <p>It looks like this is your first time here. To get started, please set your average consultation time and cost.</p>
+                <Button asChild variant="link" className="p-0 h-auto mt-2">
+                    <Link href="/doctor/settings">
+                        <Settings className="mr-2" /> Go to Settings
+                    </Link>
+                </Button>
+            </AlertDescription>
+        </Alert>
+      )}
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         <div className="lg:col-span-2 space-y-6">
             <Card>
