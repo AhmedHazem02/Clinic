@@ -10,7 +10,7 @@ import {
   SidebarMenuButton,
   SidebarFooter,
 } from "@/components/ui/sidebar";
-import { Home, User, Settings, Stethoscope } from "lucide-react";
+import { Home, User, Settings, Stethoscope, UserCog } from "lucide-react";
 import { SignOutButton } from "@/components/sign-out-button";
 import Link from 'next/link';
 import { useDoctorProfile } from './doctor-profile-provider';
@@ -50,6 +50,14 @@ export function DoctorSidebarNav() {
                   </Link>
                 </SidebarMenuItem>
                 <SidebarMenuItem>
+                  <Link href="/doctor/profile">
+                    <SidebarMenuButton isActive={pathname === '/doctor/profile'}>
+                      <UserCog />
+                      Profile
+                    </SidebarMenuButton>
+                  </Link>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
                   <Link href="/doctor/settings">
                     <SidebarMenuButton isActive={pathname === '/doctor/settings'}>
                       <Settings />
@@ -61,16 +69,18 @@ export function DoctorSidebarNav() {
             </SidebarContent>
             <SidebarFooter className="p-4">
                 {profile && (
-                    <div className="flex items-center gap-3">
-                        <Avatar>
-                            <AvatarImage src="https://placehold.co/40x40.png" alt={profile.name} data-ai-hint="doctor avatar" />
-                            <AvatarFallback>{getInitials(profile.name)}</AvatarFallback>
-                        </Avatar>
-                        <div className="flex flex-col">
-                            <span className="font-semibold">{profile.name}</span>
-                            <span className="text-xs text-muted-foreground">{profile.specialty}</span>
+                    <Link href="/doctor/profile" className="rounded-md p-2 -m-2 hover:bg-secondary/50 transition-colors">
+                        <div className="flex items-center gap-3">
+                            <Avatar>
+                                <AvatarImage src="https://placehold.co/40x40.png" alt={profile.name} data-ai-hint="doctor avatar" />
+                                <AvatarFallback>{getInitials(profile.name)}</AvatarFallback>
+                            </Avatar>
+                            <div className="flex flex-col">
+                                <span className="font-semibold">{profile.name}</span>
+                                <span className="text-xs text-muted-foreground">{profile.specialty}</span>
+                            </div>
                         </div>
-                    </div>
+                    </Link>
                 )}
               <SignOutButton />
             </SidebarFooter>
