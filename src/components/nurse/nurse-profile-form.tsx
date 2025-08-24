@@ -9,8 +9,9 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
-import { Upload } from "lucide-react";
+import { Upload, KeyRound } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
+import { sendPasswordReset } from "@/services/authClientService";
 
 const profileSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters."),
@@ -21,6 +22,7 @@ type ProfileFormValues = z.infer<typeof profileSchema>;
 
 export function NurseProfileForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
@@ -58,6 +60,26 @@ export function NurseProfileForm() {
     }
   };
   
+  const handleResetPassword = async () => {
+    setIsResetting(true);
+    const email = form.getValues("email");
+    try {
+      await sendPasswordReset(email);
+      toast({
+        title: "Password Reset Email Sent",
+        description: `An email has been sent to ${email} with instructions to reset your password.`,
+      });
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message || "Failed to send password reset email.",
+      });
+    } finally {
+        setIsResetting(false);
+    }
+  }
+
   const getInitials = (name: string) => {
     return name.split(' ').map(n => n[0]).join('');
   }
@@ -114,9 +136,12 @@ export function NurseProfileForm() {
                 )}
                 />
             </CardContent>
-            <CardFooter>
+            <CardFooter className="gap-2">
                 <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? "Saving..." : "Save Changes"}
+                  {isSubmitting ? "Saving..." : "Save Changes"}
+                </Button>
+                <Button type="button" variant="outline" onClick={handleResetPassword} disabled={isResetting}>
+                  <KeyRound /> {isResetting ? "Sending..." : "Reset Password"}
                 </Button>
             </CardFooter>
         </form>
