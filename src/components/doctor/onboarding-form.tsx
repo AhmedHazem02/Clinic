@@ -13,6 +13,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
 import { PlusCircle, Trash2 } from "lucide-react";
+import { Label } from "@/components/ui/label";
 
 const onboardingSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters."),
