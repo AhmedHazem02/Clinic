@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -28,6 +28,8 @@ type ProfileFormValues = z.infer<typeof profileSchema>;
 export function ProfileForm() {
   const { user, profile, isLoading } = useDoctorProfile();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
   const form = useForm<ProfileFormValues>({
@@ -68,6 +70,7 @@ export function ProfileForm() {
         clinicPhoneNumber: values.clinicPhoneNumber,
         specialty: values.specialty,
         locations: values.locations.map(l => l.value),
+        // In a real app, you would handle the avatar upload here
       };
       await setDoctorProfile(user.uid, profileData);
       toast({ title: "Profile Saved", description: "Your profile has been successfully updated." });
@@ -75,6 +78,18 @@ export function ProfileForm() {
       toast({ variant: "destructive", title: "Error", description: "Failed to save profile. Please try again." });
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleUploadClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      setAvatarPreview(URL.createObjectURL(file));
+      // Here you would typically also prepare the file for upload
     }
   };
 
@@ -125,10 +140,17 @@ export function ProfileForm() {
             <CardContent className="space-y-6">
                  <div className="flex items-center gap-4">
                     <Avatar className="h-20 w-20">
-                        <AvatarImage src="https://placehold.co/80x80.png" alt={profile?.name} data-ai-hint="doctor avatar" />
+                        <AvatarImage src={avatarPreview || "https://placehold.co/80x80.png"} alt={profile?.name} data-ai-hint="doctor avatar" />
                         {profile?.name && <AvatarFallback>{getInitials(profile.name)}</AvatarFallback>}
                     </Avatar>
-                    <Button type="button" variant="outline">
+                    <input
+                      type="file"
+                      ref={fileInputRef}
+                      onChange={handleFileChange}
+                      className="hidden"
+                      accept="image/png, image/jpeg"
+                    />
+                    <Button type="button" variant="outline" onClick={handleUploadClick}>
                         <Upload /> Upload Photo
                     </Button>
                 </div>
