@@ -14,6 +14,7 @@ interface PatientStatusCardProps {
 
 export function PatientStatusCard({ data, peopleAhead }: PatientStatusCardProps) {
   const [consultationTime, setConsultationTime] = useState(DEFAULT_CONSULTATION_TIME);
+  const [estimatedTimeInSeconds, setEstimatedTimeInSeconds] = useState(0);
   
   useEffect(() => {
     const unsubscribe = listenToClinicSettings((settings) => {
@@ -24,7 +25,31 @@ export function PatientStatusCard({ data, peopleAhead }: PatientStatusCardProps)
     return () => unsubscribe();
   }, []);
 
-  const estimatedTime = peopleAhead * consultationTime;
+  useEffect(() => {
+    const totalSeconds = peopleAhead * consultationTime * 60;
+    setEstimatedTimeInSeconds(totalSeconds);
+  }, [peopleAhead, consultationTime]);
+
+  useEffect(() => {
+    if (estimatedTimeInSeconds <= 0) return;
+
+    const timer = setInterval(() => {
+      setEstimatedTimeInSeconds(prevTime => prevTime - 1);
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [estimatedTimeInSeconds]);
+
+
+  const formatTime = (totalSeconds: number) => {
+    if (totalSeconds < 0) totalSeconds = 0;
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+
+    return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+  }
+
 
   return (
     <Card className="w-full animate-in fade-in-50 duration-500">
@@ -49,7 +74,7 @@ export function PatientStatusCard({ data, peopleAhead }: PatientStatusCardProps)
             <div className="bg-primary/10 p-4 rounded-lg">
                 <Clock className="mx-auto h-6 w-6 text-primary mb-1" />
                 <p className="text-sm text-muted-foreground">Est. Wait Time</p>
-                <p className="text-3xl font-bold">{estimatedTime} <span className="text-xl">min</span></p>
+                <p className="text-3xl font-bold font-mono tracking-tighter">{formatTime(estimatedTimeInSeconds)}</p>
             </div>
         </div>
         
