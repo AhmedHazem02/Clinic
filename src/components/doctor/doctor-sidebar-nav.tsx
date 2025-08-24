@@ -50,13 +50,6 @@ export function DoctorSidebarNav() {
                   </Link>
                 </SidebarMenuItem>
                 <SidebarMenuItem>
-                  <Link href="/doctor/profile">
-                    <SidebarMenuButton isActive={pathname === '/doctor/profile'}>
-                      Profile
-                    </SidebarMenuButton>
-                  </Link>
-                </SidebarMenuItem>
-                <SidebarMenuItem>
                   <Link href="/doctor/settings">
                     <SidebarMenuButton isActive={pathname === '/doctor/settings'}>
                       <Settings />
