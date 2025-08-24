@@ -10,7 +10,7 @@ import {
   SidebarMenuButton,
   SidebarFooter,
 } from "@/components/ui/sidebar";
-import { Home, User, Settings, Stethoscope, UserCog } from "lucide-react";
+import { Home, User, Settings, Stethoscope } from "lucide-react";
 import { SignOutButton } from "@/components/sign-out-button";
 import Link from 'next/link';
 import { useDoctorProfile } from './doctor-profile-provider';
@@ -52,7 +52,6 @@ export function DoctorSidebarNav() {
                 <SidebarMenuItem>
                   <Link href="/doctor/profile">
                     <SidebarMenuButton isActive={pathname === '/doctor/profile'}>
-                      <UserCog />
                       Profile
                     </SidebarMenuButton>
                   </Link>
