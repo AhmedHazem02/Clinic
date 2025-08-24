@@ -11,9 +11,10 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
-import { PlusCircle, Trash2 } from "lucide-react";
+import { PlusCircle, Trash2, Upload } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "../ui/skeleton";
+import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 
 const profileSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters."),
@@ -109,103 +110,116 @@ export function ProfileForm() {
     )
   }
 
+  const getInitials = (name: string) => {
+    return name.split(' ').map(n => n[0]).join('');
+  }
+
   return (
     <Card>
-      <CardHeader>
-        <CardTitle className="font-headline">Your Information</CardTitle>
-        <CardDescription>This information will be displayed to your staff and patients.</CardDescription>
-      </CardHeader>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)}>
-          <CardContent className="space-y-6">
-            <FormField
-              control={form.control}
-              name="name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Full Name</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Dr. Jane Doe" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="specialty"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Medical Specialty</FormLabel>
-                  <FormControl>
-                    <Input placeholder="e.g., Cardiologist" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="clinicPhoneNumber"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Clinic Phone Number</FormLabel>
-                  <FormControl>
-                    <Input placeholder="01234567890" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <div>
-              <Label>Clinic Location(s)</Label>
-              <div className="space-y-2 mt-2">
-                {fields.map((field, index) => (
-                    <FormField
-                        key={field.id}
-                        control={form.control}
-                        name={`locations.${index}.value`}
-                        render={({ field }) => (
-                            <FormItem>
-                                <div className="flex items-center gap-2">
-                                    <FormControl>
-                                        <Input placeholder={`Location ${index + 1}`} {...field} />
-                                    </FormControl>
-                                    {fields.length > 1 && (
-                                        <Button
-                                            type="button"
-                                            variant="ghost"
-                                            size="icon"
-                                            className="text-destructive"
-                                            onClick={() => remove(index)}
-                                        >
-                                            <Trash2 className="h-4 w-4" />
-                                        </Button>
-                                    )}
-                                </div>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-                ))}
-              </div>
-               <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="mt-2"
-                onClick={() => append({ value: "" })}
-              >
-                <PlusCircle className="mr-2 h-4 w-4" />
-                Add Location
-              </Button>
-            </div>
-          </CardContent>
-          <CardFooter>
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? "Saving..." : "Save Changes"}
-            </Button>
-          </CardFooter>
+            <CardHeader>
+                <CardTitle className="font-headline">Your Information</CardTitle>
+                <CardDescription>This information will be displayed to your staff and patients.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+                 <div className="flex items-center gap-4">
+                    <Avatar className="h-20 w-20">
+                        <AvatarImage src="https://placehold.co/80x80.png" alt={profile?.name} data-ai-hint="doctor avatar" />
+                        {profile?.name && <AvatarFallback>{getInitials(profile.name)}</AvatarFallback>}
+                    </Avatar>
+                    <Button type="button" variant="outline">
+                        <Upload /> Upload Photo
+                    </Button>
+                </div>
+                <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                    <FormItem>
+                    <FormLabel>Full Name</FormLabel>
+                    <FormControl>
+                        <Input placeholder="Dr. Jane Doe" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                    </FormItem>
+                )}
+                />
+                <FormField
+                control={form.control}
+                name="specialty"
+                render={({ field }) => (
+                    <FormItem>
+                    <FormLabel>Medical Specialty</FormLabel>
+                    <FormControl>
+                        <Input placeholder="e.g., Cardiologist" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                    </FormItem>
+                )}
+                />
+                <FormField
+                control={form.control}
+                name="clinicPhoneNumber"
+                render={({ field }) => (
+                    <FormItem>
+                    <FormLabel>Clinic Phone Number</FormLabel>
+                    <FormControl>
+                        <Input placeholder="01234567890" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                    </FormItem>
+                )}
+                />
+                <div>
+                <Label>Clinic Location(s)</Label>
+                <div className="space-y-2 mt-2">
+                    {fields.map((field, index) => (
+                        <FormField
+                            key={field.id}
+                            control={form.control}
+                            name={`locations.${index}.value`}
+                            render={({ field }) => (
+                                <FormItem>
+                                    <div className="flex items-center gap-2">
+                                        <FormControl>
+                                            <Input placeholder={`Location ${index + 1}`} {...field} />
+                                        </FormControl>
+                                        {fields.length > 1 && (
+                                            <Button
+                                                type="button"
+                                                variant="ghost"
+                                                size="icon"
+                                                className="text-destructive"
+                                                onClick={() => remove(index)}
+                                            >
+                                                <Trash2 className="h-4 w-4" />
+                                            </Button>
+                                        )}
+                                    </div>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                    ))}
+                </div>
+                <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="mt-2"
+                    onClick={() => append({ value: "" })}
+                >
+                    <PlusCircle className="mr-2 h-4 w-4" />
+                    Add Location
+                </Button>
+                </div>
+            </CardContent>
+            <CardFooter>
+                <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting ? "Saving..." : "Save Changes"}
+                </Button>
+            </CardFooter>
         </form>
       </Form>
     </Card>
