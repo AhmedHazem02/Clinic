@@ -13,9 +13,15 @@ import {
 import { Home, User, Settings, Stethoscope } from "lucide-react";
 import { SignOutButton } from "@/components/sign-out-button";
 import Link from 'next/link';
+import { useDoctorProfile } from './doctor-profile-provider';
 
 export function DoctorSidebarNav() {
     const pathname = usePathname();
+    const { profile } = useDoctorProfile();
+
+    const getInitials = (name: string) => {
+        return name.split(' ').map(n => n[0]).join('');
+    }
 
     return (
         <>
@@ -54,16 +60,18 @@ export function DoctorSidebarNav() {
               </SidebarMenu>
             </SidebarContent>
             <SidebarFooter className="p-4">
-                <div className="flex items-center gap-3">
-                    <Avatar>
-                        <AvatarImage src="https://placehold.co/40x40.png" alt="@doctordoe" data-ai-hint="doctor avatar" />
-                        <AvatarFallback>DD</AvatarFallback>
-                    </Avatar>
-                    <div className="flex flex-col">
-                        <span className="font-semibold">Dr. Jane Doe</span>
-                        <span className="text-xs text-muted-foreground">Cardiologist</span>
+                {profile && (
+                    <div className="flex items-center gap-3">
+                        <Avatar>
+                            <AvatarImage src="https://placehold.co/40x40.png" alt={profile.name} data-ai-hint="doctor avatar" />
+                            <AvatarFallback>{getInitials(profile.name)}</AvatarFallback>
+                        </Avatar>
+                        <div className="flex flex-col">
+                            <span className="font-semibold">{profile.name}</span>
+                            <span className="text-xs text-muted-foreground">{profile.specialty}</span>
+                        </div>
                     </div>
-                </div>
+                )}
               <SignOutButton />
             </SidebarFooter>
         </>

@@ -16,7 +16,8 @@ import {
     deleteDoc,
     or,
     and,
-    setDoc
+    setDoc,
+    getDoc
 } from "firebase/firestore";
 
 export type PatientStatus = 'Waiting' | 'Consulting' | 'Finished';
@@ -44,10 +45,18 @@ export interface ClinicSettings {
     reConsultationCost: number;
 }
 
+export interface DoctorProfile {
+    name: string;
+    specialty: string;
+    clinicPhoneNumber: string;
+    locations: string[];
+}
 
-// Get the main patients collection
+
+// Get collections
 const patientsCollection = collection(db, 'patients');
 const clinicInfoCollection = collection(db, 'clinicInfo');
+const doctorsCollection = collection(db, 'doctors');
 
 
 // Get the next queue number
@@ -221,3 +230,21 @@ export const listenToClinicSettings = (callback: (settings: ClinicSettings | nul
     });
     return unsubscribe;
 };
+
+// --- Doctor Profile Functions ---
+
+// Get a doctor's profile
+export const getDoctorProfile = async (uid: string): Promise<DoctorProfile | null> => {
+    const docRef = doc(doctorsCollection, uid);
+    const docSnap = await getDoc(docRef);
+    if (docSnap.exists()) {
+        return docSnap.data() as DoctorProfile;
+    }
+    return null;
+}
+
+// Set/Update a doctor's profile
+export const setDoctorProfile = async (uid: string, profile: DoctorProfile) => {
+    const docRef = doc(doctorsCollection, uid);
+    return await setDoc(docRef, profile, { merge: true });
+}
