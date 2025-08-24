@@ -32,10 +32,12 @@ export default function NurseLayout({
         <SidebarContent>
           <SidebarMenu>
             <SidebarMenuItem>
-              <SidebarMenuButton href="/nurse/dashboard" isActive>
-                <Home />
-                Dashboard
-              </SidebarMenuButton>
+              <Link href="/nurse/dashboard">
+                <SidebarMenuButton isActive>
+                  <Home />
+                  Dashboard
+                </SidebarMenuButton>
+              </Link>
             </SidebarMenuItem>
             <SidebarMenuItem>
               <SidebarMenuButton>
