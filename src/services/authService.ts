@@ -2,16 +2,16 @@
 
 import { authAdmin } from "@/lib/firebaseAdmin";
 
-// Admin action to create a nurse user
-export const createNurseUser = async (email: string, password: string) => {
+// Generic function to create a user with a specific role
+export const createUser = async (email: string, password: string, role: 'doctor' | 'nurse') => {
     try {
         const userRecord = await authAdmin.createUser({
             email,
             password,
-            displayName: "Nurse", // Or derive from form
+            displayName: role.charAt(0).toUpperCase() + role.slice(1), // Capitalize role for display name
         });
-        // We can set a custom claim to identify the role
-        await authAdmin.setCustomUserClaims(userRecord.uid, { role: 'nurse' });
+        // We set a custom claim to identify the role
+        await authAdmin.setCustomUserClaims(userRecord.uid, { role });
         return userRecord;
     } catch (error: any) {
          if (error.code === 'auth/email-already-exists') {

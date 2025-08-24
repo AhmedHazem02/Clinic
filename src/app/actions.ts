@@ -5,7 +5,7 @@ import {
   type AiAssistedPrescriptionInput,
   type AiAssistedPrescriptionOutput,
 } from "@/ai/flows/ai-assisted-prescription";
-import { createNurseUser } from "@/services/authService";
+import { createUser } from "@/services/authService";
 
 export async function getAiPrescriptionSuggestions(
   input: AiAssistedPrescriptionInput
@@ -22,7 +22,7 @@ export async function getAiPrescriptionSuggestions(
 
 export async function addNurseAction(email: string, password: string): Promise<{ success: boolean; message: string }> {
     try {
-        await createNurseUser(email, password);
+        await createUser(email, password, 'nurse');
         return { success: true, message: "Nurse account created successfully." };
     } catch (error: any) {
         console.error("Error creating nurse user:", error);
