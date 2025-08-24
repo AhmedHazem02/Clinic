@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState } from "react";
@@ -10,8 +11,7 @@ import { AlertTriangle, ArrowLeft, Info } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
-export default function PatientStatusPage({ params }: { params: { phone: string } }) {
-  const phone = params.phone;
+export default function PatientStatusPage({ params: { phone } }: { params: { phone: string } }) {
   const [patientData, setPatientData] = useState<PatientInQueue | null>(null);
   const [peopleAhead, setPeopleAhead] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
