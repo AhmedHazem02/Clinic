@@ -74,7 +74,7 @@ export function PatientStatusCard({ data, peopleAhead }: PatientStatusCardProps)
             <div className="bg-primary/10 p-4 rounded-lg">
                 <Clock className="mx-auto h-6 w-6 text-primary mb-1" />
                 <p className="text-sm text-muted-foreground">Est. Wait Time</p>
-                <p className="text-3xl font-bold font-mono tracking-tighter">{formatTime(estimatedTimeInSeconds)}</p>
+                <p className="text-2xl font-bold font-mono tracking-tighter">{formatTime(estimatedTimeInSeconds)}</p>
             </div>
         </div>
         
