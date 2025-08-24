@@ -1,4 +1,3 @@
-import { NurseManagement } from "@/components/doctor/nurse-management";
 import { ProfileForm } from "@/components/doctor/profile-form";
 
 export default function DoctorProfilePage() {
@@ -9,7 +8,6 @@ export default function DoctorProfilePage() {
                 <p className="text-muted-foreground">View and edit your personal and clinic information.</p>
             </div>
             <ProfileForm />
-            <NurseManagement />
         </div>
     );
 }
