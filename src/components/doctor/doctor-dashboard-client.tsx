@@ -16,7 +16,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Download, Bot, Send, Printer, User, HeartPulse, LogIn, CheckCircle, MessageSquarePlus, DollarSign, Info, Settings } from "lucide-react";
+import { Download, Bot, Send, Printer, User, HeartPulse, LogIn, CheckCircle, MessageSquarePlus, DollarSign, Info, Settings, FileText } from "lucide-react";
 import { AiAssistDialog } from "./ai-assist-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { listenToQueue, type PatientInQueue, finishAndCallNext, updatePatientStatus, updateDoctorMessage, listenToDoctorMessage, listenToClinicSettings } from "@/services/queueService";
@@ -68,7 +68,8 @@ export function DoctorDashboardClient() {
     today.setHours(0, 0, 0, 0);
 
     const todaysFinishedPatients = queue.filter(p => {
-        const bookingDate = p.bookingDate;
+        if (!p.bookingDate) return false;
+        const bookingDate = new Date(p.bookingDate);
         bookingDate.setHours(0, 0, 0, 0);
         return p.status === 'Finished' && bookingDate.getTime() === today.getTime();
     });
@@ -184,11 +185,16 @@ export function DoctorDashboardClient() {
                     <Skeleton className="h-7 w-1/2" />
                     <Skeleton className="h-5 w-1/4" />
                     <Skeleton className="h-5 w-3/4" />
+                    <Skeleton className="h-5 w-1/2" />
                 </CardContent>
             ) : currentPatient ? (
                 <CardContent className="space-y-2">
                     <h3 className="text-xl font-bold">{currentPatient.name}</h3>
                     <p className="text-sm"><strong className="font-medium">Age:</strong> {currentPatient.age || 'N/A'}</p>
+                     <p className="text-sm flex items-start">
+                        <FileText className="h-4 w-4 mr-2 mt-0.5 text-primary flex-shrink-0"/> 
+                        <strong className="font-medium">Reason:</strong> {currentPatient.consultationReason || 'N/A'}
+                    </p>
                     <p className="text-sm flex items-start">
                         <HeartPulse className="h-4 w-4 mr-2 mt-0.5 text-destructive flex-shrink-0"/> 
                         <strong className="font-medium">Chronic Diseases:</strong> {currentPatient.chronicDiseases || 'None'}

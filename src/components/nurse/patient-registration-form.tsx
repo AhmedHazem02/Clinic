@@ -47,6 +47,7 @@ const formSchema = z.object({
   }),
   age: z.coerce.number().optional(),
   diseases: z.string().optional(),
+  consultationReason: z.string().optional(),
   queueType: z.enum(["Consultation", "Re-consultation"]),
 });
 
@@ -64,6 +65,7 @@ export function PatientRegistrationForm({ onPatientRegistered }: PatientRegistra
       phone: "",
       age: undefined,
       diseases: "",
+      consultationReason: "",
       queueType: "Consultation",
     },
   });
@@ -84,6 +86,7 @@ export function PatientRegistrationForm({ onPatientRegistered }: PatientRegistra
         bookingDate: values.bookingDate,
         age: values.age || null,
         chronicDiseases: values.diseases || null,
+        consultationReason: values.consultationReason || null,
         queueType: values.queueType as QueueType,
       });
 
@@ -101,7 +104,8 @@ export function PatientRegistrationForm({ onPatientRegistered }: PatientRegistra
         phone: "",
         age: undefined,
         diseases: "",
-        bookingDate: new date(),
+        consultationReason: "",
+        bookingDate: new Date(),
         queueType: "Consultation",
       });
     } catch (error: any) {
@@ -223,6 +227,23 @@ export function PatientRegistrationForm({ onPatientRegistered }: PatientRegistra
                         </FormLabel>
                       </FormItem>
                     </RadioGroup>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+             <FormField
+              control={form.control}
+              name="consultationReason"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Reason for Consultation</FormLabel>
+                  <FormControl>
+                    <Textarea
+                      placeholder="e.g., Follow-up, general check-up..."
+                      {...field}
+                      value={field.value ?? ''}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

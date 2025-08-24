@@ -29,6 +29,7 @@ export interface NewPatient {
     bookingDate: Date;
     age: number | null;
     chronicDiseases: string | null;
+    consultationReason: string | null;
     queueType: QueueType;
 }
 
@@ -50,6 +51,7 @@ export interface DoctorProfile {
     specialty: string;
     clinicPhoneNumber: string;
     locations: string[];
+    avatarUrl?: string;
 }
 
 
@@ -122,6 +124,7 @@ export const listenToQueue = (
                 bookingDate: bookingDateTimestamp.toDate(),
                 age: data.age,
                 chronicDiseases: data.chronicDiseases,
+                consultationReason: data.consultationReason,
                 queueNumber: data.queueNumber,
                 status: data.status,
                 createdAt: data.createdAt,
@@ -244,7 +247,7 @@ export const getDoctorProfile = async (uid: string): Promise<DoctorProfile | nul
 }
 
 // Set/Update a doctor's profile
-export const setDoctorProfile = async (uid: string, profile: DoctorProfile) => {
+export const setDoctorProfile = async (uid: string, profile: Partial<DoctorProfile>) => {
     const docRef = doc(doctorsCollection, uid);
     return await setDoc(docRef, profile, { merge: true });
 }
