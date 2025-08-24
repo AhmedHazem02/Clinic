@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
-import { onAuthChange, type User } from "@/services/authService";
+import { onAuthChange, type User } from "@/services/authClientService";
 import { getDoctorProfile, type DoctorProfile } from "@/services/queueService";
 import { usePathname, useRouter } from "next/navigation";
 import { Skeleton } from "../ui/skeleton";

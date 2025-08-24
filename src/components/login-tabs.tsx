@@ -16,7 +16,7 @@ import { useRouter } from 'next/navigation';
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { signInUser } from "@/services/authService";
+import { signInUser } from "@/services/authClientService";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 

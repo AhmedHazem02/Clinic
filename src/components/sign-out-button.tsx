@@ -2,7 +2,7 @@
 
 import { LogOut } from "lucide-react";
 import { Button } from "./ui/button";
-import { signOutUser } from "@/services/authService";
+import { signOutUser } from "@/services/authClientService";
 import { useRouter } from "next/navigation";
 
 export function SignOutButton() {
