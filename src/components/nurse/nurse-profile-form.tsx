@@ -1,0 +1,126 @@
+"use client";
+
+import { useState, useRef } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { useToast } from "@/hooks/use-toast";
+import { Upload } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
+
+const profileSchema = z.object({
+  name: z.string().min(2, "Name must be at least 2 characters."),
+  email: z.string().email("Please enter a valid email."),
+});
+
+type ProfileFormValues = z.infer<typeof profileSchema>;
+
+export function NurseProfileForm() {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const { toast } = useToast();
+
+  const form = useForm<ProfileFormValues>({
+    resolver: zodResolver(profileSchema),
+    defaultValues: {
+      name: "Nurse Smith",
+      email: "nurse.smith@clinic.com",
+    },
+  });
+
+  const onSubmit = async (values: ProfileFormValues) => {
+    setIsSubmitting(true);
+    try {
+      // In a real app, you would save the profile data and avatar here.
+      console.log("Saving nurse profile:", values);
+      toast({ title: "Profile Saved", description: "Your profile has been successfully updated." });
+    } catch (error) {
+      toast({ variant: "destructive", title: "Error", description: "Failed to save profile. Please try again." });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+  
+  const handleUploadClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      setAvatarPreview(URL.createObjectURL(file));
+      // Here you would typically also prepare the file for upload
+    }
+  };
+  
+  const getInitials = (name: string) => {
+    return name.split(' ').map(n => n[0]).join('');
+  }
+
+  return (
+    <Card className="max-w-2xl">
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)}>
+            <CardHeader>
+                <CardTitle className="font-headline">Your Information</CardTitle>
+                <CardDescription>This information will be displayed in the nurse panel.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+                 <div className="flex items-center gap-4">
+                    <Avatar className="h-20 w-20">
+                        <AvatarImage src={avatarPreview || "https://placehold.co/80x80.png"} alt={form.getValues("name")} data-ai-hint="nurse avatar" />
+                        <AvatarFallback>{getInitials(form.getValues("name"))}</AvatarFallback>
+                    </Avatar>
+                    <input
+                      type="file"
+                      ref={fileInputRef}
+                      onChange={handleFileChange}
+                      className="hidden"
+                      accept="image/png, image/jpeg"
+                    />
+                    <Button type="button" variant="outline" onClick={handleUploadClick}>
+                        <Upload /> Upload Photo
+                    </Button>
+                </div>
+                <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                    <FormItem>
+                    <FormLabel>Full Name</FormLabel>
+                    <FormControl>
+                        <Input placeholder="Nurse Smith" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                    </FormItem>
+                )}
+                />
+                <FormField
+                control={form.control}
+                name="email"
+                render={({ field }) => (
+                    <FormItem>
+                    <FormLabel>Email Address</FormLabel>
+                    <FormControl>
+                        <Input placeholder="nurse@example.com" {...field} disabled />
+                    </FormControl>
+                    <FormMessage />
+                    </FormItem>
+                )}
+                />
+            </CardContent>
+            <CardFooter>
+                <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting ? "Saving..." : "Save Changes"}
+                </Button>
+            </CardFooter>
+        </form>
+      </Form>
+    </Card>
+  );
+}
