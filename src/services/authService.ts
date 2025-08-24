@@ -19,7 +19,8 @@ export const createNurseUser = async (email: string, password: string) => {
         } else if (error.code === 'auth/invalid-password') {
             throw new Error('Password should be at least 6 characters.');
         } else {
-            throw new Error('Failed to create user.');
+            console.error("Firebase Admin Error:", error.message);
+            throw new Error(error.message || 'Failed to create user.');
         }
     }
 }

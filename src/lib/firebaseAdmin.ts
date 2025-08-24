@@ -14,6 +14,20 @@ if (!admin.apps.length) {
     }
 }
 
-const authAdmin = admin.auth();
+let authAdmin;
 
-export { authAdmin };
+if (admin.apps.length > 0) {
+    authAdmin = admin.auth();
+} else {
+    // Provide a dummy object or throw an error to prevent the app from crashing.
+    // In this case, we'll log an error and functions using authAdmin will fail gracefully.
+    console.error("Firebase Admin has not been initialized. authAdmin will not be available.");
+    authAdmin = {
+      createUser: () => Promise.reject(new Error("Firebase Admin not initialized.")),
+      setCustomUserClaims: () => Promise.reject(new Error("Firebase Admin not initialized.")),
+      // Add other methods you use if necessary, all rejecting with an error.
+    }
+}
+
+
+export { admin, authAdmin };
