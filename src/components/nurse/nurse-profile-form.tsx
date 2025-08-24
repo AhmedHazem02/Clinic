@@ -1,17 +1,34 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
 import { Upload, KeyRound } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import { sendPasswordReset } from "@/services/authClientService";
+import { useNurseProfile } from "./nurse-profile-provider";
+import { setNurseProfile } from "@/services/queueService";
+import { Skeleton } from "../ui/skeleton";
 
 const profileSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters."),
@@ -21,6 +38,7 @@ const profileSchema = z.object({
 type ProfileFormValues = z.infer<typeof profileSchema>;
 
 export function NurseProfileForm() {
+  const { user, profile, isLoading } = useNurseProfile();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
@@ -30,24 +48,58 @@ export function NurseProfileForm() {
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSchema),
     defaultValues: {
-      name: "Nurse Smith",
-      email: "nurse.smith@clinic.com",
+      name: "",
+      email: "",
     },
   });
 
+  useEffect(() => {
+    if (profile) {
+      form.reset({
+        name: profile.name,
+        email: profile.email,
+      });
+      setAvatarPreview(profile.avatarUrl || null);
+    } else if (user) {
+      form.reset({
+        name: user.displayName || "",
+        email: user.email || "",
+      });
+    }
+  }, [profile, user, form]);
+
   const onSubmit = async (values: ProfileFormValues) => {
+    if (!user) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "You must be logged in.",
+      });
+      return;
+    }
     setIsSubmitting(true);
     try {
-      // In a real app, you would save the profile data and avatar here.
-      console.log("Saving nurse profile:", values);
-      toast({ title: "Profile Saved", description: "Your profile has been successfully updated." });
+      const profileData = {
+        name: values.name,
+        email: values.email,
+        // In a real app, you would handle avatar upload and get a URL
+      };
+      await setNurseProfile(user.uid, profileData);
+      toast({
+        title: "Profile Saved",
+        description: "Your profile has been successfully updated.",
+      });
     } catch (error) {
-      toast({ variant: "destructive", title: "Error", description: "Failed to save profile. Please try again." });
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to save profile. Please try again.",
+      });
     } finally {
       setIsSubmitting(false);
     }
   };
-  
+
   const handleUploadClick = () => {
     fileInputRef.current?.click();
   };
@@ -59,7 +111,7 @@ export function NurseProfileForm() {
       // Here you would typically also prepare the file for upload
     }
   };
-  
+
   const handleResetPassword = async () => {
     setIsResetting(true);
     const email = form.getValues("email");
@@ -76,74 +128,118 @@ export function NurseProfileForm() {
         description: error.message || "Failed to send password reset email.",
       });
     } finally {
-        setIsResetting(false);
+      setIsResetting(false);
     }
-  }
+  };
 
   const getInitials = (name: string) => {
-    return name.split(' ').map(n => n[0]).join('');
+    return name
+      .split(" ")
+      .map((n) => n[0])
+      .join("");
+  };
+  
+  if (isLoading) {
+      return (
+          <Card className="max-w-2xl">
+              <CardHeader>
+                  <Skeleton className="h-8 w-48" />
+                  <Skeleton className="h-4 w-3/4" />
+              </CardHeader>
+              <CardContent className="space-y-6">
+                  <div className="flex items-center gap-4">
+                      <Skeleton className="h-20 w-20 rounded-full" />
+                      <Skeleton className="h-10 w-32" />
+                  </div>
+                  <div className="space-y-2">
+                      <Skeleton className="h-5 w-32" />
+                      <Skeleton className="h-10 w-full" />
+                  </div>
+                  <div className="space-y-2">
+                      <Skeleton className="h-5 w-32" />
+                      <Skeleton className="h-10 w-full" />
+                  </div>
+              </CardContent>
+              <CardFooter>
+                  <Skeleton className="h-10 w-32" />
+              </CardFooter>
+          </Card>
+      );
   }
 
   return (
     <Card className="max-w-2xl">
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)}>
-            <CardHeader>
-                <CardTitle className="font-headline">Your Information</CardTitle>
-                <CardDescription>This information will be displayed in the nurse panel.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-                 <div className="flex items-center gap-4">
-                    <Avatar className="h-20 w-20">
-                        <AvatarImage src={avatarPreview || "https://placehold.co/80x80.png"} alt={form.getValues("name")} data-ai-hint="nurse avatar" />
-                        <AvatarFallback>{getInitials(form.getValues("name"))}</AvatarFallback>
-                    </Avatar>
-                    <input
-                      type="file"
-                      ref={fileInputRef}
-                      onChange={handleFileChange}
-                      className="hidden"
-                      accept="image/png, image/jpeg"
-                    />
-                    <Button type="button" variant="outline" onClick={handleUploadClick}>
-                        <Upload /> Upload Photo
-                    </Button>
-                </div>
-                <FormField
-                control={form.control}
-                name="name"
-                render={({ field }) => (
-                    <FormItem>
-                    <FormLabel>Full Name</FormLabel>
-                    <FormControl>
-                        <Input placeholder="Nurse Smith" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                    </FormItem>
-                )}
+          <CardHeader>
+            <CardTitle className="font-headline">Your Information</CardTitle>
+            <CardDescription>
+              This information will be displayed in the nurse panel.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="flex items-center gap-4">
+              <Avatar className="h-20 w-20">
+                <AvatarImage
+                  src={avatarPreview || "https://placehold.co/80x80.png"}
+                  alt={form.getValues("name")}
+                  data-ai-hint="nurse avatar"
                 />
-                <FormField
-                control={form.control}
-                name="email"
-                render={({ field }) => (
-                    <FormItem>
-                    <FormLabel>Email Address</FormLabel>
-                    <FormControl>
-                        <Input placeholder="nurse@example.com" {...field} disabled />
-                    </FormControl>
-                    <FormMessage />
-                    </FormItem>
-                )}
-                />
-            </CardContent>
-            <CardFooter className="gap-2">
-                <Button type="submit" disabled={isSubmitting}>
-                  {isSubmitting ? "Saving..." : "Save Changes"}
-                </Button>
-                <Button type="button" variant="outline" onClick={handleResetPassword} disabled={isResetting}>
-                  <KeyRound /> {isResetting ? "Sending..." : "Reset Password"}
-                </Button>
-            </CardFooter>
+                <AvatarFallback>
+                  {getInitials(form.getValues("name"))}
+                </AvatarFallback>
+              </Avatar>
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileChange}
+                className="hidden"
+                accept="image/png, image/jpeg"
+              />
+              <Button type="button" variant="outline" onClick={handleUploadClick}>
+                <Upload /> Upload Photo
+              </Button>
+            </div>
+            <FormField
+              control={form.control}
+              name="name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Full Name</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Nurse Smith" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="email"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Email Address</FormLabel>
+                  <FormControl>
+                    <Input placeholder="nurse@example.com" {...field} disabled />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </CardContent>
+          <CardFooter className="gap-2">
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? "Saving..." : "Save Changes"}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleResetPassword}
+              disabled={isResetting}
+            >
+              <KeyRound /> {isResetting ? "Sending..." : "Reset Password"}
+            </Button>
+          </CardFooter>
         </form>
       </Form>
     </Card>

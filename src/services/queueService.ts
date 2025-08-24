@@ -54,11 +54,18 @@ export interface DoctorProfile {
     avatarUrl?: string;
 }
 
+export interface NurseProfile {
+    name: string;
+    email: string;
+    avatarUrl?: string;
+}
+
 
 // Get collections
 const patientsCollection = collection(db, 'patients');
 const clinicInfoCollection = collection(db, 'clinicInfo');
 const doctorsCollection = collection(db, 'doctors');
+const nursesCollection = collection(db, 'nurses');
 
 
 // Get the next queue number
@@ -249,5 +256,23 @@ export const getDoctorProfile = async (uid: string): Promise<DoctorProfile | nul
 // Set/Update a doctor's profile
 export const setDoctorProfile = async (uid: string, profile: Partial<DoctorProfile>) => {
     const docRef = doc(doctorsCollection, uid);
+    return await setDoc(docRef, profile, { merge: true });
+}
+
+// --- Nurse Profile Functions ---
+
+// Get a nurse's profile
+export const getNurseProfile = async (uid: string): Promise<NurseProfile | null> => {
+    const docRef = doc(nursesCollection, uid);
+    const docSnap = await getDoc(docRef);
+    if (docSnap.exists()) {
+        return docSnap.data() as NurseProfile;
+    }
+    return null;
+}
+
+// Set/Update a nurse's profile
+export const setNurseProfile = async (uid: string, profile: Partial<NurseProfile>) => {
+    const docRef = doc(nursesCollection, uid);
     return await setDoc(docRef, profile, { merge: true });
 }
