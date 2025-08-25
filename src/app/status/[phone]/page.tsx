@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { listenToQueue, type PatientInQueue, listenToDoctorMessage } from "@/services/queueService";
 import { PatientStatusCard } from "@/components/patient-status-card";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,7 +11,9 @@ import { AlertTriangle, ArrowLeft, Info } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
-export default function PatientStatusPage({ params: { phone } }: { params: { phone: string } }) {
+export default function PatientStatusPage({ params }: { params: { phone: string } }) {
+  const { phone } = React.use(params);
+
   const [patientData, setPatientData] = useState<PatientInQueue | null>(null);
   const [peopleAhead, setPeopleAhead] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
