@@ -22,7 +22,9 @@ export function NurseDashboardClient() {
         if (!user) return;
 
         const unsubscribe = listenToQueueForNurse(user.uid, (updatedQueue) => {
-            const activePatients = updatedQueue.filter(p => p.status !== 'Finished');
+            const activePatients = updatedQueue
+                .filter(p => p.status !== 'Finished')
+                .sort((a, b) => a.queueNumber - b.queueNumber);
             setPatients(activePatients);
             setIsLoading(false);
         });

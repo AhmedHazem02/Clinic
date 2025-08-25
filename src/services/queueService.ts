@@ -163,8 +163,7 @@ export const listenToQueueForNurse = (
 ) => {
     const q = query(
         patientsCollection,
-        where("nurseId", "==", nurseId),
-        orderBy("queueNumber")
+        where("nurseId", "==", nurseId)
     );
 
     const unsubscribe = onSnapshot(q, (querySnapshot) => {
