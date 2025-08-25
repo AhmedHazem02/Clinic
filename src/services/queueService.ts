@@ -259,6 +259,12 @@ export const setDoctorProfile = async (uid: string, profile: Partial<DoctorProfi
     return await setDoc(docRef, profile, { merge: true });
 }
 
+// Set doctor's availability status
+export const setDoctorAvailability = async (uid: string, isAvailable: boolean) => {
+    const docRef = doc(doctorsCollection, uid);
+    return await setDoc(docRef, { isAvailable }, { merge: true });
+};
+
 // --- Nurse Profile Functions ---
 
 // Get a nurse's profile

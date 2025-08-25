@@ -6,6 +6,7 @@ import {
   type AiAssistedPrescriptionOutput,
 } from "@/ai/flows/ai-assisted-prescription";
 import { createUser } from "@/services/authService";
+import { setDoctorAvailability as setDoctorAvailabilityDb } from "@/services/queueService";
 
 export async function getAiPrescriptionSuggestions(
   input: AiAssistedPrescriptionInput
@@ -28,4 +29,8 @@ export async function addNurseAction(email: string, password: string): Promise<{
         console.error("Error creating nurse user:", error);
         return { success: false, message: error.message || "An unexpected error occurred." };
     }
+}
+
+export async function setDoctorAvailability(uid: string, isAvailable: boolean) {
+    return await setDoctorAvailabilityDb(uid, isAvailable);
 }
