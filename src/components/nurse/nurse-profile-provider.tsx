@@ -25,7 +25,18 @@ export function NurseProfileProvider({ children }: { children: ReactNode }) {
             if (authUser) {
                 setUser(authUser);
                 const nurseProfile = await getNurseProfile(authUser.uid);
-                setProfile(nurseProfile);
+                // Ensure profile exists. If not, user might be a doctor or another role.
+                if (nurseProfile) {
+                    setProfile(nurseProfile);
+                } else {
+                    // Fallback: create a temporary profile from auth user if none in DB
+                    // This is a common scenario if a nurse logs in but doesn't have a DB record yet
+                    const tempProfile: NurseProfile = {
+                        name: authUser.displayName || 'Nurse',
+                        email: authUser.email || '',
+                    };
+                    setProfile(tempProfile);
+                }
             } else {
                 setUser(null);
                 setProfile(null);
@@ -37,7 +48,7 @@ export function NurseProfileProvider({ children }: { children: ReactNode }) {
         return () => unsubscribeAuth();
     }, [router]);
 
-    if (isLoading) {
+    if (isLoading || !profile) {
         return (
             <div className="flex h-screen items-center justify-center">
                <div className="space-y-4">
@@ -50,7 +61,7 @@ export function NurseProfileProvider({ children }: { children: ReactNode }) {
     }
 
     return (
-        <NurseProfileContext.Provider value={{ user, profile, isLoading }}>
+        <NurseProfileContext.Provider value={{ user, profile, isLoading: false }}>
             {children}
         </NurseProfileContext.Provider>
     );
