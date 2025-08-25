@@ -38,6 +38,7 @@ import { UserPlus } from "lucide-react";
 import { addPatientToQueue, getPatientByPhone, type PatientInQueue, type QueueType } from "@/services/queueService";
 import { useState, useEffect } from "react";
 import { RadioGroup, RadioGroupItem } from "../ui/radio-group";
+import { useNurseProfile } from "./nurse-profile-provider";
 
 const formSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters."),
@@ -56,6 +57,7 @@ interface PatientRegistrationFormProps {
 }
 
 export function PatientRegistrationForm({ onPatientRegistered }: PatientRegistrationFormProps) {
+  const { user, profile } = useNurseProfile();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const form = useForm<z.infer<typeof formSchema>>({
@@ -78,6 +80,15 @@ export function PatientRegistrationForm({ onPatientRegistered }: PatientRegistra
   }, [form]);
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
+    if (!user || !profile) {
+        toast({
+            variant: "destructive",
+            title: "Error",
+            description: "You must be logged in to register patients.",
+        });
+        return;
+    }
+
     setIsSubmitting(true);
     try {
       await addPatientToQueue({
@@ -88,6 +99,8 @@ export function PatientRegistrationForm({ onPatientRegistered }: PatientRegistra
         chronicDiseases: values.diseases || null,
         consultationReason: values.consultationReason || null,
         queueType: values.queueType as QueueType,
+        nurseId: user.uid,
+        nurseName: profile.name,
       });
 
       const newPatient = await getPatientByPhone(values.phone);

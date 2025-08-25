@@ -31,6 +31,8 @@ export interface NewPatient {
     chronicDiseases: string | null;
     consultationReason: string | null;
     queueType: QueueType;
+    nurseId?: string;
+    nurseName?: string;
 }
 
 export interface PatientInQueue extends NewPatient {
@@ -109,7 +111,7 @@ export const addPatientToQueue = async (patientData: NewPatient) => {
     return await addDoc(patientsCollection, newPatientDoc);
 }
 
-// Listen for real-time updates to the queue (waiting and consulting patients)
+// Listen for real-time updates to the queue (for doctor/history view)
 export const listenToQueue = (
     callback: (patients: PatientInQueue[]) => void,
     errorCallback?: (error: Error) => void
@@ -137,6 +139,8 @@ export const listenToQueue = (
                 status: data.status,
                 createdAt: data.createdAt,
                 queueType: data.queueType || 'Consultation',
+                nurseId: data.nurseId,
+                nurseName: data.nurseName,
             };
             patients.push(patient);
         });
@@ -150,6 +154,52 @@ export const listenToQueue = (
 
     return unsubscribe; // Return the unsubscribe function to clean up the listener
 }
+
+// Listen for real-time updates for a specific nurse's patients
+export const listenToQueueForNurse = (
+    nurseId: string,
+    callback: (patients: PatientInQueue[]) => void,
+    errorCallback?: (error: Error) => void
+) => {
+    const q = query(
+        patientsCollection,
+        where("nurseId", "==", nurseId),
+        orderBy("queueNumber")
+    );
+
+    const unsubscribe = onSnapshot(q, (querySnapshot) => {
+        const patients: PatientInQueue[] = [];
+        querySnapshot.forEach((doc) => {
+            const data = doc.data();
+            const bookingDateTimestamp = data.bookingDate || data.createdAt || Timestamp.now();
+            const patient: PatientInQueue = {
+                id: doc.id,
+                name: data.name,
+                phone: data.phone,
+                bookingDate: bookingDateTimestamp.toDate(),
+                age: data.age,
+                chronicDiseases: data.chronicDiseases,
+                consultationReason: data.consultationReason,
+                queueNumber: data.queueNumber,
+                status: data.status,
+                createdAt: data.createdAt,
+                queueType: data.queueType || 'Consultation',
+                nurseId: data.nurseId,
+                nurseName: data.nurseName,
+            };
+            patients.push(patient);
+        });
+        callback(patients);
+    }, (error) => {
+        console.error("Error listening to nurse's queue:", error);
+        if (errorCallback) {
+            errorCallback(error);
+        }
+    });
+
+    return unsubscribe;
+};
+
 
 // Get an active patient by phone number
 export const getPatientByPhone = async (phone: string): Promise<PatientInQueue | null> => {

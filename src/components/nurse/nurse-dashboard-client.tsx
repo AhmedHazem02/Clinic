@@ -5,24 +5,29 @@ import { useEffect, useMemo, useState } from "react";
 import { PatientRegistrationForm } from "./patient-registration-form";
 import { QueueList } from "./queue-list";
 import { QrCodeDialog } from "./qr-code-dialog";
-import { listenToQueue, type PatientInQueue, type QueueType } from "@/services/queueService";
+import { listenToQueueForNurse, type PatientInQueue, type QueueType } from "@/services/queueService";
 import { Input } from "../ui/input";
 import { Search } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
+import { useNurseProfile } from "./nurse-profile-provider";
 
 export function NurseDashboardClient() {
+    const { user } = useNurseProfile();
     const [qrCodeData, setQrCodeData] = useState<PatientInQueue | null>(null);
     const [searchQuery, setSearchQuery] = useState("");
     const [patients, setPatients] = useState<PatientInQueue[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
-        const unsubscribe = listenToQueue((updatedQueue) => {
-            setPatients(updatedQueue);
+        if (!user) return;
+
+        const unsubscribe = listenToQueueForNurse(user.uid, (updatedQueue) => {
+            const activePatients = updatedQueue.filter(p => p.status !== 'Finished');
+            setPatients(activePatients);
             setIsLoading(false);
         });
         return () => unsubscribe();
-    }, []);
+    }, [user]);
 
     const handlePatientRegistered = (patient: PatientInQueue) => {
         setQrCodeData(patient);
