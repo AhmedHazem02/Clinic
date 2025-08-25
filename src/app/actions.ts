@@ -32,5 +32,5 @@ export async function addNurseAction(email: string, password: string): Promise<{
 }
 
 export async function setDoctorAvailability(uid: string, isAvailable: boolean) {
-    return await setDoctorAvailabilityDb(uid, isAvailable);
+  return await setDoctorAvailabilityDb(uid, isAvailable);
 }
