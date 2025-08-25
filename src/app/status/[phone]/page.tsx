@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { listenToQueue, type PatientInQueue, listenToDoctorMessage } from "@/services/queueService";
+import { listenToQueue, type PatientInQueue, listenToDoctorMessage, listenToDoctorAvailability } from "@/services/queueService";
 import { PatientStatusCard } from "@/components/patient-status-card";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -19,6 +19,7 @@ export default function PatientStatusPage({ params }: { params: { phone: string 
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [doctorMessage, setDoctorMessage] = useState<string | null>(null);
+  const [isDoctorAvailable, setIsDoctorAvailable] = useState(true);
 
   useEffect(() => {
     if (phone) {
@@ -49,10 +50,15 @@ export default function PatientStatusPage({ params }: { params: { phone: string 
         setDoctorMessage(message);
       });
 
+      const unsubscribeAvailability = listenToDoctorAvailability((isAvailable) => {
+          setIsDoctorAvailable(isAvailable);
+      });
+
       // Cleanup subscription on component unmount
       return () => {
         unsubscribeQueue();
         unsubscribeMessage();
+        unsubscribeAvailability();
       };
     }
   }, [phone]);
@@ -75,6 +81,15 @@ export default function PatientStatusPage({ params }: { params: { phone: string 
                     <AlertTitle>A Message from the Doctor</AlertTitle>
                     <AlertDescription>
                         {doctorMessage}
+                    </AlertDescription>
+                </Alert>
+            )}
+             {!isDoctorAvailable && patientData?.status === 'Waiting' && (
+                 <Alert variant="destructive">
+                    <Info className="h-4 w-4" />
+                    <AlertTitle>Doctor is Currently Unavailable</AlertTitle>
+                    <AlertDescription>
+                        The wait time counter has been paused and will resume when the doctor is available.
                     </AlertDescription>
                 </Alert>
             )}
@@ -113,7 +128,7 @@ export default function PatientStatusPage({ params }: { params: { phone: string 
             )}
 
             {patientData && (
-                <PatientStatusCard data={patientData} peopleAhead={peopleAhead} />
+                <PatientStatusCard data={patientData} peopleAhead={peopleAhead} isDoctorAvailable={isDoctorAvailable}/>
             )}
         </div>
     </main>

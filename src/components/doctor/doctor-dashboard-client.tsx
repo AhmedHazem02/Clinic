@@ -19,13 +19,15 @@ import { Textarea } from "@/components/ui/textarea";
 import { Download, Bot, Send, Printer, User, HeartPulse, LogIn, CheckCircle, MessageSquarePlus, DollarSign, Info, Settings, FileText } from "lucide-react";
 import { AiAssistDialog } from "./ai-assist-dialog";
 import { useToast } from "@/hooks/use-toast";
-import { listenToQueue, type PatientInQueue, finishAndCallNext, updatePatientStatus, updateDoctorMessage, listenToDoctorMessage, listenToClinicSettings } from "@/services/queueService";
+import { listenToQueue, type PatientInQueue, finishAndCallNext, updatePatientStatus, updateDoctorMessage, listenToDoctorMessage, listenToClinicSettings, setDoctorAvailability, getDoctorProfile } from "@/services/queueService";
 import { Skeleton } from "../ui/skeleton";
+import { useDoctorProfile } from "./doctor-profile-provider";
 
 const DEFAULT_CONSULTATION_COST = 50;
 const DEFAULT_RECONSULTATION_COST = 25;
 
 export function DoctorDashboardClient() {
+  const { user } = useDoctorProfile();
   const [isAvailable, setIsAvailable] = useState(true);
   const [prescription, setPrescription] = useState("");
   const [isAiDialogOpen, setIsAiDialogOpen] = useState(false);
@@ -55,13 +57,23 @@ export function DoctorDashboardClient() {
     const unsubscribeMessage = listenToDoctorMessage((message) => {
       setDoctorMessage(message);
     });
+    
+    // Fetch initial availability state
+    if (user) {
+        getDoctorProfile(user.uid).then(profile => {
+            if (profile) {
+                setIsAvailable(profile.isAvailable ?? true);
+            }
+        });
+    }
+
 
     return () => {
       unsubscribeQueue();
       unsubscribeMessage();
       unsubscribeSettings();
     };
-  }, []);
+  }, [user]);
 
   useEffect(() => {
     const today = new Date();
@@ -81,6 +93,18 @@ export function DoctorDashboardClient() {
 
     setTodaysRevenue(totalRevenue);
   }, [queue, consultationCost, reConsultationCost]);
+
+  const handleAvailabilityChange = async (checked: boolean) => {
+      if (!user) return;
+      setIsAvailable(checked);
+      try {
+          await setDoctorAvailability(user.uid, checked);
+      } catch (error) {
+           toast({ variant: "destructive", title: "Error", description: "Could not update availability status." });
+           // Revert state on error
+           setIsAvailable(!checked);
+      }
+  }
 
 
   const currentPatient = queue.find(p => p.status === 'Consulting');
@@ -263,7 +287,7 @@ export function DoctorDashboardClient() {
                 </div>
                 <Switch
                 checked={isAvailable}
-                onCheckedChange={setIsAvailable}
+                onCheckedChange={handleAvailabilityChange}
                 aria-label="Doctor availability status"
                 />
             </CardHeader>

@@ -10,9 +10,10 @@ const DEFAULT_CONSULTATION_TIME = 15; // in minutes
 interface PatientStatusCardProps {
   data: PatientInQueue;
   peopleAhead: number;
+  isDoctorAvailable: boolean;
 }
 
-export function PatientStatusCard({ data, peopleAhead }: PatientStatusCardProps) {
+export function PatientStatusCard({ data, peopleAhead, isDoctorAvailable }: PatientStatusCardProps) {
   const [consultationTime, setConsultationTime] = useState(DEFAULT_CONSULTATION_TIME);
   const [estimatedTimeInSeconds, setEstimatedTimeInSeconds] = useState(0);
   
@@ -31,14 +32,14 @@ export function PatientStatusCard({ data, peopleAhead }: PatientStatusCardProps)
   }, [peopleAhead, consultationTime]);
 
   useEffect(() => {
-    if (estimatedTimeInSeconds <= 0) return;
+    if (estimatedTimeInSeconds <= 0 || !isDoctorAvailable) return;
 
     const timer = setInterval(() => {
-      setEstimatedTimeInSeconds(prevTime => prevTime - 1);
+      setEstimatedTimeInSeconds(prevTime => prevTime > 0 ? prevTime - 1 : 0);
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [estimatedTimeInSeconds]);
+  }, [estimatedTimeInSeconds, isDoctorAvailable]);
 
 
   const formatTime = (totalSeconds: number) => {
