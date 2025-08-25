@@ -1,5 +1,7 @@
 import { LoginTabs } from "@/components/login-tabs";
-import { Stethoscope } from "lucide-react";
+import { Stethoscope, ArrowLeft } from "lucide-react";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
 
 export default function LoginPage() {
   return (
@@ -17,6 +19,14 @@ export default function LoginPage() {
           </p>
         </div>
         <LoginTabs />
+        <div className="text-center mt-6">
+            <Button variant="ghost" asChild>
+                <Link href="/">
+                    <ArrowLeft className="mr-2" />
+                    Back to Home Page
+                </Link>
+            </Button>
+        </div>
       </div>
     </div>
   );

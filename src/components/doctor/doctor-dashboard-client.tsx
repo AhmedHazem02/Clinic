@@ -31,7 +31,6 @@ export function DoctorDashboardClient() {
   const { user } = useDoctorProfile();
   const [isAvailable, setIsAvailable] = useState(true);
   const [prescription, setPrescription] = useState("");
-  const [isAiDialogOpen, setIsAiDialogOpen] = useState(false);
   const { toast } = useToast();
 
   const [queue, setQueue] = useState<PatientInQueue[]>([]);
@@ -146,14 +145,6 @@ export function DoctorDashboardClient() {
       }
   }
 
-  const handleSendToWhatsApp = () => {
-    if (!currentPatient) return;
-    toast({
-      title: "Prescription Sent",
-      description: `Prescription has been sent to ${currentPatient.name} via WhatsApp.`,
-    });
-  }
-
   const handlePrint = () => {
     if (!currentPatient) return;
     toast({
@@ -179,6 +170,13 @@ export function DoctorDashboardClient() {
     } finally {
       setIsUpdatingMessage(false);
     }
+  };
+
+  const handleDownloadReport = () => {
+    toast({
+      title: "Report Downloading",
+      description: "Your 30-day patient data report is being generated.",
+    });
   };
 
   const isNewAccount = !isLoading && queue.length === 0;
@@ -257,7 +255,7 @@ export function DoctorDashboardClient() {
               <CardHeader>
                 <CardTitle className="font-headline">Create Prescription</CardTitle>
                 <CardDescription>
-                  {currentPatient ? `Write a prescription for ${currentPatient.name}. Use AI assist for suggestions.` : "No active patient."}
+                  {currentPatient ? `Write a prescription for ${currentPatient.name}.` : "No active patient."}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -268,17 +266,10 @@ export function DoctorDashboardClient() {
                   onChange={(e) => setPrescription(e.target.value)}
                   disabled={!currentPatient}
                 />
-                <Button variant="outline" onClick={() => setIsAiDialogOpen(true)} disabled={!currentPatient}>
-                  <Bot className="mr-2" />
-                  AI Assist
-                </Button>
               </CardContent>
               <CardFooter className="gap-2 justify-end">
                 <Button variant="secondary" onClick={handlePrint} disabled={!currentPatient || !prescription.trim()}>
                   <Printer className="mr-2" /> Print
-                </Button>
-                <Button onClick={handleSendToWhatsApp} disabled={!currentPatient || !prescription.trim()}>
-                  <Send className="mr-2" /> Send to WhatsApp
                 </Button>
               </CardFooter>
             </Card>
@@ -343,24 +334,13 @@ export function DoctorDashboardClient() {
                     <CardDescription>Download patient data report.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <Button className="w-full">
+                    <Button className="w-full" onClick={handleDownloadReport}>
                         <Download className="mr-2" /> Download 30-Day Report
                     </Button>
                 </CardContent>
             </Card>
         </div>
       </div>
-       {currentPatient && (
-            <AiAssistDialog
-                isOpen={isAiDialogOpen}
-                setIsOpen={setIsAiDialogOpen}
-                patient={{ name: currentPatient.name, details: `Age: ${currentPatient.age}, Chronic Diseases: ${currentPatient.chronicDiseases || 'None'}` }}
-                onInsertSuggestion={(text) => {
-                    setPrescription(prev => prev ? `${prev}\n${text}` : text);
-                    setIsAiDialogOpen(false);
-                }}
-            />
-       )}
     </>
   );
 }

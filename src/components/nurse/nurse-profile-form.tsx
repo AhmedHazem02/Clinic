@@ -40,7 +40,6 @@ type ProfileFormValues = z.infer<typeof profileSchema>;
 export function NurseProfileForm() {
   const { user, profile, isLoading } = useNurseProfile();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isResetting, setIsResetting] = useState(false);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
@@ -100,39 +99,8 @@ export function NurseProfileForm() {
     }
   };
 
-  const handleUploadClick = () => {
-    fileInputRef.current?.click();
-  };
-
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      setAvatarPreview(URL.createObjectURL(file));
-      // Here you would typically also prepare the file for upload
-    }
-  };
-
-  const handleResetPassword = async () => {
-    setIsResetting(true);
-    const email = form.getValues("email");
-    try {
-      await sendPasswordReset(email);
-      toast({
-        title: "Password Reset Email Sent",
-        description: `An email has been sent to ${email} with instructions to reset your password.`,
-      });
-    } catch (error: any) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: error.message || "Failed to send password reset email.",
-      });
-    } finally {
-      setIsResetting(false);
-    }
-  };
-
   const getInitials = (name: string) => {
+    if (!name) return "";
     return name
       .split(" ")
       .map((n) => n[0])
@@ -192,11 +160,10 @@ export function NurseProfileForm() {
               <input
                 type="file"
                 ref={fileInputRef}
-                onChange={handleFileChange}
                 className="hidden"
                 accept="image/png, image/jpeg"
               />
-              <Button type="button" variant="outline" onClick={handleUploadClick}>
+              <Button type="button" variant="outline" disabled>
                 <Upload /> Upload Photo
               </Button>
             </div>
@@ -230,14 +197,6 @@ export function NurseProfileForm() {
           <CardFooter className="gap-2">
             <Button type="submit" disabled={isSubmitting}>
               {isSubmitting ? "Saving..." : "Save Changes"}
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={handleResetPassword}
-              disabled={isResetting}
-            >
-              <KeyRound /> {isResetting ? "Sending..." : "Reset Password"}
             </Button>
           </CardFooter>
         </form>

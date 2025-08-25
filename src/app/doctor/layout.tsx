@@ -9,7 +9,7 @@ export default function DoctorLayout({
 }) {
   return (
     <DoctorProfileProvider>
-      <SidebarProvider>
+      <SidebarProvider defaultOpen={false}>
         <Sidebar>
           <DoctorSidebarNav />
         </Sidebar>
