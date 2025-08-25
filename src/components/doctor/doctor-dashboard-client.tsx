@@ -19,9 +19,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Download, Bot, Send, Printer, User, HeartPulse, LogIn, CheckCircle, MessageSquarePlus, DollarSign, Info, Settings, FileText } from "lucide-react";
 import { AiAssistDialog } from "./ai-assist-dialog";
 import { useToast } from "@/hooks/use-toast";
-import { listenToQueue, type PatientInQueue, finishAndCallNext, updatePatientStatus, updateDoctorMessage, listenToDoctorMessage, listenToClinicSettings, setDoctorAvailability, getDoctorProfile } from "@/services/queueService";
+import { listenToQueue, type PatientInQueue, finishAndCallNext, updatePatientStatus, updateDoctorMessage, listenToDoctorMessage, listenToClinicSettings, getDoctorProfile } from "@/services/queueService";
 import { Skeleton } from "../ui/skeleton";
 import { useDoctorProfile } from "./doctor-profile-provider";
+import { setDoctorAvailability } from "@/app/actions";
 
 const DEFAULT_CONSULTATION_COST = 50;
 const DEFAULT_RECONSULTATION_COST = 25;
@@ -99,6 +100,11 @@ export function DoctorDashboardClient() {
       setIsAvailable(checked);
       try {
           await setDoctorAvailability(user.uid, checked);
+          if (checked) {
+              // If doctor is now available, clear the message
+              setDoctorMessage("");
+              await updateDoctorMessage("");
+          }
       } catch (error) {
            toast({ variant: "destructive", title: "Error", description: "Could not update availability status." });
            // Revert state on error
