@@ -16,13 +16,14 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Download, Printer, User, HeartPulse, LogIn, CheckCircle, MessageSquarePlus, DollarSign, Info, Settings, FileText } from "lucide-react";
+import { Download, Printer, User, HeartPulse, LogIn, CheckCircle, MessageSquarePlus, DollarSign, Info, Settings, FileText, Bot } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { listenToQueue, type PatientInQueue, finishAndCallNext, updatePatientStatus, updateDoctorMessage, listenToDoctorMessage, listenToClinicSettings, updateDoctorRevenue, listenToDoctorProfile } from "@/services/queueService";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useDoctorProfile } from "./doctor-profile-provider";
-import { generatePatientReport } from "@/app/actions";
+import { generatePatientReport, setDoctorAvailability } from "@/app/actions";
 import { PrintablePrescription } from "./printable-prescription";
+import { AiAssistDialog } from "./ai-assist-dialog";
 
 export function DoctorDashboardClient() {
   const { user, profile } = useDoctorProfile();
@@ -38,6 +39,7 @@ export function DoctorDashboardClient() {
   const [consultationCost, setConsultationCost] = useState(0);
   const [reConsultationCost, setReConsultationCost] = useState(0);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [isAiAssistOpen, setIsAiAssistOpen] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -73,25 +75,29 @@ export function DoctorDashboardClient() {
     };
   }, [user]);
 
+  const currentPatient = queue.find(p => p.status === 'Consulting');
+  const nextPatient = queue.find(p => p.status === 'Waiting');
+
+  useEffect(() => {
+      if (currentPatient) {
+          setPrescription(currentPatient.prescription || "");
+      }
+  }, [currentPatient]);
+
   const handleAvailabilityChange = async (checked: boolean) => {
       if (!user) return;
       setIsAvailable(checked);
       try {
-        if(user) {
-          await setDoctorProfile(user.uid, { isAvailable: checked });
+        await setDoctorAvailability(user.uid, checked);
+        if (checked) {
+            setDoctorMessage("");
+            await updateDoctorMessage("");
         }
-          if (checked) {
-              setDoctorMessage("");
-              await updateDoctorMessage("");
-          }
       } catch (error) {
            toast({ variant: "destructive", title: "Error", description: "Could not update availability status." });
            setIsAvailable(!checked);
       }
   }
-
-  const currentPatient = queue.find(p => p.status === 'Consulting');
-  const nextPatient = queue.find(p => p.status === 'Waiting');
 
   const handleCallNext = async () => {
     if (!nextPatient) {
@@ -100,7 +106,7 @@ export function DoctorDashboardClient() {
     }
     try {
         if (currentPatient) {
-            await finishAndCallNext(currentPatient.id, nextPatient.id);
+            await finishAndCallNext(currentPatient.id, nextPatient.id, prescription);
             const cost = currentPatient.queueType === 'Re-consultation' ? reConsultationCost : consultationCost;
             if(user) {
                 await updateDoctorRevenue(user.uid, cost);
@@ -119,7 +125,7 @@ export function DoctorDashboardClient() {
   const handleFinishConsultation = async () => {
       if (!currentPatient) return;
       try {
-        await updatePatientStatus(currentPatient.id, 'Finished');
+        await updatePatientStatus(currentPatient.id, 'Finished', prescription);
         const cost = currentPatient.queueType === 'Re-consultation' ? reConsultationCost : consultationCost;
         if (user) {
             await updateDoctorRevenue(user.uid, cost);
@@ -189,6 +195,11 @@ export function DoctorDashboardClient() {
       setIsDownloading(false);
     }
   };
+  
+  const handleInsertSuggestion = (suggestion: string) => {
+    setPrescription(prev => prev ? `${prev}\n- ${suggestion}` : `- ${suggestion}`);
+    setIsAiAssistOpen(false);
+  }
 
   const isNewAccount = !isLoading && queue.length === 0;
 
@@ -279,6 +290,9 @@ export function DoctorDashboardClient() {
                 />
               </CardContent>
               <CardFooter className="gap-2 justify-end">
+                <Button variant="outline" onClick={() => setIsAiAssistOpen(true)} disabled={!currentPatient}>
+                  <Bot className="mr-2" /> AI Assist
+                </Button>
                 <Button variant="secondary" onClick={handlePrint} disabled={!currentPatient || !prescription.trim()}>
                   <Printer className="mr-2" /> Print
                 </Button>
@@ -357,6 +371,17 @@ export function DoctorDashboardClient() {
           patient={currentPatient}
           doctor={profile}
           prescription={prescription}
+        />
+      )}
+       {currentPatient && (
+        <AiAssistDialog
+          isOpen={isAiAssistOpen}
+          setIsOpen={setIsAiAssistOpen}
+          patient={{
+            name: currentPatient.name,
+            details: `Age: ${currentPatient.age || 'N/A'}. Chronic Diseases: ${currentPatient.chronicDiseases || 'None'}. Reason for visit: ${currentPatient.consultationReason || 'N/A'}`,
+          }}
+          onInsertSuggestion={handleInsertSuggestion}
         />
       )}
     </>

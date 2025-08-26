@@ -34,6 +34,7 @@ export interface NewPatient {
     queueType: QueueType;
     nurseId?: string;
     nurseName?: string;
+    prescription?: string;
 }
 
 export interface PatientInQueue extends NewPatient {
@@ -117,6 +118,7 @@ export const addPatientToQueue = async (patientData: NewPatient) => {
         queueNumber,
         status: 'Waiting' as PatientStatus,
         createdAt: Timestamp.now(),
+        prescription: "",
     };
 
     return await addDoc(patientsCollection, newPatientDoc);
@@ -152,6 +154,7 @@ export const listenToQueue = (
                 queueType: data.queueType || 'Consultation',
                 nurseId: data.nurseId,
                 nurseName: data.nurseName,
+                prescription: data.prescription,
             };
             patients.push(patient);
         });
@@ -194,6 +197,7 @@ export const listenToQueueForNurse = (
                 queueType: data.queueType || 'Consultation',
                 nurseId: data.nurseId,
                 nurseName: data.nurseName,
+                prescription: data.prescription,
             };
             patients.push(patient);
         });
@@ -238,9 +242,13 @@ export const getPatientByPhone = async (phone: string): Promise<PatientInQueue |
 
 
 // Update a patient's status
-export const updatePatientStatus = async (patientId: string, status: PatientStatus) => {
+export const updatePatientStatus = async (patientId: string, status: PatientStatus, prescription?: string) => {
     const patientDocRef = doc(patientsCollection, patientId);
-    return await updateDoc(patientDocRef, { status });
+    const updateData: { status: PatientStatus, prescription?: string } = { status };
+    if (prescription) {
+        updateData.prescription = prescription;
+    }
+    return await updateDoc(patientDocRef, updateData);
 }
 
 // Update the doctor's total revenue
@@ -251,11 +259,15 @@ export const updateDoctorRevenue = async (doctorId: string, amount: number) => {
 }
 
 // Finish a consultation and call the next patient
-export const finishAndCallNext = async (currentPatientId: string, nextPatientId: string) => {
+export const finishAndCallNext = async (currentPatientId: string, nextPatientId: string, prescription?: string) => {
     const batch = writeBatch(db);
     
     const finishedPatientRef = doc(patientsCollection, currentPatientId);
-    batch.update(finishedPatientRef, { status: 'Finished' });
+    const updateData: { status: PatientStatus, prescription?: string } = { status: 'Finished' };
+    if (prescription) {
+        updateData.prescription = prescription;
+    }
+    batch.update(finishedPatientRef, updateData);
 
     const nextPatientRef = doc(patientsCollection, nextPatientId);
     batch.update(nextPatientRef, { status: 'Consulting' });
