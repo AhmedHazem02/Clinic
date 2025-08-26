@@ -54,9 +54,10 @@ export async function generatePatientReport(): Promise<string> {
 
     // Group patients by date and calculate daily revenue
     const dailyData = patients.reduce((acc, p) => {
-        const dateStr = format(p.bookingDate, "yyyy-MM-dd");
+        const date = p.bookingDate; // This is now a Date object
+        const dateStr = format(date, "yyyy-MM-dd");
         if (!acc[dateStr]) {
-            acc[dateStr] = { patients: [], revenue: 0 };
+            acc[dateStr] = { patients: [], revenue: 0, date: date };
         }
         acc[dateStr].patients.push(p);
         if (p.status === 'Finished') {
@@ -64,7 +65,7 @@ export async function generatePatientReport(): Promise<string> {
             acc[dateStr].revenue += cost;
         }
         return acc;
-    }, {} as Record<string, { patients: typeof patients, revenue: number }>);
+    }, {} as Record<string, { patients: typeof patients, revenue: number, date: Date }>);
 
     const totalRevenue = Object.values(dailyData).reduce((sum, day) => sum + day.revenue, 0);
 
@@ -75,8 +76,8 @@ export async function generatePatientReport(): Promise<string> {
     
     // Add daily revenue section
     reportContent += "ملخص الإيرادات اليومية:\n";
-    Object.entries(dailyData).forEach(([date, data]) => {
-      reportContent += `${format(new Date(date), 'EEEE, d MMMM yyyy', { locale: ar })}: ${data.revenue.toFixed(2)} جنيه\n`;
+    Object.values(dailyData).forEach((data) => {
+      reportContent += `${format(data.date, 'EEEE, d MMMM yyyy', { locale: ar })}: ${data.revenue.toFixed(2)} جنيه\n`;
     });
     reportContent += `\nإجمالي الإيرادات: ${totalRevenue.toFixed(2)} جنيه\n`;
     reportContent += "----------------------------------------\n\n";
