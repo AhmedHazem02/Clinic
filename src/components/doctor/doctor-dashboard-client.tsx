@@ -21,7 +21,7 @@ import { useToast } from "@/hooks/use-toast";
 import { listenToQueue, type PatientInQueue, finishAndCallNext, updatePatientStatus, updateDoctorMessage, listenToDoctorMessage, listenToClinicSettings, getDoctorProfile, updateDoctorRevenue, listenToDoctorProfile } from "@/services/queueService";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useDoctorProfile } from "./doctor-profile-provider";
-import { setDoctorAvailability } from "@/app/actions";
+import { generatePatientReportCsv, setDoctorAvailability } from "@/app/actions";
 
 const DEFAULT_CONSULTATION_COST = 50;
 const DEFAULT_RECONSULTATION_COST = 25;
@@ -39,6 +39,7 @@ export function DoctorDashboardClient() {
   const [todaysRevenue, setTodaysRevenue] = useState(0);
   const [consultationCost, setConsultationCost] = useState(DEFAULT_CONSULTATION_COST);
   const [reConsultationCost, setReConsultationCost] = useState(DEFAULT_RECONSULTATION_COST);
+  const [isDownloading, setIsDownloading] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -160,11 +161,31 @@ export function DoctorDashboardClient() {
     }
   };
 
-  const handleDownloadReport = () => {
-    toast({
-      title: "Report Downloading",
-      description: "Your 30-day patient data report is being generated.",
-    });
+  const handleDownloadReport = async () => {
+    setIsDownloading(true);
+    try {
+      const csvData = await generatePatientReportCsv();
+      const blob = new Blob([csvData], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.setAttribute('href', url);
+      link.setAttribute('download', `patient-report-${new Date().toISOString().split('T')[0]}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      toast({
+        title: "Report Downloaded",
+        description: "The 30-day patient data report has been successfully downloaded.",
+      });
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Download Failed",
+        description: "Could not generate or download the report.",
+      });
+    } finally {
+      setIsDownloading(false);
+    }
   };
 
   const isNewAccount = !isLoading && queue.length === 0;
@@ -322,8 +343,8 @@ export function DoctorDashboardClient() {
                     <CardDescription>Download patient data report.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <Button className="w-full" onClick={handleDownloadReport}>
-                        <Download className="mr-2" /> Download 30-Day Report
+                    <Button className="w-full" onClick={handleDownloadReport} disabled={isDownloading}>
+                        <Download className="mr-2" /> {isDownloading ? "Generating..." : "Download 30-Day Report"}
                     </Button>
                 </CardContent>
             </Card>

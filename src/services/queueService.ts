@@ -75,7 +75,16 @@ const nursesCollection = collection(db, 'nurses');
 
 // Get the next queue number
 const getNextQueueNumber = async (): Promise<number> => {
-    const q = query(patientsCollection, orderBy("queueNumber", "desc"), limit(1));
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const startOfToday = Timestamp.fromDate(today);
+
+    const q = query(
+        patientsCollection, 
+        where("createdAt", ">=", startOfToday),
+        orderBy("createdAt", "desc"), 
+        limit(1)
+    );
     const snapshot = await getDocs(q);
     if (snapshot.empty) {
         return 1;
@@ -374,3 +383,32 @@ export const setNurseProfile = async (uid: string, profile: Partial<NurseProfile
     const docRef = doc(nursesCollection, uid);
     return await setDoc(docRef, profile, { merge: true });
 }
+
+// --- Report Functions ---
+
+// Get patients from the last 30 days
+export const getPatientsForLast30Days = async (): Promise<PatientInQueue[]> => {
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    const startTimestamp = Timestamp.fromDate(thirtyDaysAgo);
+
+    const q = query(
+        patientsCollection,
+        where("bookingDate", ">=", startTimestamp),
+        orderBy("bookingDate", "desc")
+    );
+
+    const snapshot = await getDocs(q);
+    const patients: PatientInQueue[] = [];
+    snapshot.forEach((doc) => {
+        const data = doc.data();
+        const bookingDateTimestamp = data.bookingDate || data.createdAt || Timestamp.now();
+        patients.push({
+            id: doc.id,
+            ...data,
+            bookingDate: bookingDateTimestamp.toDate(),
+        } as PatientInQueue);
+    });
+
+    return patients;
+};
