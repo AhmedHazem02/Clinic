@@ -56,6 +56,7 @@ export interface DoctorProfile {
     locations: string[];
     avatarUrl?: string;
     isAvailable?: boolean;
+    totalRevenue?: number;
 }
 
 export interface NurseProfile {
@@ -239,7 +240,7 @@ export const updatePatientStatus = async (patientId: string, status: PatientStat
 export const updateDoctorRevenue = async (doctorId: string, amount: number) => {
     const doctorRef = doc(doctorsCollection, doctorId);
     // Use the Firestore 'increment' FieldValue to add to the existing revenue.
-    await updateDoc(doctorRef, { totalRevenue: increment(amount) });
+    await setDoc(doctorRef, { totalRevenue: increment(amount) }, { merge: true });
 }
 
 // Finish a consultation and call the next patient
@@ -310,6 +311,19 @@ export const getDoctorProfile = async (uid: string): Promise<DoctorProfile | nul
     }
     return null;
 }
+
+// Listen to a doctor's profile
+export const listenToDoctorProfile = (uid: string, callback: (profile: DoctorProfile | null) => void) => {
+    const docRef = doc(doctorsCollection, uid);
+    const unsubscribe = onSnapshot(docRef, (doc) => {
+        if (doc.exists()) {
+            callback(doc.data() as DoctorProfile);
+        } else {
+            callback(null);
+        }
+    });
+    return unsubscribe;
+};
 
 // Set/Update a doctor's profile
 export const setDoctorProfile = async (uid: string, profile: Partial<DoctorProfile>) => {

@@ -17,9 +17,8 @@ import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Download, Bot, Send, Printer, User, HeartPulse, LogIn, CheckCircle, MessageSquarePlus, DollarSign, Info, Settings, FileText } from "lucide-react";
-import { AiAssistDialog } from "./ai-assist-dialog";
 import { useToast } from "@/hooks/use-toast";
-import { listenToQueue, type PatientInQueue, finishAndCallNext, updatePatientStatus, updateDoctorMessage, listenToDoctorMessage, listenToClinicSettings, getDoctorProfile, updateDoctorRevenue } from "@/services/queueService";
+import { listenToQueue, type PatientInQueue, finishAndCallNext, updatePatientStatus, updateDoctorMessage, listenToDoctorMessage, listenToClinicSettings, getDoctorProfile, updateDoctorRevenue, listenToDoctorProfile } from "@/services/queueService";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useDoctorProfile } from "./doctor-profile-provider";
 import { setDoctorAvailability } from "@/app/actions";
@@ -42,7 +41,9 @@ export function DoctorDashboardClient() {
   const [reConsultationCost, setReConsultationCost] = useState(DEFAULT_RECONSULTATION_COST);
 
   useEffect(() => {
-     const unsubscribeSettings = listenToClinicSettings((settings) => {
+    if (!user) return;
+
+    const unsubscribeSettings = listenToClinicSettings((settings) => {
       if (settings) {
         setConsultationCost(settings.consultationCost);
         setReConsultationCost(settings.reConsultationCost);
@@ -57,42 +58,21 @@ export function DoctorDashboardClient() {
     const unsubscribeMessage = listenToDoctorMessage((message) => {
       setDoctorMessage(message);
     });
-    
-    // Fetch initial availability state
-    if (user) {
-        getDoctorProfile(user.uid).then(profile => {
-            if (profile) {
-                setIsAvailable(profile.isAvailable ?? true);
-            }
-        });
-    }
 
+    const unsubscribeProfile = listenToDoctorProfile(user.uid, (profile) => {
+        if(profile) {
+            setIsAvailable(profile.isAvailable ?? true);
+            setTodaysRevenue(profile.totalRevenue || 0);
+        }
+    });
 
     return () => {
       unsubscribeQueue();
       unsubscribeMessage();
       unsubscribeSettings();
+      unsubscribeProfile();
     };
   }, [user]);
-
-  useEffect(() => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    const todaysFinishedPatients = queue.filter(p => {
-        if (!p.bookingDate) return false;
-        const bookingDate = new Date(p.bookingDate);
-        bookingDate.setHours(0, 0, 0, 0);
-        return p.status === 'Finished' && bookingDate.getTime() === today.getTime();
-    });
-
-    const totalRevenue = todaysFinishedPatients.reduce((total, patient) => {
-        const cost = patient.queueType === 'Re-consultation' ? reConsultationCost : consultationCost;
-        return total + cost;
-    }, 0);
-
-    setTodaysRevenue(totalRevenue);
-  }, [queue, consultationCost, reConsultationCost]);
 
   const handleAvailabilityChange = async (checked: boolean) => {
       if (!user) return;
@@ -123,7 +103,6 @@ export function DoctorDashboardClient() {
     try {
         if (currentPatient) {
             await finishAndCallNext(currentPatient.id, nextPatient.id);
-            // Revenue update will happen in handleFinishConsultation when called implicitly
             const cost = currentPatient.queueType === 'Re-consultation' ? reConsultationCost : consultationCost;
             if(user) {
                 await updateDoctorRevenue(user.uid, cost);
@@ -143,7 +122,6 @@ export function DoctorDashboardClient() {
       if (!currentPatient) return;
       try {
         await updatePatientStatus(currentPatient.id, 'Finished');
-        // Calculate cost and update doctor's revenue in database
         const cost = currentPatient.queueType === 'Re-consultation' ? reConsultationCost : consultationCost;
         if (user) {
             await updateDoctorRevenue(user.uid, cost);
