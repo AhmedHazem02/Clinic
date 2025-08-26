@@ -1,4 +1,3 @@
-import { NurseManagement } from "@/components/doctor/nurse-management";
 import { SettingsForm } from "@/components/doctor/settings-form";
 
 export default function DoctorSettingsPage() {
@@ -9,7 +8,6 @@ export default function DoctorSettingsPage() {
                 <p className="text-muted-foreground">Manage your consultation preferences and staff accounts.</p>
             </div>
             <SettingsForm />
-            <NurseManagement />
         </div>
     );
 }
