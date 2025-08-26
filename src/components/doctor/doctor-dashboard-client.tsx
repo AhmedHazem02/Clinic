@@ -22,12 +22,10 @@ import { listenToQueue, type PatientInQueue, finishAndCallNext, updatePatientSta
 import { Skeleton } from "@/components/ui/skeleton";
 import { useDoctorProfile } from "./doctor-profile-provider";
 import { generatePatientReport } from "@/app/actions";
-
-const DEFAULT_CONSULTATION_COST = 50;
-const DEFAULT_RECONSULTATION_COST = 25;
+import { PrintablePrescription } from "./printable-prescription";
 
 export function DoctorDashboardClient() {
-  const { user } = useDoctorProfile();
+  const { user, profile } = useDoctorProfile();
   const [isAvailable, setIsAvailable] = useState(true);
   const [prescription, setPrescription] = useState("");
   const { toast } = useToast();
@@ -37,8 +35,8 @@ export function DoctorDashboardClient() {
   const [doctorMessage, setDoctorMessage] = useState("");
   const [isUpdatingMessage, setIsUpdatingMessage] = useState(false);
   const [todaysRevenue, setTodaysRevenue] = useState(0);
-  const [consultationCost, setConsultationCost] = useState(DEFAULT_CONSULTATION_COST);
-  const [reConsultationCost, setReConsultationCost] = useState(DEFAULT_RECONSULTATION_COST);
+  const [consultationCost, setConsultationCost] = useState(0);
+  const [reConsultationCost, setReConsultationCost] = useState(0);
   const [isDownloading, setIsDownloading] = useState(false);
 
   useEffect(() => {
@@ -79,7 +77,9 @@ export function DoctorDashboardClient() {
       if (!user) return;
       setIsAvailable(checked);
       try {
-        await updateDoc(doc(db, "doctors", user.uid), { isAvailable: checked });
+        if(user) {
+          await setDoctorProfile(user.uid, { isAvailable: checked });
+        }
           if (checked) {
               setDoctorMessage("");
               await updateDoctorMessage("");
@@ -132,11 +132,15 @@ export function DoctorDashboardClient() {
   }
 
   const handlePrint = () => {
-    if (!currentPatient) return;
-    toast({
-        title: "Printing Prescription",
-        description: `Your prescription for ${currentPatient.name} is being printed.`,
-      });
+    if (!currentPatient || !prescription.trim()) {
+        toast({
+            variant: "destructive",
+            title: "Cannot Print",
+            description: "Please ensure a patient is selected and a prescription is written.",
+        });
+        return;
+    }
+    window.print();
   }
   
   const handleUpdateMessage = async () => {
@@ -348,6 +352,13 @@ export function DoctorDashboardClient() {
             </Card>
         </div>
       </div>
+       {currentPatient && profile && (
+        <PrintablePrescription
+          patient={currentPatient}
+          doctor={profile}
+          prescription={prescription}
+        />
+      )}
     </>
   );
 }
