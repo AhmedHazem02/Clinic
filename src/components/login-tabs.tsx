@@ -1,3 +1,4 @@
+
 "use client";
 
 import { Button } from "@/components/ui/button";
@@ -21,8 +22,8 @@ import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 
 const loginSchema = z.object({
-  email: z.string().email("Please enter a valid email address."),
-  password: z.string().min(6, "Password must be at least 6 characters."),
+  email: z.string().email("الرجاء إدخال عنوان بريد إلكتروني صالح."),
+  password: z.string().min(6, "يجب أن تتكون كلمة المرور من 6 أحرف على الأقل."),
 });
 
 type LoginFormValues = z.infer<typeof loginSchema>;
@@ -31,6 +32,7 @@ function LoginForm({ role }: { role: 'Doctor' | 'Nurse' }) {
     const router = useRouter();
     const [isLoading, setIsLoading] = useState(false);
     const { toast } = useToast();
+    const roleInArabic = role === 'Doctor' ? 'الطبيب' : 'الممرضة';
 
     const form = useForm<LoginFormValues>({
       resolver: zodResolver(loginSchema),
@@ -54,8 +56,8 @@ function LoginForm({ role }: { role: 'Doctor' | 'Nurse' }) {
         } catch (error: any) {
             toast({
                 variant: "destructive",
-                title: "Login Failed",
-                description: error.message || "An unexpected error occurred.",
+                title: "فشل تسجيل الدخول",
+                description: error.message || "حدث خطأ غير متوقع.",
             })
         } finally {
             setIsLoading(false);
@@ -66,7 +68,7 @@ function LoginForm({ role }: { role: 'Doctor' | 'Nurse' }) {
     <form onSubmit={form.handleSubmit(handleSubmit)}>
         <CardContent className="space-y-4">
         <div className="space-y-2">
-            <Label htmlFor={`${role.toLowerCase()}-email`}>Email</Label>
+            <Label htmlFor={`${role.toLowerCase()}-email`}>البريد الإلكتروني</Label>
             <Input 
                 id={`${role.toLowerCase()}-email`} 
                 type="email" 
@@ -76,7 +78,7 @@ function LoginForm({ role }: { role: 'Doctor' | 'Nurse' }) {
              {form.formState.errors.email && <p className="text-sm text-destructive">{form.formState.errors.email.message}</p>}
         </div>
         <div className="space-y-2">
-            <Label htmlFor={`${role.toLowerCase()}-password`}>Password</Label>
+            <Label htmlFor={`${role.toLowerCase()}-password`}>كلمة المرور</Label>
             <Input 
                 id={`${role.toLowerCase()}-password`} 
                 type="password" 
@@ -87,7 +89,7 @@ function LoginForm({ role }: { role: 'Doctor' | 'Nurse' }) {
         </CardContent>
         <CardFooter>
         <Button className="w-full" type="submit" disabled={isLoading}>
-            {isLoading ? `Logging in as ${role}...` : `Login as ${role}`}
+            {isLoading ? `جاري تسجيل الدخول كـ ${roleInArabic}...` : `تسجيل الدخول كـ ${roleInArabic}`}
         </Button>
         </CardFooter>
     </form>
@@ -98,24 +100,24 @@ export function LoginTabs() {
   return (
     <Tabs defaultValue="doctor" className="w-full">
       <TabsList className="grid w-full grid-cols-2">
-        <TabsTrigger value="doctor">Doctor</TabsTrigger>
-        <TabsTrigger value="nurse">Nurse</TabsTrigger>
+        <TabsTrigger value="doctor">طبيب</TabsTrigger>
+        <TabsTrigger value="nurse">ممرضة</TabsTrigger>
       </TabsList>
       <Card>
         <TabsContent value="doctor">
           <CardHeader>
-            <CardTitle className="font-headline">Doctor Login</CardTitle>
+            <CardTitle className="font-headline">تسجيل دخول الطبيب</CardTitle>
             <CardDescription>
-              Access your dashboard to manage patients and prescriptions.
+              الوصول إلى لوحة التحكم الخاصة بك لإدارة المرضى والوصفات الطبية.
             </CardDescription>
           </CardHeader>
           <LoginForm role="Doctor" />
         </TabsContent>
         <TabsContent value="nurse">
           <CardHeader>
-            <CardTitle className="font-headline">Nurse Login</CardTitle>
+            <CardTitle className="font-headline">تسجيل دخول الممرضة</CardTitle>
             <CardDescription>
-              Access the panel to manage the patient queue.
+              الوصول إلى اللوحة لإدارة قائمة انتظار المرضى.
             </CardDescription>
           </CardHeader>
           <LoginForm role="Nurse" />

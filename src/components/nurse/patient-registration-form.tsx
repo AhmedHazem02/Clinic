@@ -41,10 +41,10 @@ import { RadioGroup, RadioGroupItem } from "../ui/radio-group";
 import { useNurseProfile } from "./nurse-profile-provider";
 
 const formSchema = z.object({
-  name: z.string().min(2, "Name must be at least 2 characters."),
-  phone: z.string().regex(/^\d{11}$/, "Please enter a valid 11-digit phone number."),
+  name: z.string().min(2, "يجب أن يتكون الاسم من حرفين على الأقل."),
+  phone: z.string().regex(/^\d{11}$/, "الرجاء إدخال رقم هاتف صالح مكون من 11 رقمًا."),
   bookingDate: z.date({
-    required_error: "A reservation date is required.",
+    required_error: "تاريخ الحجز مطلوب.",
   }),
   age: z.coerce.number().optional(),
   diseases: z.string().optional(),
@@ -83,8 +83,8 @@ export function PatientRegistrationForm({ onPatientRegistered }: PatientRegistra
     if (!user || !profile) {
         toast({
             variant: "destructive",
-            title: "Error",
-            description: "You must be logged in to register patients.",
+            title: "خطأ",
+            description: "يجب عليك تسجيل الدخول لتسجيل المرضى.",
         });
         return;
     }
@@ -109,8 +109,8 @@ export function PatientRegistrationForm({ onPatientRegistered }: PatientRegistra
       }
 
       toast({
-        title: "Patient Registered",
-        description: `${values.name} has been added to the queue.`,
+        title: "تم تسجيل المريض",
+        description: `تمت إضافة ${values.name} إلى قائمة الانتظار.`,
       });
       form.reset({
         name: "",
@@ -124,8 +124,8 @@ export function PatientRegistrationForm({ onPatientRegistered }: PatientRegistra
     } catch (error: any) {
        toast({
         variant: "destructive",
-        title: "Registration Failed",
-        description: error.message || "Could not add patient to the queue. Please try again.",
+        title: "فشل التسجيل",
+        description: error.message || "لا يمكن إضافة المريض إلى قائمة الانتظار. يرجى المحاولة مرة أخرى.",
       });
       console.error("Failed to register patient:", error);
     } finally {
@@ -136,9 +136,9 @@ export function PatientRegistrationForm({ onPatientRegistered }: PatientRegistra
   return (
     <Card className="w-full">
       <CardHeader>
-        <CardTitle className="font-headline flex items-center gap-2"><UserPlus className="text-primary"/> New Patient</CardTitle>
+        <CardTitle className="font-headline flex items-center gap-2"><UserPlus className="text-primary"/> مريض جديد</CardTitle>
         <CardDescription>
-          Fill in the details to add a patient to the queue.
+          املأ التفاصيل لإضافة مريض إلى قائمة الانتظار.
         </CardDescription>
       </CardHeader>
       <Form {...form}>
@@ -149,9 +149,9 @@ export function PatientRegistrationForm({ onPatientRegistered }: PatientRegistra
               name="name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Patient Name</FormLabel>
+                  <FormLabel>اسم المريض</FormLabel>
                   <FormControl>
-                    <Input placeholder="John Doe" {...field} />
+                    <Input placeholder="جون دو" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -162,7 +162,7 @@ export function PatientRegistrationForm({ onPatientRegistered }: PatientRegistra
               name="phone"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Phone Number</FormLabel>
+                  <FormLabel>رقم الهاتف</FormLabel>
                   <FormControl>
                     <Input placeholder="01234567890" {...field} />
                   </FormControl>
@@ -175,7 +175,7 @@ export function PatientRegistrationForm({ onPatientRegistered }: PatientRegistra
               name="bookingDate"
               render={({ field }) => (
                 <FormItem className="flex flex-col">
-                  <FormLabel>Reservation Date</FormLabel>
+                  <FormLabel>تاريخ الحجز</FormLabel>
                   <Popover>
                     <PopoverTrigger asChild>
                       <FormControl>
@@ -189,9 +189,9 @@ export function PatientRegistrationForm({ onPatientRegistered }: PatientRegistra
                           {field.value ? (
                             format(field.value, "PPP")
                           ) : (
-                            <span>Pick a date</span>
+                            <span>اختر تاريخًا</span>
                           )}
-                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                          <CalendarIcon className="mr-auto h-4 w-4 opacity-50" />
                         </Button>
                       </FormControl>
                     </PopoverTrigger>
@@ -216,7 +216,7 @@ export function PatientRegistrationForm({ onPatientRegistered }: PatientRegistra
               name="queueType"
               render={({ field }) => (
                 <FormItem className="space-y-3">
-                  <FormLabel>Queue Type</FormLabel>
+                  <FormLabel>نوع قائمة الانتظار</FormLabel>
                   <FormControl>
                     <RadioGroup
                       onValueChange={field.onChange}
@@ -228,7 +228,7 @@ export function PatientRegistrationForm({ onPatientRegistered }: PatientRegistra
                           <RadioGroupItem value="Consultation" />
                         </FormControl>
                         <FormLabel className="font-normal">
-                          Consultation
+                          استشارة
                         </FormLabel>
                       </FormItem>
                       <FormItem className="flex items-center space-x-2 space-y-0">
@@ -236,7 +236,7 @@ export function PatientRegistrationForm({ onPatientRegistered }: PatientRegistra
                           <RadioGroupItem value="Re-consultation" />
                         </FormControl>
                         <FormLabel className="font-normal">
-                          Re-consultation
+                          إعادة استشارة
                         </FormLabel>
                       </FormItem>
                     </RadioGroup>
@@ -250,10 +250,10 @@ export function PatientRegistrationForm({ onPatientRegistered }: PatientRegistra
               name="consultationReason"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Reason for Consultation</FormLabel>
+                  <FormLabel>سبب الاستشارة</FormLabel>
                   <FormControl>
                     <Textarea
-                      placeholder="e.g., Follow-up, general check-up..."
+                      placeholder="مثال: متابعة، فحص عام..."
                       {...field}
                       value={field.value ?? ''}
                     />
@@ -267,7 +267,7 @@ export function PatientRegistrationForm({ onPatientRegistered }: PatientRegistra
               name="age"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Patient Age (optional)</FormLabel>
+                  <FormLabel>عمر المريض (اختياري)</FormLabel>
                   <FormControl>
                     <Input type="number" placeholder="35" {...field} value={field.value ?? ''} />
                   </FormControl>
@@ -280,10 +280,10 @@ export function PatientRegistrationForm({ onPatientRegistered }: PatientRegistra
               name="diseases"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Chronic Diseases (if any)</FormLabel>
+                  <FormLabel>الأمراض المزمنة (إن وجدت)</FormLabel>
                   <FormControl>
                     <Textarea
-                      placeholder="e.g., Hypertension, Diabetes"
+                      placeholder="مثال: ارتفاع ضغط الدم، السكري"
                       {...field}
                       value={field.value ?? ''}
                     />
@@ -295,7 +295,7 @@ export function PatientRegistrationForm({ onPatientRegistered }: PatientRegistra
           </CardContent>
           <CardFooter>
             <Button type="submit" className="w-full" disabled={isSubmitting}>
-                {isSubmitting ? "Adding..." : "Add to Queue"}
+                {isSubmitting ? "جاري الإضافة..." : "إضافة إلى قائمة الانتظار"}
             </Button>
           </CardFooter>
         </form>

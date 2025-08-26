@@ -57,15 +57,15 @@ export function PatientHistoryClient() {
         <>
             <Card>
                 <CardHeader>
-                    <CardTitle className="font-headline">All Patients</CardTitle>
+                    <CardTitle className="font-headline">جميع المرضى</CardTitle>
                     <CardDescription>
-                        A complete log of all patient records in the system.
+                        سجل كامل لجميع سجلات المرضى في النظام.
                     </CardDescription>
                     <div className="relative pt-2">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                         <Input 
-                            placeholder="Search patients..."
-                            className="pl-10"
+                            placeholder="ابحث عن المرضى..."
+                            className="pr-10"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                         />
@@ -83,11 +83,11 @@ export function PatientHistoryClient() {
                         <Table>
                             <TableHeader>
                                 <TableRow>
-                                    <TableHead>Name</TableHead>
-                                    <TableHead>Phone</TableHead>
-                                    <TableHead>Booking Date</TableHead>
-                                    <TableHead>Status</TableHead>
-                                    <TableHead className="text-right">Actions</TableHead>
+                                    <TableHead>الاسم</TableHead>
+                                    <TableHead>الهاتف</TableHead>
+                                    <TableHead>تاريخ الحجز</TableHead>
+                                    <TableHead>الحالة</TableHead>
+                                    <TableHead className="text-left">الإجراءات</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -102,11 +102,11 @@ export function PatientHistoryClient() {
                                                     {patient.status}
                                                 </Badge>
                                             </TableCell>
-                                            <TableCell className="text-right">
+                                            <TableCell className="text-left">
                                                 {patient.prescription && (
                                                     <Button variant="outline" size="sm" onClick={() => setSelectedPatient(patient)}>
-                                                        <FileText className="mr-2 h-4 w-4" />
-                                                        View Prescription
+                                                        <FileText className="ml-2 h-4 w-4" />
+                                                        عرض الوصفة
                                                     </Button>
                                                 )}
                                             </TableCell>
@@ -115,7 +115,7 @@ export function PatientHistoryClient() {
                                 ) : (
                                     <TableRow>
                                         <TableCell colSpan={5} className="text-center text-muted-foreground">
-                                            No patients found.
+                                            لم يتم العثور على مرضى.
                                         </TableCell>
                                     </TableRow>
                                 )}

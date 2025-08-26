@@ -29,9 +29,9 @@ import { updateClinicSettings, listenToClinicSettings, type ClinicSettings } fro
 import { Skeleton } from "../ui/skeleton";
 
 const settingsSchema = z.object({
-  consultationTime: z.coerce.number().min(5, "Must be at least 5 minutes.").max(60, "Cannot exceed 60 minutes."),
-  consultationCost: z.coerce.number().min(0, "Cost cannot be negative."),
-  reConsultationCost: z.coerce.number().min(0, "Cost cannot be negative."),
+  consultationTime: z.coerce.number().min(5, "يجب أن يكون 5 دقائق على الأقل.").max(60, "لا يمكن أن يتجاوز 60 دقيقة."),
+  consultationCost: z.coerce.number().min(0, "لا يمكن أن تكون التكلفة سلبية."),
+  reConsultationCost: z.coerce.number().min(0, "لا يمكن أن تكون التكلفة سلبية."),
 });
 
 type SettingsFormValues = z.infer<typeof settingsSchema>;
@@ -71,14 +71,14 @@ export function SettingsForm() {
     try {
       await updateClinicSettings(values);
       toast({
-        title: "Settings Saved",
-        description: "Your consultation settings have been updated.",
+        title: "تم حفظ الإعدادات",
+        description: "تم تحديث إعدادات الاستشارة الخاصة بك.",
       });
     } catch (error) {
        toast({
         variant: "destructive",
-        title: "Error",
-        description: "Could not save settings. Please try again.",
+        title: "خطأ",
+        description: "لا يمكن حفظ الإعدادات. يرجى المحاولة مرة أخرى.",
       });
     } finally {
       setIsSubmitting(false);
@@ -88,9 +88,9 @@ export function SettingsForm() {
   return (
     <Card className="max-w-2xl">
       <CardHeader>
-        <CardTitle className="font-headline">Consultation Settings</CardTitle>
+        <CardTitle className="font-headline">إعدادات الاستشارة</CardTitle>
         <CardDescription>
-          Set the average time and cost for each consultation.
+          قم بتعيين متوسط الوقت والتكلفة لكل استشارة.
         </CardDescription>
       </CardHeader>
       {isLoading ? (
@@ -120,12 +120,12 @@ export function SettingsForm() {
               name="consultationTime"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Average Consultation Time</FormLabel>
+                  <FormLabel>متوسط وقت الاستشارة</FormLabel>
                   <FormControl>
                     <Input type="number" placeholder="15" {...field} />
                   </FormControl>
                   <FormDescription>
-                    The average time in minutes for a single patient consultation.
+                    متوسط الوقت بالدقائق لاستشارة مريض واحد.
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
@@ -136,12 +136,12 @@ export function SettingsForm() {
               name="consultationCost"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Consultation Cost</FormLabel>
+                  <FormLabel>تكلفة الاستشارة</FormLabel>
                   <FormControl>
                     <Input type="number" placeholder="50.00" {...field} />
                   </FormControl>
                    <FormDescription>
-                    The cost for a single patient consultation.
+                    تكلفة استشارة مريض واحد.
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
@@ -152,12 +152,12 @@ export function SettingsForm() {
               name="reConsultationCost"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Re-consultation Cost</FormLabel>
+                  <FormLabel>تكلفة إعادة الاستشارة</FormLabel>
                   <FormControl>
                     <Input type="number" placeholder="25.00" {...field} />
                   </FormControl>
                    <FormDescription>
-                    The cost for a follow-up or re-consultation.
+                    تكلفة المتابعة أو إعادة الاستشارة.
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
@@ -166,7 +166,7 @@ export function SettingsForm() {
           </CardContent>
           <CardFooter>
             <Button type="submit" disabled={isSubmitting || isLoading}>
-                {isSubmitting ? "Saving..." : "Save Settings"}
+                {isSubmitting ? "جاري الحفظ..." : "حفظ الإعدادات"}
             </Button>
           </CardFooter>
         </form>

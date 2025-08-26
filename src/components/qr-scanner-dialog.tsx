@@ -1,3 +1,4 @@
+
 "use client";
 
 import {
@@ -67,8 +68,8 @@ export function QrScannerDialog({
               console.error("QR Scan Error:", err);
               toast({
                 variant: "destructive",
-                title: "Scan Error",
-                description: "An error occurred while scanning.",
+                title: "خطأ في المسح",
+                description: "حدث خطأ أثناء المسح.",
               });
             }
           });
@@ -78,8 +79,8 @@ export function QrScannerDialog({
         setHasCameraPermission(false);
         toast({
           variant: 'destructive',
-          title: 'Camera Access Denied',
-          description: 'Please enable camera permissions in your browser settings to use the scanner.',
+          title: 'تم رفض الوصول إلى الكاميرا',
+          description: 'يرجى تمكين أذونات الكاميرا في إعدادات المتصفح لاستخدام الماسح الضوئي.',
         });
       }
     };
@@ -102,9 +103,9 @@ export function QrScannerDialog({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle className="font-headline">Scan QR Code</DialogTitle>
+          <DialogTitle className="font-headline">مسح رمز الاستجابة السريعة</DialogTitle>
           <DialogDescription>
-            Point your camera at the QR code to find your status.
+            وجّه الكاميرا إلى رمز الاستجابة السريعة للعثور على حالتك.
           </DialogDescription>
         </DialogHeader>
         <div className="mt-4">
@@ -113,9 +114,9 @@ export function QrScannerDialog({
           {hasCameraPermission === false && (
             <Alert variant="destructive" className="mt-4">
               <CameraOff className="h-4 w-4" />
-              <AlertTitle>Camera Access Required</AlertTitle>
+              <AlertTitle>الوصول إلى الكاميرا مطلوب</AlertTitle>
               <AlertDescription>
-                Please enable camera permissions in your browser settings to use the QR scanner.
+                يرجى تمكين أذونات الكاميرا في إعدادات المتصفح لاستخدام ماسح رمز الاستجابة السريعة.
               </AlertDescription>
             </Alert>
           )}

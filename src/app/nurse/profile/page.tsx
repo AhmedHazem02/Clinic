@@ -1,3 +1,4 @@
+
 import { NurseProfileForm } from "@/components/nurse/nurse-profile-form";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
@@ -9,14 +10,14 @@ export default function NurseProfilePage() {
             <div className="mb-6">
                 <Button variant="ghost" asChild>
                     <Link href="/nurse/dashboard">
-                        <ArrowLeft className="mr-2" />
-                        Back to Dashboard
+                        <ArrowLeft className="ml-2" />
+                        العودة إلى لوحة التحكم
                     </Link>
                 </Button>
             </div>
             <div>
-                <h1 className="text-3xl font-bold font-headline">Your Profile</h1>
-                <p className="text-muted-foreground">View and edit your personal information.</p>
+                <h1 className="text-3xl font-bold font-headline">ملفك الشخصي</h1>
+                <p className="text-muted-foreground">عرض وتعديل معلوماتك الشخصية.</p>
             </div>
             <NurseProfileForm />
         </div>

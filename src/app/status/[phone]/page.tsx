@@ -37,12 +37,12 @@ export default function PatientStatusPage({ params }: { params: { phone: string 
           setPatientData(currentPatient);
           setPeopleAhead(patientsAhead);
         } else {
-          setError("No active patient found with this phone number in the queue.");
+          setError("لم يتم العثور على مريض نشط بهذا الرقم في قائمة الانتظار.");
         }
         setIsLoading(false);
       }, (err) => {
           console.error("Error fetching patient status:", err);
-          setError("An error occurred while fetching the patient status.");
+          setError("حدث خطأ أثناء جلب حالة المريض.");
           setIsLoading(false);
       });
 
@@ -69,8 +69,8 @@ export default function PatientStatusPage({ params }: { params: { phone: string 
             <div className="mb-6">
                 <Button variant="ghost" asChild>
                     <Link href="/">
-                        <ArrowLeft className="mr-2" />
-                        Back to Search
+                        <ArrowLeft className="ml-2" />
+                        العودة إلى البحث
                     </Link>
                 </Button>
             </div>
@@ -78,7 +78,7 @@ export default function PatientStatusPage({ params }: { params: { phone: string 
             {doctorMessage && (
                  <Alert>
                     <Info className="h-4 w-4" />
-                    <AlertTitle>A Message from the Doctor</AlertTitle>
+                    <AlertTitle>رسالة من الطبيب</AlertTitle>
                     <AlertDescription>
                         {doctorMessage}
                     </AlertDescription>
@@ -87,9 +87,9 @@ export default function PatientStatusPage({ params }: { params: { phone: string 
              {!isDoctorAvailable && patientData?.status === 'Waiting' && (
                  <Alert variant="destructive">
                     <Info className="h-4 w-4" />
-                    <AlertTitle>Doctor is Currently Unavailable</AlertTitle>
+                    <AlertTitle>الطبيب غير متاح حاليًا</AlertTitle>
                     <AlertDescription>
-                        The wait time counter has been paused and will resume when the doctor is available.
+                        تم إيقاف عداد وقت الانتظار مؤقتًا وسيستأنف عندما يكون الطبيب متاحًا.
                     </AlertDescription>
                 </Alert>
             )}
@@ -118,7 +118,7 @@ export default function PatientStatusPage({ params }: { params: { phone: string 
                 <Card className="w-full border-destructive">
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2 text-destructive">
-                            <AlertTriangle /> Error
+                            <AlertTriangle /> خطأ
                         </CardTitle>
                     </CardHeader>
                     <CardContent>

@@ -1,3 +1,4 @@
+
 import { PatientSearchForm } from "@/components/patient-search-form";
 import { Stethoscope } from "lucide-react";
 
@@ -10,17 +11,17 @@ export default function Home() {
             <Stethoscope className="w-10 h-10 text-primary" />
           </div>
           <h1 className="font-headline text-4xl font-bold text-foreground">
-            QueueWise Clinic
+            عيادة QueueWise
           </h1>
           <p className="text-muted-foreground mt-2">
-            Check your appointment status below.
+            تحقق من حالة موعدك أدناه.
           </p>
         </div>
         
         <PatientSearchForm />
         
         <div className="text-center mt-8 text-sm text-muted-foreground">
-          <p>Are you a staff member? <a href="/login" className="font-medium text-primary hover:underline">Login here</a></p>
+          <p>هل أنت من فريق العمل؟ <a href="/login" className="font-medium text-primary hover:underline">سجل الدخول من هنا</a></p>
         </div>
       </div>
     </main>

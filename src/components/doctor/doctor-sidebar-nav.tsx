@@ -1,3 +1,4 @@
+
 "use client";
 
 import { usePathname } from 'next/navigation';
@@ -38,7 +39,7 @@ export function DoctorSidebarNav() {
                   <Link href="/doctor/dashboard">
                     <SidebarMenuButton isActive={pathname === '/doctor/dashboard'}>
                       <Home />
-                      Dashboard
+                      لوحة التحكم
                     </SidebarMenuButton>
                   </Link>
                 </SidebarMenuItem>
@@ -46,7 +47,7 @@ export function DoctorSidebarNav() {
                   <Link href="/doctor/history">
                     <SidebarMenuButton isActive={pathname === '/doctor/history'}>
                       <User />
-                      Patient History
+                      سجل المرضى
                     </SidebarMenuButton>
                   </Link>
                 </SidebarMenuItem>
@@ -54,7 +55,7 @@ export function DoctorSidebarNav() {
                   <Link href="/doctor/settings">
                     <SidebarMenuButton isActive={pathname === '/doctor/settings'}>
                       <Settings />
-                      Settings
+                      الإعدادات
                     </SidebarMenuButton>
                   </Link>
                 </SidebarMenuItem>

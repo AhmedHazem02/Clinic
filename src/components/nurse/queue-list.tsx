@@ -82,22 +82,22 @@ export function QueueList({ title, allPatients, queuePatients, onShowQrCode, sea
         if (isDoctorBusy) {
             toast({
                 variant: "destructive",
-                title: "Cannot start consultation",
-                description: "Another patient is already in consultation.",
+                title: "لا يمكن بدء الاستشارة",
+                description: "يوجد مريض آخر قيد الاستشارة بالفعل.",
             });
             return;
         }
         try {
             await updatePatientStatus(patient.id, 'Consulting');
             toast({
-                title: "Consultation Started",
-                description: `${patient.name} is now in consultation.`,
+                title: "بدأت الاستشارة",
+                description: `${patient.name} الآن في الاستشارة.`,
             });
         } catch (error) {
              toast({
                 variant: "destructive",
-                title: "Error",
-                description: "Could not start the consultation.",
+                title: "خطأ",
+                description: "لا يمكن بدء الاستشارة.",
             });
         }
     };
@@ -133,15 +133,15 @@ export function QueueList({ title, allPatients, queuePatients, onShowQrCode, sea
         try {
             await removePatientFromQueue(patientToCancel.id);
             toast({
-                title: "Reservation Cancelled",
-                description: `${patientToCancel.name}'s reservation has been cancelled.`,
+                title: "تم إلغاء الحجز",
+                description: `تم إلغاء حجز ${patientToCancel.name}.`,
             });
         } catch (error) {
             console.error("Error cancelling reservation:", error);
             toast({
                 variant: "destructive",
-                title: "Error",
-                description: "Could not cancel the reservation.",
+                title: "خطأ",
+                description: "لا يمكن إلغاء الحجز.",
             });
         } finally {
             setPatientToCancel(null);
@@ -156,7 +156,7 @@ export function QueueList({ title, allPatients, queuePatients, onShowQrCode, sea
             <Users className="text-primary"/> {title}
         </CardTitle>
         <CardDescription>
-          Live view of patients waiting for consultation.
+          عرض مباشر للمرضى الذين ينتظرون الاستشارة.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -170,11 +170,11 @@ export function QueueList({ title, allPatients, queuePatients, onShowQrCode, sea
             <Table>
             <TableHeader>
                 <TableRow>
-                <TableHead className="w-[80px]">Queue #</TableHead>
-                <TableHead>Name</TableHead>
-                <TableHead>Est. Wait</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+                <TableHead className="w-[80px]">رقم الانتظار</TableHead>
+                <TableHead>الاسم</TableHead>
+                <TableHead>وقت الانتظار المقدر</TableHead>
+                <TableHead>الحالة</TableHead>
+                <TableHead className="text-left">الإجراءات</TableHead>
                 </TableRow>
             </TableHeader>
             <TableBody>
@@ -183,24 +183,24 @@ export function QueueList({ title, allPatients, queuePatients, onShowQrCode, sea
                     <TableRow key={patient.id}>
                         <TableCell className="font-bold text-lg">{patient.queueNumber}</TableCell>
                         <TableCell className="font-medium">{patient.name}</TableCell>
-                        <TableCell>{patient.status === 'Waiting' ? `${calculateWaitTime(patient.queueNumber)} min` : '-'}</TableCell>
+                        <TableCell>{patient.status === 'Waiting' ? `${calculateWaitTime(patient.queueNumber)} دقيقة` : '-'}</TableCell>
                         <TableCell>
                             <Badge variant={getStatusBadgeVariant(patient.status)}>{patient.status}</Badge>
                         </TableCell>
-                        <TableCell className="text-right space-x-2">
+                        <TableCell className="text-left space-x-2">
                             {patient.status === 'Waiting' && (
                                 <Button variant="outline" size="sm" onClick={() => handleStartConsultation(patient)} disabled={isDoctorBusy}>
-                                    <PlayCircle className="mr-2 h-4 w-4" />
-                                    Start
+                                    <PlayCircle className="ml-2 h-4 w-4" />
+                                    بدء
                                 </Button>
                             )}
                             <Button variant="outline" size="sm" onClick={() => onShowQrCode(patient)}>
-                                <QrCode className="mr-2 h-4 w-4" />
+                                <QrCode className="ml-2 h-4 w-4" />
                                 QR
                             </Button>
                             <Button variant="ghost" size="sm" className="text-destructive hover:bg-destructive/10" onClick={() => setPatientToCancel(patient)}>
-                                <Trash2 className="mr-2 h-4 w-4" />
-                                Cancel
+                                <Trash2 className="ml-2 h-4 w-4" />
+                                إلغاء
                             </Button>
                         </TableCell>
                     </TableRow>
@@ -208,7 +208,7 @@ export function QueueList({ title, allPatients, queuePatients, onShowQrCode, sea
                 ) : (
                     <TableRow>
                         <TableCell colSpan={5} className="text-center text-muted-foreground">
-                            {searchQuery ? "No patients match your search." : "No patients in the queue yet."}
+                            {searchQuery ? "لا يوجد مرضى يطابقون بحثك." : "لا يوجد مرضى في قائمة الانتظار بعد."}
                         </TableCell>
                     </TableRow>
                 )}
@@ -220,15 +220,15 @@ export function QueueList({ title, allPatients, queuePatients, onShowQrCode, sea
     <AlertDialog open={!!patientToCancel} onOpenChange={(open) => !open && setPatientToCancel(null)}>
         <AlertDialogContent>
             <AlertDialogHeader>
-            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogTitle>هل أنت متأكد؟</AlertDialogTitle>
             <AlertDialogDescription>
-                This will permanently cancel the reservation for {patientToCancel?.name}. This action cannot be undone.
+                سيؤدي هذا إلى إلغاء الحجز لـ {patientToCancel?.name} بشكل دائم. لا يمكن التراجع عن هذا الإجراء.
             </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-            <AlertDialogCancel>Back</AlertDialogCancel>
+            <AlertDialogCancel>رجوع</AlertDialogCancel>
             <AlertDialogAction onClick={handleCancelReservation} className="bg-destructive hover:bg-destructive/90">
-                Yes, cancel reservation
+                نعم، قم بإلغاء الحجز
             </AlertDialogAction>
             </AlertDialogFooter>
         </AlertDialogContent>

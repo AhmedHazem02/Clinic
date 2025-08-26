@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useRef, useEffect } from "react";
@@ -31,8 +32,8 @@ import { setNurseProfile } from "@/services/queueService";
 import { Skeleton } from "../ui/skeleton";
 
 const profileSchema = z.object({
-  name: z.string().min(2, "Name must be at least 2 characters."),
-  email: z.string().email("Please enter a valid email."),
+  name: z.string().min(2, "يجب أن يتكون الاسم من حرفين على الأقل."),
+  email: z.string().email("الرجاء إدخال بريد إلكتروني صالح."),
 });
 
 type ProfileFormValues = z.infer<typeof profileSchema>;
@@ -71,8 +72,8 @@ export function NurseProfileForm() {
     if (!user) {
       toast({
         variant: "destructive",
-        title: "Error",
-        description: "You must be logged in.",
+        title: "خطأ",
+        description: "يجب عليك تسجيل الدخول.",
       });
       return;
     }
@@ -85,14 +86,14 @@ export function NurseProfileForm() {
       };
       await setNurseProfile(user.uid, profileData);
       toast({
-        title: "Profile Saved",
-        description: "Your profile has been successfully updated.",
+        title: "تم حفظ الملف الشخصي",
+        description: "تم تحديث ملفك الشخصي بنجاح.",
       });
     } catch (error) {
       toast({
         variant: "destructive",
-        title: "Error",
-        description: "Failed to save profile. Please try again.",
+        title: "خطأ",
+        description: "فشل حفظ الملف الشخصي. يرجى المحاولة مرة أخرى.",
       });
     } finally {
       setIsSubmitting(false);
@@ -140,9 +141,9 @@ export function NurseProfileForm() {
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)}>
           <CardHeader>
-            <CardTitle className="font-headline">Your Information</CardTitle>
+            <CardTitle className="font-headline">معلوماتك</CardTitle>
             <CardDescription>
-              This information will be displayed in the nurse panel.
+              سيتم عرض هذه المعلومات في لوحة الممرضة.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
@@ -164,7 +165,7 @@ export function NurseProfileForm() {
                 accept="image/png, image/jpeg"
               />
               <Button type="button" variant="outline" disabled>
-                <Upload /> Upload Photo
+                <Upload /> تحميل صورة
               </Button>
             </div>
             <FormField
@@ -172,9 +173,9 @@ export function NurseProfileForm() {
               name="name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Full Name</FormLabel>
+                  <FormLabel>الاسم الكامل</FormLabel>
                   <FormControl>
-                    <Input placeholder="Nurse Smith" {...field} />
+                    <Input placeholder="الممرضة سميث" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -185,7 +186,7 @@ export function NurseProfileForm() {
               name="email"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Email Address</FormLabel>
+                  <FormLabel>عنوان البريد الإلكتروني</FormLabel>
                   <FormControl>
                     <Input placeholder="nurse@example.com" {...field} disabled />
                   </FormControl>
@@ -196,7 +197,7 @@ export function NurseProfileForm() {
           </CardContent>
           <CardFooter className="gap-2">
             <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? "Saving..." : "Save Changes"}
+              {isSubmitting ? "جاري الحفظ..." : "حفظ التغييرات"}
             </Button>
           </CardFooter>
         </form>

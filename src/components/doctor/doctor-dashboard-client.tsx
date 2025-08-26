@@ -37,7 +37,6 @@ export function DoctorDashboardClient() {
   const [todaysRevenue, setTodaysRevenue] = useState(0);
   const [consultationCost, setConsultationCost] = useState(0);
   const [reConsultationCost, setReConsultationCost] = useState(0);
-  const [isDownloading, setIsDownloading] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -92,14 +91,14 @@ export function DoctorDashboardClient() {
             await updateDoctorMessage("");
         }
       } catch (error) {
-           toast({ variant: "destructive", title: "Error", description: "Could not update availability status." });
+           toast({ variant: "destructive", title: "خطأ", description: "لا يمكن تحديث حالة التوافر." });
            setIsAvailable(!checked);
       }
   }
 
   const handleCallNext = async () => {
     if (!nextPatient) {
-        toast({ variant: "destructive", title: "No patients are waiting." });
+        toast({ variant: "destructive", title: "لا يوجد مرضى في الانتظار." });
         return;
     }
     try {
@@ -113,10 +112,10 @@ export function DoctorDashboardClient() {
             await updatePatientStatus(nextPatient.id, 'Consulting');
         }
         setPrescription(""); 
-        toast({ title: "Success", description: `Calling ${nextPatient.name} for consultation.` });
+        toast({ title: "نجاح", description: `جاري الاتصال بـ ${nextPatient.name} للاستشارة.` });
     } catch (error) {
         console.error("Error calling next patient:", error);
-        toast({ variant: "destructive", title: "Error", description: "Could not call the next patient." });
+        toast({ variant: "destructive", title: "خطأ", description: "لا يمكن الاتصال بالمريض التالي." });
     }
   }
 
@@ -129,9 +128,9 @@ export function DoctorDashboardClient() {
             await updateDoctorRevenue(user.uid, cost);
         }
         setPrescription("");
-        toast({ title: "Consultation Finished", description: `${currentPatient.name}'s consultation is complete.` });
+        toast({ title: "انتهت الاستشارة", description: `اكتملت استشارة ${currentPatient.name}.` });
       } catch (error) {
-        toast({ variant: "destructive", title: "Error", description: "Could not finish the consultation." });
+        toast({ variant: "destructive", title: "خطأ", description: "لا يمكن إنهاء الاستشارة." });
       }
   }
 
@@ -139,8 +138,8 @@ export function DoctorDashboardClient() {
     if (!currentPatient || !prescription.trim()) {
         toast({
             variant: "destructive",
-            title: "Cannot Print",
-            description: "Please ensure a patient is selected and a prescription is written.",
+            title: "لا يمكن الطباعة",
+            description: "يرجى التأكد من تحديد مريض وكتابة وصفة طبية.",
         });
         return;
     }
@@ -152,14 +151,14 @@ export function DoctorDashboardClient() {
     try {
       await updateDoctorMessage(doctorMessage);
       toast({
-        title: "Message Updated",
-        description: "Your message has been updated for all patients.",
+        title: "تم تحديث الرسالة",
+        description: "تم تحديث رسالتك لجميع المرضى.",
       });
     } catch (error) {
       toast({
         variant: "destructive",
-        title: "Error",
-        description: "Could not update the message.",
+        title: "خطأ",
+        description: "لا يمكن تحديث الرسالة.",
       });
     } finally {
       setIsUpdatingMessage(false);
@@ -173,12 +172,12 @@ export function DoctorDashboardClient() {
       {isNewAccount && (
         <Alert className="mb-6">
             <Info className="h-4 w-4" />
-            <AlertTitle className="font-headline">Welcome to QueueWise!</AlertTitle>
+            <AlertTitle className="font-headline">مرحبًا بك في QueueWise!</AlertTitle>
             <AlertDescription>
-                <p>It looks like this is your first time here. To get started, please set your average consultation time and cost.</p>
+                <p>يبدو أن هذه هي المرة الأولى لك هنا. للبدء، يرجى تعيين متوسط وقت الاستشارة والتكلفة.</p>
                 <Button asChild variant="link" className="p-0 h-auto mt-2">
                     <Link href="/doctor/settings">
-                        <Settings className="mr-2" /> Go to Settings
+                        <Settings className="mr-2" /> الذهاب إلى الإعدادات
                     </Link>
                 </Button>
             </AlertDescription>
@@ -189,10 +188,10 @@ export function DoctorDashboardClient() {
             <Card>
             <CardHeader>
                 <CardTitle className="font-headline flex items-center gap-2">
-                    <User className="text-primary"/> Current Patient
+                    <User className="text-primary"/> المريض الحالي
                 </CardTitle>
                 <CardDescription>
-                    {currentPatient ? "Patient waiting for consultation." : "No patient is currently in consultation."}
+                    {currentPatient ? "المريض ينتظر الاستشارة." : "لا يوجد مريض حاليًا في الاستشارة."}
                 </CardDescription>
             </CardHeader>
             {isLoading ? (
@@ -205,34 +204,34 @@ export function DoctorDashboardClient() {
             ) : currentPatient ? (
                 <CardContent className="space-y-2">
                     <h3 className="text-xl font-bold">{currentPatient.name}</h3>
-                    <p className="text-sm"><strong className="font-medium">Age:</strong> {currentPatient.age || 'N/A'}</p>
+                    <p className="text-sm"><strong className="font-medium">العمر:</strong> {currentPatient.age || 'غير متوفر'}</p>
                      <p className="text-sm flex items-start">
-                        <FileText className="h-4 w-4 mr-2 mt-0.5 text-primary flex-shrink-0"/> 
-                        <strong className="font-medium">Reason:</strong> {currentPatient.consultationReason || 'N/A'}
+                        <FileText className="h-4 w-4 ml-2 mt-0.5 text-primary flex-shrink-0"/> 
+                        <strong className="font-medium">السبب:</strong> {currentPatient.consultationReason || 'غير متوفر'}
                     </p>
                     <p className="text-sm flex items-start">
-                        <HeartPulse className="h-4 w-4 mr-2 mt-0.5 text-destructive flex-shrink-0"/> 
-                        <strong className="font-medium">Chronic Diseases:</strong> {currentPatient.chronicDiseases || 'None'}
+                        <HeartPulse className="h-4 w-4 ml-2 mt-0.5 text-destructive flex-shrink-0"/> 
+                        <strong className="font-medium">الأمراض المزمنة:</strong> {currentPatient.chronicDiseases || 'لا يوجد'}
                     </p>
                 </CardContent>
             ) : (
                 <CardContent>
-                    <p className="text-muted-foreground">Waiting to call the next patient.</p>
+                    <p className="text-muted-foreground">في انتظار استدعاء المريض التالي.</p>
                 </CardContent>
             )}
             <CardFooter>
                 {currentPatient ? (
                     <div className="flex gap-2">
                         <Button onClick={handleFinishConsultation} variant="outline">
-                            <CheckCircle /> Finish Consultation
+                            <CheckCircle /> إنهاء الاستشارة
                         </Button>
                         <Button onClick={handleCallNext} disabled={!nextPatient}>
-                            <LogIn /> Finish & Call Next
+                            <LogIn /> إنهاء واستدعاء التالي
                         </Button>
                     </div>
                 ) : (
                     <Button onClick={handleCallNext} disabled={!nextPatient || !isAvailable}>
-                        <LogIn /> Call Next Patient
+                        <LogIn /> استدعاء المريض التالي
                     </Button>
                 )}
             </CardFooter>
@@ -240,14 +239,14 @@ export function DoctorDashboardClient() {
 
             <Card>
               <CardHeader>
-                <CardTitle className="font-headline">Create Prescription</CardTitle>
+                <CardTitle className="font-headline">إنشاء وصفة طبية</CardTitle>
                 <CardDescription>
-                  {currentPatient ? `Write a prescription for ${currentPatient.name}.` : "No active patient."}
+                  {currentPatient ? `اكتب وصفة طبية لـ ${currentPatient.name}.` : "لا يوجد مريض نشط."}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <Textarea
-                  placeholder="e.g., Take one tablet of Paracetamol 500mg..."
+                  placeholder="مثال: تناول قرصًا واحدًا من الباراسيتامول 500 ملغ..."
                   className="min-h-[150px]"
                   value={prescription}
                   onChange={(e) => setPrescription(e.target.value)}
@@ -256,7 +255,7 @@ export function DoctorDashboardClient() {
               </CardContent>
               <CardFooter className="gap-2 justify-end">
                 <Button variant="secondary" onClick={handlePrint} disabled={!currentPatient || !prescription.trim()}>
-                  <Printer className="mr-2" /> Print
+                  <Printer className="ml-2" /> طباعة
                 </Button>
               </CardFooter>
             </Card>
@@ -266,8 +265,8 @@ export function DoctorDashboardClient() {
             <Card>
             <CardHeader className="flex flex-row items-start justify-between">
                 <div>
-                <CardTitle className="font-headline">Your Status</CardTitle>
-                <CardDescription>Set your availability.</CardDescription>
+                <CardTitle className="font-headline">حالتي</CardTitle>
+                <CardDescription>قم بتعيين حالتك.</CardDescription>
                 </div>
                 <Switch
                 checked={isAvailable}
@@ -278,14 +277,14 @@ export function DoctorDashboardClient() {
             <CardContent className="space-y-4">
                 <div>
                     <p className={`text-lg font-semibold ${isAvailable ? 'text-green-600' : 'text-red-600'}`}>
-                    {isAvailable ? "Available for Consultation" : "Not Available"}
+                    {isAvailable ? "متاح للاستشارة" : "غير متاح"}
                     </p>
                 </div>
                 <div className="space-y-2">
-                    <Label htmlFor="doctor-message">Patient Message</Label>
+                    <Label htmlFor="doctor-message">رسالة للمريض</Label>
                     <Textarea 
                         id="doctor-message"
-                        placeholder="e.g., Running 15 minutes late."
+                        placeholder="مثال: سأتأخر 15 دقيقة."
                         value={doctorMessage}
                         onChange={(e) => setDoctorMessage(e.target.value)}
                     />
@@ -293,16 +292,16 @@ export function DoctorDashboardClient() {
             </CardContent>
             <CardFooter>
                 <Button onClick={handleUpdateMessage} disabled={isUpdatingMessage}>
-                <MessageSquarePlus /> {isUpdatingMessage ? 'Updating...' : 'Update Message'}
+                <MessageSquarePlus /> {isUpdatingMessage ? 'جاري التحديث...' : 'تحديث الرسالة'}
                 </Button>
             </CardFooter>
             </Card>
             <Card>
                 <CardHeader>
                     <CardTitle className="font-headline flex items-center gap-2">
-                        <DollarSign className="text-primary"/> Today's Revenue
+                        <DollarSign className="text-primary"/> إيرادات اليوم
                     </CardTitle>
-                    <CardDescription>Total earnings from finished consultations today.</CardDescription>
+                    <CardDescription>إجمالي الأرباح من الاستشارات المكتملة اليوم.</CardDescription>
                 </CardHeader>
                 <CardContent>
                     {isLoading ? (

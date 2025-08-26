@@ -1,3 +1,4 @@
+
 "use client";
 
 import {
@@ -39,9 +40,9 @@ export function QrCodeDialog({ patient, isOpen, onClose }: QrCodeDialogProps) {
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle className="font-headline">Patient QR Code</DialogTitle>
+          <DialogTitle className="font-headline">رمز الاستجابة السريعة للمريض</DialogTitle>
           <DialogDescription>
-            Patient can scan this code to check their queue status.
+            يمكن للمريض مسح هذا الرمز للتحقق من حالة قائمة الانتظار الخاصة به.
           </DialogDescription>
         </DialogHeader>
         <div className="flex flex-col items-center justify-center p-4 gap-4">
@@ -50,15 +51,15 @@ export function QrCodeDialog({ patient, isOpen, onClose }: QrCodeDialogProps) {
             </div>
           <div className="text-center">
             <p className="font-bold text-lg">{patient.name}</p>
-            <p className="text-muted-foreground">Queue #{patient.queueNumber}</p>
+            <p className="text-muted-foreground">رقم الانتظار #{patient.queueNumber}</p>
           </div>
         </div>
         <DialogFooter className="sm:justify-between gap-2">
             <Button variant="outline" onClick={handlePrint} className="w-full sm:w-auto">
-                <Printer className="mr-2" />
-                Print
+                <Printer className="ml-2" />
+                طباعة
             </Button>
-          <Button onClick={onClose} className="w-full sm:w-auto">Close</Button>
+          <Button onClick={onClose} className="w-full sm:w-auto">إغلاق</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

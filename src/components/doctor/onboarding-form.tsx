@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -16,10 +17,10 @@ import { PlusCircle, Trash2 } from "lucide-react";
 import { Label } from "@/components/ui/label";
 
 const onboardingSchema = z.object({
-  name: z.string().min(2, "Name must be at least 2 characters."),
-  clinicPhoneNumber: z.string().regex(/^\d{11}$/, "Please enter a valid 11-digit phone number."),
-  specialty: z.string().min(2, "Specialty is required."),
-  locations: z.array(z.object({ value: z.string().min(3, "Location cannot be empty.") })).min(1, "At least one clinic location is required."),
+  name: z.string().min(2, "يجب أن يتكون الاسم من حرفين على الأقل."),
+  clinicPhoneNumber: z.string().regex(/^\d{11}$/, "الرجاء إدخال رقم هاتف صالح مكون من 11 رقمًا."),
+  specialty: z.string().min(2, "التخصص مطلوب."),
+  locations: z.array(z.object({ value: z.string().min(3, "لا يمكن أن يكون الموقع فارغًا.") })).min(1, "مطلوب موقع عيادة واحد على الأقل."),
 });
 
 type OnboardingFormValues = z.infer<typeof onboardingSchema>;
@@ -47,7 +48,7 @@ export function OnboardingForm() {
 
   const onSubmit = async (values: OnboardingFormValues) => {
     if (!user) {
-      toast({ variant: "destructive", title: "Error", description: "You must be logged in." });
+      toast({ variant: "destructive", title: "خطأ", description: "يجب عليك تسجيل الدخول." });
       return;
     }
     setIsSubmitting(true);
@@ -59,10 +60,10 @@ export function OnboardingForm() {
         locations: values.locations.map(l => l.value),
       };
       await setDoctorProfile(user.uid, profileData);
-      toast({ title: "Profile Saved", description: "Your profile has been successfully set up." });
+      toast({ title: "تم حفظ الملف الشخصي", description: "تم إعداد ملفك الشخصي بنجاح." });
       router.push("/doctor/dashboard");
     } catch (error) {
-      toast({ variant: "destructive", title: "Error", description: "Failed to save profile. Please try again." });
+      toast({ variant: "destructive", title: "خطأ", description: "فشل حفظ الملف الشخصي. يرجى المحاولة مرة أخرى." });
     } finally {
       setIsSubmitting(false);
     }
@@ -71,8 +72,8 @@ export function OnboardingForm() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="font-headline">Your Information</CardTitle>
-        <CardDescription>This information will be displayed to your staff and patients.</CardDescription>
+        <CardTitle className="font-headline">معلوماتك</CardTitle>
+        <CardDescription>سيتم عرض هذه المعلومات لموظفيك ومرضاك.</CardDescription>
       </CardHeader>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)}>
@@ -82,9 +83,9 @@ export function OnboardingForm() {
               name="name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Full Name</FormLabel>
+                  <FormLabel>الاسم الكامل</FormLabel>
                   <FormControl>
-                    <Input placeholder="Dr. Jane Doe" {...field} />
+                    <Input placeholder="د. جين دو" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -95,9 +96,9 @@ export function OnboardingForm() {
               name="specialty"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Medical Specialty</FormLabel>
+                  <FormLabel>التخصص الطبي</FormLabel>
                   <FormControl>
-                    <Input placeholder="e.g., Cardiologist" {...field} />
+                    <Input placeholder="مثال: طبيب قلب" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -108,7 +109,7 @@ export function OnboardingForm() {
               name="clinicPhoneNumber"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Clinic Phone Number</FormLabel>
+                  <FormLabel>رقم هاتف العيادة</FormLabel>
                   <FormControl>
                     <Input placeholder="01234567890" {...field} />
                   </FormControl>
@@ -117,7 +118,7 @@ export function OnboardingForm() {
               )}
             />
             <div>
-              <Label>Clinic Location(s)</Label>
+              <Label>موقع (مواقع) العيادة</Label>
               <div className="space-y-2 mt-2">
                 {fields.map((field, index) => (
                     <FormField
@@ -128,7 +129,7 @@ export function OnboardingForm() {
                             <FormItem>
                                 <div className="flex items-center gap-2">
                                     <FormControl>
-                                        <Input placeholder={`Location ${index + 1}`} {...field} />
+                                        <Input placeholder={`الموقع ${index + 1}`} {...field} />
                                     </FormControl>
                                     {fields.length > 1 && (
                                         <Button
@@ -155,14 +156,14 @@ export function OnboardingForm() {
                 className="mt-2"
                 onClick={() => append({ value: "" })}
               >
-                <PlusCircle className="mr-2 h-4 w-4" />
-                Add Location
+                <PlusCircle className="ml-2 h-4 w-4" />
+                إضافة موقع
               </Button>
             </div>
           </CardContent>
           <CardFooter>
             <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? "Saving..." : "Save and Continue"}
+              {isSubmitting ? "جاري الحفظ..." : "حفظ ومتابعة"}
             </Button>
           </CardFooter>
         </form>

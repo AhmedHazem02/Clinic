@@ -43,7 +43,7 @@ export async function generatePatientReport(): Promise<string> {
     // Assuming single doctor and location for now
     const clinicLocation = doctors.length > 0 && doctors[0].locations.length > 0 
       ? doctors[0].locations[0] 
-      : "N/A";
+      : "غير متوفر";
 
     if (patients.length === 0) {
       return "لا توجد بيانات مرضى لآخر 30 يومًا.";
@@ -89,10 +89,10 @@ export async function generatePatientReport(): Promise<string> {
         dailyPatients.forEach(p => {
             reportContent += `رقم المريض: ${patientCounter}\n`;
             reportContent += `الاسم: ${p.name}\n`;
-            reportContent += `العمر: ${p.age || 'N/A'}\n`;
+            reportContent += `العمر: ${p.age || 'غير متوفر'}\n`;
             reportContent += `الهاتف: ${p.phone}\n`;
             reportContent += `الموقع: ${clinicLocation}\n`;
-            reportContent += `الأمراض المزمنة: ${p.chronicDiseases || 'N/A'}\n`;
+            reportContent += `الأمراض المزمنة: ${p.chronicDiseases || 'لا يوجد'}\n`;
             reportContent += `الحالة: ${p.status}\n`;
             reportContent += `رقم الاستشارة: #${p.queueNumber}\n`;
             reportContent += `تاريخ الحجز: ${format(p.bookingDate, "yyyy-MM-dd")}\n`;

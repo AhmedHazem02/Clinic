@@ -1,3 +1,4 @@
+
 import { NurseDashboardClient } from "@/components/nurse/nurse-dashboard-client";
 
 export const dynamic = 'force-dynamic';
@@ -6,8 +7,8 @@ export default function NurseDashboardPage() {
     return (
         <div className="space-y-6">
             <div className="hidden md:block">
-                <h1 className="text-3xl font-bold font-headline">Nurse Panel</h1>
-                <p className="text-muted-foreground">Register patients and manage the daily queue.</p>
+                <h1 className="text-3xl font-bold font-headline">لوحة الممرضة</h1>
+                <p className="text-muted-foreground">تسجيل المرضى وإدارة قائمة الانتظار اليومية.</p>
             </div>
             <NurseDashboardClient />
         </div>

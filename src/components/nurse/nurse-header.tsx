@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from "next/link";
@@ -30,7 +31,7 @@ export function NurseHeader() {
                 <div className="flex gap-6 md:gap-10">
                     <Link href="/nurse/dashboard" className="flex items-center space-x-2">
                         <Stethoscope className="h-6 w-6 text-primary" />
-                        <span className="inline-block font-bold font-headline">QueueWise Clinic</span>
+                        <span className="inline-block font-bold font-headline">عيادة QueueWise</span>
                     </Link>
                 </div>
                 <div className="flex flex-1 items-center justify-end space-x-4">
@@ -46,10 +47,10 @@ export function NurseHeader() {
                             </Avatar>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                            <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                            <DropdownMenuLabel>حسابي</DropdownMenuLabel>
                              <DropdownMenuSeparator />
                             <DropdownMenuItem asChild>
-                                <Link href="/nurse/profile">Profile</Link>
+                                <Link href="/nurse/profile">الملف الشخصي</Link>
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
                              <DropdownMenuItem asChild>

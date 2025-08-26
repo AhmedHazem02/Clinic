@@ -9,8 +9,8 @@ export default function DoctorDashboardPage() {
     return (
         <div className="space-y-6">
             <div>
-                <h1 className="text-3xl font-bold font-headline">Doctor Dashboard</h1>
-                <p className="text-muted-foreground">Manage your consultations and prescriptions.</p>
+                <h1 className="text-3xl font-bold font-headline">لوحة تحكم الطبيب</h1>
+                <p className="text-muted-foreground">قم بإدارة استشاراتك ووصفاتك الطبية.</p>
             </div>
             <DoctorDashboardClient />
         </div>

@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -27,7 +28,7 @@ export function PatientSearchForm() {
 
   const handleSearch = async (phone: string) => {
     if (!phone.trim()) {
-      setError("Please enter a valid phone number.");
+      setError("الرجاء إدخال رقم هاتف صالح.");
       return;
     }
     
@@ -39,11 +40,11 @@ export function PatientSearchForm() {
       if (result) {
         router.push(`/status/${phone}`);
       } else {
-        setError("No active patient found with this phone number in the queue.");
+        setError("لم يتم العثور على مريض نشط بهذا الرقم في قائمة الانتظار.");
       }
     } catch (err) {
       console.error("Error searching for patient:", err);
-      setError("An error occurred while searching. Please try again.");
+      setError("حدث خطأ أثناء البحث. يرجى المحاولة مرة أخرى.");
     } finally {
       setIsLoading(false);
     }
@@ -64,24 +65,24 @@ export function PatientSearchForm() {
     <>
       <Card className="w-full shadow-lg">
         <CardHeader>
-          <CardTitle className="font-headline text-2xl">Find Your Spot</CardTitle>
+          <CardTitle className="font-headline text-2xl">ابحث عن دورك</CardTitle>
           <CardDescription>
-            Enter your phone number to see your queue status.
+            أدخل رقم هاتفك لرؤية حالة قائمة الانتظار الخاصة بك.
           </CardDescription>
         </CardHeader>
         <form onSubmit={handleSubmit}>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="phone">Phone Number</Label>
+              <Label htmlFor="phone">رقم الهاتف</Label>
               <div className="relative">
-                <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Phone className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   id="phone"
                   type="tel"
-                  placeholder="e.g., 01234567890"
+                  placeholder="مثال: 01234567890"
                   value={phoneNumber}
                   onChange={(e) => setPhoneNumber(e.target.value)}
-                  className="pl-10"
+                  className="pr-10"
                   required
                 />
               </div>
@@ -89,16 +90,16 @@ export function PatientSearchForm() {
           </CardContent>
           <CardFooter className="flex-col items-stretch">
             <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? "Searching..." : "Check Status"}
+              {isLoading ? "جاري البحث..." : "التحقق من الحالة"}
             </Button>
             <div className="my-4 flex items-center">
               <Separator className="flex-1" />
-              <span className="mx-4 text-xs text-muted-foreground">OR</span>
+              <span className="mx-4 text-xs text-muted-foreground">أو</span>
               <Separator className="flex-1" />
             </div>
             <Button variant="outline" className="w-full" type="button" onClick={() => setIsScannerOpen(true)}>
-              <QrCode className="mr-2 h-4 w-4" />
-              Scan QR Code
+              <QrCode className="ml-2 h-4 w-4" />
+              مسح رمز الاستجابة السريعة
             </Button>
           </CardFooter>
         </form>
