@@ -239,9 +239,9 @@ export function DoctorDashboardClient() {
 
             <Card>
               <CardHeader>
-                <CardTitle className="font-headline">إنشاء وصفة طبية</CardTitle>
+                <CardTitle className="font-headline">كتابة الروشتة</CardTitle>
                 <CardDescription>
-                  {currentPatient ? `اكتب وصفة طبية لـ ${currentPatient.name}.` : "لا يوجد مريض نشط."}
+                  {currentPatient ? `اكتب روشتة لـ ${currentPatient.name}.` : "لا يوجد مريض نشط."}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">

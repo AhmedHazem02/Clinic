@@ -51,7 +51,7 @@ export function QrCodeDialog({ patient, isOpen, onClose }: QrCodeDialogProps) {
             </div>
           <div className="text-center">
             <p className="font-bold text-lg">{patient.name}</p>
-            <p className="text-muted-foreground">رقم الانتظار #{patient.queueNumber}</p>
+            <p className="text-muted-foreground">رقم الكشف #{patient.queueNumber}</p>
           </div>
         </div>
         <DialogFooter className="sm:justify-between gap-2">

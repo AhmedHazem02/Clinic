@@ -170,7 +170,7 @@ export function QueueList({ title, allPatients, queuePatients, onShowQrCode, sea
             <Table>
             <TableHeader>
                 <TableRow>
-                <TableHead className="w-[80px]">رقم الانتظار</TableHead>
+                <TableHead className="w-[80px]">رقم الكشف</TableHead>
                 <TableHead>الاسم</TableHead>
                 <TableHead>وقت الانتظار المقدر</TableHead>
                 <TableHead>الحالة</TableHead>
