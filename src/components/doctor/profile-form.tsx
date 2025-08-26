@@ -48,7 +48,7 @@ export function ProfileForm() {
         name: profile.name,
         clinicPhoneNumber: profile.clinicPhoneNumber,
         specialty: profile.specialty,
-        locations: profile.locations.map(l => ({ value: l })),
+        locations: (profile.locations || []).map(l => ({ value: l })),
       });
     }
   }, [profile, form]);
