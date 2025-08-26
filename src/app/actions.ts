@@ -7,7 +7,7 @@ import {
   type AiAssistedPrescriptionOutput,
 } from "@/ai/flows/ai-assisted-prescription";
 import { createUser } from "@/services/authService";
-import { getPatientsForLast30Days, getClinicSettings, getAllDoctors } from "@/services/queueService";
+import { getPatientsForLast30Days, getClinicSettings, getAllDoctors, setDoctorProfile } from "@/services/queueService";
 import { format } from "date-fns";
 import { ar } from 'date-fns/locale';
 
@@ -102,5 +102,14 @@ export async function generatePatientReport(): Promise<string> {
   } catch (error) {
     console.error("Error generating patient report:", error);
     throw new Error("Failed to generate patient report.");
+  }
+}
+
+export async function setDoctorAvailability(uid: string, isAvailable: boolean) {
+  try {
+    await setDoctorProfile(uid, { isAvailable });
+  } catch (error) {
+    console.error("Error setting doctor availability:", error);
+    throw new Error("Failed to update doctor availability.");
   }
 }
