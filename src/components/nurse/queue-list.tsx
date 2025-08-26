@@ -115,6 +115,19 @@ export function QueueList({ title, allPatients, queuePatients, onShowQrCode, sea
         return Math.round(waitTime);
     }
 
+    const translateStatus = (status: PatientInQueue['status']) => {
+        switch (status) {
+            case 'Consulting':
+                return 'في الكشف';
+            case 'Waiting':
+                return 'في الانتظار';
+            case 'Finished':
+                return 'مكتمل';
+            default:
+                return status;
+        }
+    }
+
     const getStatusBadgeVariant = (status: PatientInQueue['status']) => {
         switch (status) {
             case 'Consulting':
@@ -185,7 +198,7 @@ export function QueueList({ title, allPatients, queuePatients, onShowQrCode, sea
                         <TableCell className="font-medium">{patient.name}</TableCell>
                         <TableCell>{patient.status === 'Waiting' ? `${calculateWaitTime(patient.queueNumber)} دقيقة` : '-'}</TableCell>
                         <TableCell>
-                            <Badge variant={getStatusBadgeVariant(patient.status)}>{patient.status}</Badge>
+                            <Badge variant={getStatusBadgeVariant(patient.status)}>{translateStatus(patient.status)}</Badge>
                         </TableCell>
                         <TableCell className="text-left space-x-2">
                             {patient.status === 'Waiting' && (

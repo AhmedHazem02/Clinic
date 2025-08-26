@@ -32,7 +32,9 @@ function LoginForm({ role }: { role: 'Doctor' | 'Nurse' }) {
     const router = useRouter();
     const [isLoading, setIsLoading] = useState(false);
     const { toast } = useToast();
-    const roleInArabic = role === 'Doctor' ? 'الطبيب' : 'الممرضة';
+    const roleInArabic = role === 'Doctor' ? 'طبيب' : 'ممرض';
+    const buttonText = `تسجيل الدخول ك${roleInArabic}`;
+    const loadingText = `جاري تسجيل الدخول ك${roleInArabic}...`;
 
     const form = useForm<LoginFormValues>({
       resolver: zodResolver(loginSchema),
@@ -89,7 +91,7 @@ function LoginForm({ role }: { role: 'Doctor' | 'Nurse' }) {
         </CardContent>
         <CardFooter>
         <Button className="w-full" type="submit" disabled={isLoading}>
-            {isLoading ? `جاري تسجيل الدخول كـ ${roleInArabic}...` : `تسجيل الدخول كـ ${roleInArabic}`}
+            {isLoading ? loadingText : buttonText}
         </Button>
         </CardFooter>
     </form>
@@ -101,7 +103,7 @@ export function LoginTabs() {
     <Tabs defaultValue="doctor" className="w-full">
       <TabsList className="grid w-full grid-cols-2">
         <TabsTrigger value="doctor">طبيب</TabsTrigger>
-        <TabsTrigger value="nurse">ممرضة</TabsTrigger>
+        <TabsTrigger value="nurse">ممرض</TabsTrigger>
       </TabsList>
       <Card>
         <TabsContent value="doctor">
@@ -115,7 +117,7 @@ export function LoginTabs() {
         </TabsContent>
         <TabsContent value="nurse">
           <CardHeader>
-            <CardTitle>تسجيل دخول الممرضة</CardTitle>
+            <CardTitle>تسجيل دخول الممرض</CardTitle>
             <CardDescription>
               الوصول إلى اللوحة لإدارة قائمة انتظار المرضى.
             </CardDescription>

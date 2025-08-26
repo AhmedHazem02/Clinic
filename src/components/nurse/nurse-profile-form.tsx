@@ -143,7 +143,7 @@ export function NurseProfileForm() {
           <CardHeader>
             <CardTitle>معلوماتك</CardTitle>
             <CardDescription>
-              سيتم عرض هذه المعلومات في لوحة الممرضة.
+              سيتم عرض هذه المعلومات في لوحة الممرض.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
@@ -175,7 +175,7 @@ export function NurseProfileForm() {
                 <FormItem>
                   <FormLabel>الاسم الكامل</FormLabel>
                   <FormControl>
-                    <Input placeholder="الممرضة سميث" {...field} />
+                    <Input placeholder="الممرض سميث" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

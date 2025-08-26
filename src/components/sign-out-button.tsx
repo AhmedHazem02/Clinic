@@ -26,7 +26,7 @@ export function SignOutButton() {
 
     // Render as a child of DropdownMenuItem
     return (
-        <button className="relative flex cursor-default select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 w-full" onClick={handleSignOut}>
+        <button className="relative flex cursor-pointer select-none items-center gap-2 rounded-md px-3 py-2 text-sm outline-none transition-colors hover:bg-destructive/10 text-destructive font-medium w-full" onClick={handleSignOut}>
             <LogOut className="mr-2 h-4 w-4" /> 
             <span>تسجيل الخروج</span>
         </button>

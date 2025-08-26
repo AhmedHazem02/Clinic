@@ -7,7 +7,7 @@ export default function NurseDashboardPage() {
     return (
         <div className="space-y-6">
             <div className="hidden md:block">
-                <h1 className="text-3xl font-bold">لوحة الممرضة</h1>
+                <h1 className="text-3xl font-bold">لوحة الممرض</h1>
                 <p className="text-muted-foreground">تسجيل المرضى وإدارة قائمة الانتظار اليومية.</p>
             </div>
             <NurseDashboardClient />
