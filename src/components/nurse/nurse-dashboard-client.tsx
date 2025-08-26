@@ -21,7 +21,7 @@ export function NurseDashboardClient() {
     useEffect(() => {
         if (!user) return;
 
-        const unsubscribe = listenToQueueForNurse(user.uid, (updatedQueue) => {
+        const unsubscribe = listenToQueueForNurse((updatedQueue) => {
             const activePatients = updatedQueue
                 .filter(p => p.status !== 'Finished')
                 .sort((a, b) => a.queueNumber - b.queueNumber);
