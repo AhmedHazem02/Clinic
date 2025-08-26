@@ -19,8 +19,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Download, Bot, Send, Printer, User, HeartPulse, LogIn, CheckCircle, MessageSquarePlus, DollarSign, Info, Settings, FileText } from "lucide-react";
 import { AiAssistDialog } from "./ai-assist-dialog";
 import { useToast } from "@/hooks/use-toast";
-import { listenToQueue, type PatientInQueue, finishAndCallNext, updatePatientStatus, updateDoctorMessage, listenToDoctorMessage, listenToClinicSettings, getDoctorProfile } from "@/services/queueService";
-import { Skeleton } from "../ui/skeleton";
+import { listenToQueue, type PatientInQueue, finishAndCallNext, updatePatientStatus, updateDoctorMessage, listenToDoctorMessage, listenToClinicSettings, getDoctorProfile, updateDoctorRevenue } from "@/services/queueService";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useDoctorProfile } from "./doctor-profile-provider";
 import { setDoctorAvailability } from "@/app/actions";
 
@@ -123,6 +123,11 @@ export function DoctorDashboardClient() {
     try {
         if (currentPatient) {
             await finishAndCallNext(currentPatient.id, nextPatient.id);
+            // Revenue update will happen in handleFinishConsultation when called implicitly
+            const cost = currentPatient.queueType === 'Re-consultation' ? reConsultationCost : consultationCost;
+            if(user) {
+                await updateDoctorRevenue(user.uid, cost);
+            }
         } else {
             await updatePatientStatus(nextPatient.id, 'Consulting');
         }
@@ -138,6 +143,11 @@ export function DoctorDashboardClient() {
       if (!currentPatient) return;
       try {
         await updatePatientStatus(currentPatient.id, 'Finished');
+        // Calculate cost and update doctor's revenue in database
+        const cost = currentPatient.queueType === 'Re-consultation' ? reConsultationCost : consultationCost;
+        if (user) {
+            await updateDoctorRevenue(user.uid, cost);
+        }
         setPrescription("");
         toast({ title: "Consultation Finished", description: `${currentPatient.name}'s consultation is complete.` });
       } catch (error) {

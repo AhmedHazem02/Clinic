@@ -17,7 +17,8 @@ import {
     or,
     and,
     setDoc,
-    getDoc
+    getDoc,
+    increment
 } from "firebase/firestore";
 
 export type PatientStatus = 'Waiting' | 'Consulting' | 'Finished';
@@ -234,11 +235,18 @@ export const updatePatientStatus = async (patientId: string, status: PatientStat
     return await updateDoc(patientDocRef, { status });
 }
 
-// Finish a consultation and call the next patient
-export const finishAndCallNext = async (finishedPatientId: string, nextPatientId: string) => {
-    const batch = writeBatch(db);
+// Update the doctor's total revenue
+export const updateDoctorRevenue = async (doctorId: string, amount: number) => {
+    const doctorRef = doc(doctorsCollection, doctorId);
+    // Use the Firestore 'increment' FieldValue to add to the existing revenue.
+    await updateDoc(doctorRef, { totalRevenue: increment(amount) });
+}
 
-    const finishedPatientRef = doc(patientsCollection, finishedPatientId);
+// Finish a consultation and call the next patient
+export const finishAndCallNext = async (currentPatientId: string, nextPatientId: string) => {
+    const batch = writeBatch(db);
+    
+    const finishedPatientRef = doc(patientsCollection, currentPatientId);
     batch.update(finishedPatientRef, { status: 'Finished' });
 
     const nextPatientRef = doc(patientsCollection, nextPatientId);
