@@ -66,6 +66,8 @@ export async function generatePatientReport(): Promise<string> {
         return acc;
     }, {} as Record<string, { patients: typeof patients, revenue: number }>);
 
+    const totalRevenue = Object.values(dailyData).reduce((sum, day) => sum + day.revenue, 0);
+
     const today = new Date();
     const reportDate = format(today, "d/M/yyyy");
     let reportContent = `تقرير المرضى - آخر 30 يومًا (${reportDate})\n`;
@@ -76,6 +78,7 @@ export async function generatePatientReport(): Promise<string> {
     Object.entries(dailyData).forEach(([date, data]) => {
       reportContent += `${format(new Date(date), 'EEEE, d MMMM yyyy', { locale: ar })}: ${data.revenue.toFixed(2)} جنيه\n`;
     });
+    reportContent += `\nإجمالي الإيرادات: ${totalRevenue.toFixed(2)} جنيه\n`;
     reportContent += "----------------------------------------\n\n";
 
 
