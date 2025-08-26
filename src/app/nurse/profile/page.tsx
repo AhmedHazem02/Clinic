@@ -16,7 +16,7 @@ export default function NurseProfilePage() {
                 </Button>
             </div>
             <div>
-                <h1 className="text-3xl font-bold font-headline">ملفك الشخصي</h1>
+                <h1 className="text-3xl font-bold">ملفك الشخصي</h1>
                 <p className="text-muted-foreground">عرض وتعديل معلوماتك الشخصية.</p>
             </div>
             <NurseProfileForm />

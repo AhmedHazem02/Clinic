@@ -106,7 +106,7 @@ export function LoginTabs() {
       <Card>
         <TabsContent value="doctor">
           <CardHeader>
-            <CardTitle className="font-headline">تسجيل دخول الطبيب</CardTitle>
+            <CardTitle>تسجيل دخول الطبيب</CardTitle>
             <CardDescription>
               الوصول إلى لوحة التحكم الخاصة بك لإدارة المرضى والوصفات الطبية.
             </CardDescription>
@@ -115,7 +115,7 @@ export function LoginTabs() {
         </TabsContent>
         <TabsContent value="nurse">
           <CardHeader>
-            <CardTitle className="font-headline">تسجيل دخول الممرضة</CardTitle>
+            <CardTitle>تسجيل دخول الممرضة</CardTitle>
             <CardDescription>
               الوصول إلى اللوحة لإدارة قائمة انتظار المرضى.
             </CardDescription>

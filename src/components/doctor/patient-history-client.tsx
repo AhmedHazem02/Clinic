@@ -57,7 +57,7 @@ export function PatientHistoryClient() {
         <>
             <Card>
                 <CardHeader>
-                    <CardTitle className="font-headline">جميع المرضى</CardTitle>
+                    <CardTitle>جميع المرضى</CardTitle>
                     <CardDescription>
                         سجل كامل لجميع سجلات المرضى في النظام.
                     </CardDescription>

@@ -30,7 +30,7 @@ export function DoctorSidebarNav() {
             <SidebarHeader className="p-4">
                 <div className="flex items-center gap-3">
                     <Stethoscope className="w-8 h-8 text-primary" />
-                    <h1 className="font-headline text-2xl font-semibold">QueueWise</h1>
+                    <h1 className="text-2xl font-semibold">QueueWise</h1>
                 </div>
             </SidebarHeader>
             <SidebarContent>

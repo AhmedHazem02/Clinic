@@ -6,7 +6,7 @@ export default function OnboardingPage() {
         <div className="flex min-h-screen flex-col items-center justify-center bg-background p-4">
             <div className="w-full max-w-2xl mx-auto space-y-6">
                 <div className="text-center">
-                    <h1 className="text-3xl font-bold font-headline">أهلاً بك يا دكتور!</h1>
+                    <h1 className="text-3xl font-bold">أهلاً بك يا دكتور!</h1>
                     <p className="text-muted-foreground">لنقم بإعداد ملفك الشخصي للبدء.</p>
                 </div>
                 <OnboardingForm />

@@ -172,7 +172,7 @@ export function DoctorDashboardClient() {
       {isNewAccount && (
         <Alert className="mb-6">
             <Info className="h-4 w-4" />
-            <AlertTitle className="font-headline">مرحبًا بك في QueueWise!</AlertTitle>
+            <AlertTitle>مرحبًا بك في QueueWise!</AlertTitle>
             <AlertDescription>
                 <p>يبدو أن هذه هي المرة الأولى لك هنا. للبدء، يرجى تعيين متوسط وقت الاستشارة والتكلفة.</p>
                 <Button asChild variant="link" className="p-0 h-auto mt-2">
@@ -187,7 +187,7 @@ export function DoctorDashboardClient() {
         <div className="lg:col-span-2 space-y-6">
             <Card>
             <CardHeader>
-                <CardTitle className="font-headline flex items-center gap-2">
+                <CardTitle className="flex items-center gap-2">
                     <User className="text-primary"/> المريض الحالي
                 </CardTitle>
                 <CardDescription>
@@ -239,7 +239,7 @@ export function DoctorDashboardClient() {
 
             <Card>
               <CardHeader>
-                <CardTitle className="font-headline">كتابة الروشتة</CardTitle>
+                <CardTitle>كتابة الروشتة</CardTitle>
                 <CardDescription>
                   {currentPatient ? `اكتب روشتة لـ ${currentPatient.name}.` : "لا يوجد مريض نشط."}
                 </CardDescription>
@@ -265,7 +265,7 @@ export function DoctorDashboardClient() {
             <Card>
             <CardHeader className="flex flex-row items-start justify-between">
                 <div>
-                <CardTitle className="font-headline">حالتي</CardTitle>
+                <CardTitle>حالتي</CardTitle>
                 <CardDescription>قم بتعيين حالتك.</CardDescription>
                 </div>
                 <Switch
@@ -298,7 +298,7 @@ export function DoctorDashboardClient() {
             </Card>
             <Card>
                 <CardHeader>
-                    <CardTitle className="font-headline flex items-center gap-2">
+                    <CardTitle className="flex items-center gap-2">
                         <DollarSign className="text-primary"/> إيرادات اليوم
                     </CardTitle>
                     <CardDescription>إجمالي الأرباح من الاستشارات المكتملة اليوم.</CardDescription>

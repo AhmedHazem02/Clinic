@@ -55,7 +55,7 @@ export function PatientStatusCard({ data, peopleAhead, isDoctorAvailable }: Pati
   return (
     <Card className="w-full animate-in fade-in-50 duration-500">
       <CardHeader>
-        <CardTitle className="font-headline text-2xl flex items-center gap-3">
+        <CardTitle className="text-2xl flex items-center gap-3">
           <User className="text-primary" />
           <span>{data.name}</span>
         </CardTitle>

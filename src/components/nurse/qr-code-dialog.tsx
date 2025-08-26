@@ -40,7 +40,7 @@ export function QrCodeDialog({ patient, isOpen, onClose }: QrCodeDialogProps) {
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle className="font-headline">رمز الاستجابة السريعة للمريض</DialogTitle>
+          <DialogTitle>رمز الاستجابة السريعة للمريض</DialogTitle>
           <DialogDescription>
             يمكن للمريض مسح هذا الرمز للتحقق من حالة قائمة الانتظار الخاصة به.
           </DialogDescription>

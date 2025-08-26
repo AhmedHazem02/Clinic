@@ -72,7 +72,7 @@ export function OnboardingForm() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="font-headline">معلوماتك</CardTitle>
+        <CardTitle>معلوماتك</CardTitle>
         <CardDescription>سيتم عرض هذه المعلومات لموظفيك ومرضاك.</CardDescription>
       </CardHeader>
       <Form {...form}>

@@ -136,7 +136,7 @@ export function PatientRegistrationForm({ onPatientRegistered }: PatientRegistra
   return (
     <Card className="w-full">
       <CardHeader>
-        <CardTitle className="font-headline flex items-center gap-2"><UserPlus className="text-primary"/> مريض جديد</CardTitle>
+        <CardTitle className="flex items-center gap-2"><UserPlus className="text-primary"/> مريض جديد</CardTitle>
         <CardDescription>
           املأ التفاصيل لإضافة مريض إلى قائمة الانتظار.
         </CardDescription>

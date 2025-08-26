@@ -31,7 +31,7 @@ export function NurseHeader() {
                 <div className="flex gap-6 md:gap-10">
                     <Link href="/nurse/dashboard" className="flex items-center space-x-2">
                         <Stethoscope className="h-6 w-6 text-primary" />
-                        <span className="inline-block font-bold font-headline">عيادة QueueWise</span>
+                        <span className="inline-block font-bold">عيادة QueueWise</span>
                     </Link>
                 </div>
                 <div className="flex flex-1 items-center justify-end space-x-4">

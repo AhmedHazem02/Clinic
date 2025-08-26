@@ -27,7 +27,7 @@ export function PrescriptionViewDialog({ patient, isOpen, onClose }: Prescriptio
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle className="font-headline flex items-center gap-2">
+          <DialogTitle className="flex items-center gap-2">
             <FileText /> تفاصيل الوصفة الطبية
           </DialogTitle>
           <DialogDescription>

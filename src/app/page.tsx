@@ -10,7 +10,7 @@ export default function Home() {
           <div className="inline-block p-4 bg-primary/10 rounded-full mb-4">
             <Stethoscope className="w-10 h-10 text-primary" />
           </div>
-          <h1 className="font-headline text-4xl font-bold text-foreground">
+          <h1 className="text-3xl font-bold text-foreground">
             عيادة QueueWise
           </h1>
           <p className="text-muted-foreground mt-2">

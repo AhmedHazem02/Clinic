@@ -65,7 +65,7 @@ export function PatientSearchForm() {
     <>
       <Card className="w-full shadow-lg">
         <CardHeader>
-          <CardTitle className="font-headline text-2xl">ابحث عن دورك</CardTitle>
+          <CardTitle className="text-2xl">ابحث عن دورك</CardTitle>
           <CardDescription>
             أدخل رقم هاتفك لرؤية حالة قائمة الانتظار الخاصة بك.
           </CardDescription>

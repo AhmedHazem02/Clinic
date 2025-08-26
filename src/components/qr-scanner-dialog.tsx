@@ -103,7 +103,7 @@ export function QrScannerDialog({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle className="font-headline">مسح رمز الاستجابة السريعة</DialogTitle>
+          <DialogTitle>مسح رمز الاستجابة السريعة</DialogTitle>
           <DialogDescription>
             وجّه الكاميرا إلى رمز الاستجابة السريعة للعثور على حالتك.
           </DialogDescription>

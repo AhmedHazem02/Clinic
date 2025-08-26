@@ -152,7 +152,7 @@ export function QueueList({ title, allPatients, queuePatients, onShowQrCode, sea
     <>
     <Card>
       <CardHeader>
-        <CardTitle className="font-headline flex items-center gap-2">
+        <CardTitle className="flex items-center gap-2">
             <Users className="text-primary"/> {title}
         </CardTitle>
         <CardDescription>

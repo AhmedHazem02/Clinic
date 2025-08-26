@@ -88,7 +88,7 @@ export function SettingsForm() {
   return (
     <Card className="max-w-2xl">
       <CardHeader>
-        <CardTitle className="font-headline">إعدادات الاستشارة</CardTitle>
+        <CardTitle>إعدادات الاستشارة</CardTitle>
         <CardDescription>
           قم بتعيين متوسط الوقت والتكلفة لكل استشارة.
         </CardDescription>

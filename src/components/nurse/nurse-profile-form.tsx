@@ -141,7 +141,7 @@ export function NurseProfileForm() {
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)}>
           <CardHeader>
-            <CardTitle className="font-headline">معلوماتك</CardTitle>
+            <CardTitle>معلوماتك</CardTitle>
             <CardDescription>
               سيتم عرض هذه المعلومات في لوحة الممرضة.
             </CardDescription>
