@@ -165,34 +165,6 @@ export function DoctorDashboardClient() {
       setIsUpdatingMessage(false);
     }
   };
-
-  const handleDownloadReport = async () => {
-    setIsDownloading(true);
-    try {
-      const reportData = await generatePatientReport();
-      const blob = new Blob([reportData], { type: 'text/plain;charset=utf-8;' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.setAttribute('href', url);
-      const reportDate = new Date().toLocaleDateString('ar-EG-u-nu-latn').replace(/\//g, '-');
-      link.setAttribute('download', `تقرير-المرضى-${reportDate}.txt`);
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      toast({
-        title: "Report Downloaded",
-        description: "The 30-day patient data report has been successfully downloaded.",
-      });
-    } catch (error) {
-      toast({
-        variant: "destructive",
-        title: "Download Failed",
-        description: "Could not generate or download the report.",
-      });
-    } finally {
-      setIsDownloading(false);
-    }
-  };
   
   const isNewAccount = !isLoading && queue.length === 0;
 
@@ -340,18 +312,6 @@ export function DoctorDashboardClient() {
                             ${todaysRevenue.toFixed(2)}
                         </p>
                     )}
-                </CardContent>
-            </Card>
-
-            <Card>
-                <CardHeader>
-                    <CardTitle className="font-headline">Patient Data</CardTitle>
-                    <CardDescription>Download patient data report.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <Button className="w-full" onClick={handleDownloadReport} disabled={isDownloading}>
-                        <Download className="mr-2" /> {isDownloading ? "Generating..." : "Download 30-Day Report"}
-                    </Button>
                 </CardContent>
             </Card>
         </div>

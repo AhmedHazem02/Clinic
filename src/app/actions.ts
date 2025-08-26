@@ -54,7 +54,7 @@ export async function generatePatientReport(): Promise<string> {
 
     // Group patients by date and calculate daily revenue
     const dailyData = patients.reduce((acc, p) => {
-        const date = p.bookingDate; // This is now a Date object
+        const date = p.bookingDate; // This is a Date object from getPatientsForLast30Days
         const dateStr = format(date, "yyyy-MM-dd");
         if (!acc[dateStr]) {
             acc[dateStr] = { patients: [], revenue: 0, date: date };
