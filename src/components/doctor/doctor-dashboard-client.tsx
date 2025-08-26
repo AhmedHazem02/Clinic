@@ -16,12 +16,12 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Download, Bot, Send, Printer, User, HeartPulse, LogIn, CheckCircle, MessageSquarePlus, DollarSign, Info, Settings, FileText } from "lucide-react";
+import { Download, Printer, User, HeartPulse, LogIn, CheckCircle, MessageSquarePlus, DollarSign, Info, Settings, FileText } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { listenToQueue, type PatientInQueue, finishAndCallNext, updatePatientStatus, updateDoctorMessage, listenToDoctorMessage, listenToClinicSettings, getDoctorProfile, updateDoctorRevenue, listenToDoctorProfile } from "@/services/queueService";
+import { listenToQueue, type PatientInQueue, finishAndCallNext, updatePatientStatus, updateDoctorMessage, listenToDoctorMessage, listenToClinicSettings, updateDoctorRevenue, listenToDoctorProfile } from "@/services/queueService";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useDoctorProfile } from "./doctor-profile-provider";
-import { generatePatientReportCsv, setDoctorAvailability } from "@/app/actions";
+import { generatePatientReport } from "@/app/actions";
 
 const DEFAULT_CONSULTATION_COST = 50;
 const DEFAULT_RECONSULTATION_COST = 25;
@@ -79,19 +79,16 @@ export function DoctorDashboardClient() {
       if (!user) return;
       setIsAvailable(checked);
       try {
-          await setDoctorAvailability(user.uid, checked);
+        await updateDoc(doc(db, "doctors", user.uid), { isAvailable: checked });
           if (checked) {
-              // If doctor is now available, clear the message
               setDoctorMessage("");
               await updateDoctorMessage("");
           }
       } catch (error) {
            toast({ variant: "destructive", title: "Error", description: "Could not update availability status." });
-           // Revert state on error
            setIsAvailable(!checked);
       }
   }
-
 
   const currentPatient = queue.find(p => p.status === 'Consulting');
   const nextPatient = queue.find(p => p.status === 'Waiting');
@@ -164,12 +161,13 @@ export function DoctorDashboardClient() {
   const handleDownloadReport = async () => {
     setIsDownloading(true);
     try {
-      const csvData = await generatePatientReportCsv();
-      const blob = new Blob([csvData], { type: 'text/csv;charset=utf-8;' });
+      const reportData = await generatePatientReport();
+      const blob = new Blob([reportData], { type: 'text/plain;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.setAttribute('href', url);
-      link.setAttribute('download', `patient-report-${new Date().toISOString().split('T')[0]}.csv`);
+      const reportDate = new Date().toLocaleDateString('ar-EG-u-nu-latn').replace(/\//g, '-');
+      link.setAttribute('download', `تقرير-المرضى-${reportDate}.txt`);
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);

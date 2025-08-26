@@ -168,13 +168,11 @@ export const listenToQueue = (
 
 // Listen for real-time updates for a specific nurse's patients
 export const listenToQueueForNurse = (
-    nurseId: string,
     callback: (patients: PatientInQueue[]) => void,
     errorCallback?: (error: Error) => void
 ) => {
     const q = query(
-        patientsCollection,
-        where("nurseId", "==", nurseId)
+        patientsCollection
     );
 
     const unsubscribe = onSnapshot(q, (querySnapshot) => {
@@ -296,6 +294,16 @@ export const updateClinicSettings = async (settings: ClinicSettings) => {
     return await setDoc(settingsDocRef, settings, { merge: true });
 };
 
+// Get clinic settings once
+export const getClinicSettings = async (): Promise<ClinicSettings | null> => {
+    const settingsDocRef = doc(clinicInfoCollection, 'settings');
+    const docSnap = await getDoc(settingsDocRef);
+    if (docSnap.exists()) {
+        return docSnap.data() as ClinicSettings;
+    }
+    return null;
+}
+
 // Listen to clinic settings
 export const listenToClinicSettings = (callback: (settings: ClinicSettings | null) => void) => {
     const settingsDocRef = doc(clinicInfoCollection, 'settings');
@@ -310,6 +318,16 @@ export const listenToClinicSettings = (callback: (settings: ClinicSettings | nul
 };
 
 // --- Doctor Profile Functions ---
+
+// Get all doctors' profiles (for report generation)
+export const getAllDoctors = async (): Promise<DoctorProfile[]> => {
+    const snapshot = await getDocs(doctorsCollection);
+    const doctors: DoctorProfile[] = [];
+    snapshot.forEach(doc => {
+        doctors.push(doc.data() as DoctorProfile);
+    });
+    return doctors;
+}
 
 // Get a doctor's profile
 export const getDoctorProfile = async (uid: string): Promise<DoctorProfile | null> => {
@@ -339,12 +357,6 @@ export const setDoctorProfile = async (uid: string, profile: Partial<DoctorProfi
     const docRef = doc(doctorsCollection, uid);
     return await setDoc(docRef, profile, { merge: true });
 }
-
-// Set doctor's availability status
-export const setDoctorAvailability = async (uid: string, isAvailable: boolean) => {
-    const docRef = doc(doctorsCollection, uid);
-    return await setDoc(docRef, { isAvailable }, { merge: true });
-};
 
 // Listen to a doctor's availability
 export const listenToDoctorAvailability = (callback: (isAvailable: boolean) => void) => {

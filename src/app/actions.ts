@@ -1,3 +1,4 @@
+
 "use server";
 
 import {
@@ -6,8 +7,9 @@ import {
   type AiAssistedPrescriptionOutput,
 } from "@/ai/flows/ai-assisted-prescription";
 import { createUser } from "@/services/authService";
-import { getPatientsForLast30Days, setDoctorAvailability as setDoctorAvailabilityDb } from "@/services/queueService";
+import { getPatientsForLast30Days, getClinicSettings, getAllDoctors } from "@/services/queueService";
 import { format } from "date-fns";
+import { ar } from 'date-fns/locale';
 
 export async function getAiPrescriptionSuggestions(
   input: AiAssistedPrescriptionInput
@@ -32,48 +34,70 @@ export async function addNurseAction(email: string, password: string): Promise<{
     }
 }
 
-export async function setDoctorAvailability(uid: string, isAvailable: boolean) {
-  return await setDoctorAvailabilityDb(uid, isAvailable);
-}
-
-export async function generatePatientReportCsv(): Promise<string> {
+export async function generatePatientReport(): Promise<string> {
   try {
     const patients = await getPatientsForLast30Days();
+    const settings = await getClinicSettings();
+    const doctors = await getAllDoctors();
+    
+    // Assuming single doctor and location for now
+    const clinicLocation = doctors.length > 0 && doctors[0].locations.length > 0 
+      ? doctors[0].locations[0] 
+      : "N/A";
 
     if (patients.length === 0) {
-      return "No patient data found for the last 30 days.";
+      return "لا توجد بيانات مرضى لآخر 30 يومًا.";
     }
 
-    // Define CSV headers
-    const headers = [
-      "QueueNumber",
-      "Name",
-      "Phone",
-      "BookingDate",
-      "Status",
-      "QueueType",
-      "ConsultationReason",
-      "ChronicDiseases",
-      "Age",
-      "RegisteredBy",
-    ];
+    const consultationCost = settings?.consultationCost ?? 0;
+    const reConsultationCost = settings?.reConsultationCost ?? 0;
 
-    // Convert patient data to CSV rows
-    const rows = patients.map(p => [
-      p.queueNumber,
-      `"${p.name.replace(/"/g, '""')}"`,
-      p.phone,
-      format(p.bookingDate, "yyyy-MM-dd"),
-      p.status,
-      p.queueType,
-      `"${(p.consultationReason || 'N/A').replace(/"/g, '""')}"`,
-      `"${(p.chronicDiseases || 'N/A').replace(/"/g, '""')}"`,
-      p.age || 'N/A',
-      `"${(p.nurseName || 'N/A').replace(/"/g, '""')}"`
-    ].join(','));
+    // Group patients by date and calculate daily revenue
+    const dailyData = patients.reduce((acc, p) => {
+        const dateStr = format(p.bookingDate, "yyyy-MM-dd");
+        if (!acc[dateStr]) {
+            acc[dateStr] = { patients: [], revenue: 0 };
+        }
+        acc[dateStr].patients.push(p);
+        if (p.status === 'Finished') {
+            const cost = p.queueType === 'Re-consultation' ? reConsultationCost : consultationCost;
+            acc[dateStr].revenue += cost;
+        }
+        return acc;
+    }, {} as Record<string, { patients: typeof patients, revenue: number }>);
 
-    // Combine headers and rows
-    return [headers.join(','), ...rows].join('\n');
+    const today = new Date();
+    const reportDate = format(today, "d/M/yyyy");
+    let reportContent = `تقرير المرضى - آخر 30 يومًا (${reportDate})\n`;
+    reportContent += "============================================================\n\n";
+    
+    // Add daily revenue section
+    reportContent += "ملخص الإيرادات اليومية:\n";
+    Object.entries(dailyData).forEach(([date, data]) => {
+      reportContent += `${format(new Date(date), 'EEEE, d MMMM yyyy', { locale: ar })}: ${data.revenue.toFixed(2)} جنيه\n`;
+    });
+    reportContent += "----------------------------------------\n\n";
+
+
+    // Add patient details
+    let patientCounter = 1;
+    Object.values(dailyData).forEach(({ patients: dailyPatients }) => {
+        dailyPatients.forEach(p => {
+            reportContent += `رقم المريض: ${patientCounter}\n`;
+            reportContent += `الاسم: ${p.name}\n`;
+            reportContent += `العمر: ${p.age || 'N/A'}\n`;
+            reportContent += `الهاتف: ${p.phone}\n`;
+            reportContent += `الموقع: ${clinicLocation}\n`;
+            reportContent += `الأمراض المزمنة: ${p.chronicDiseases || 'N/A'}\n`;
+            reportContent += `الحالة: ${p.status}\n`;
+            reportContent += `رقم الاستشارة: #${p.queueNumber}\n`;
+            reportContent += `تاريخ الحجز: ${format(p.bookingDate, "yyyy-MM-dd")}\n`;
+            reportContent += "----------------------------------------\n";
+            patientCounter++;
+        });
+    });
+
+    return reportContent;
 
   } catch (error) {
     console.error("Error generating patient report:", error);
