@@ -308,7 +308,7 @@ export function DoctorDashboardClient() {
                         <Skeleton className="h-10 w-24" />
                     ) : (
                         <p className="text-3xl font-bold">
-                            ${todaysRevenue.toFixed(2)}
+                            {todaysRevenue.toFixed(2)} جنية مصري
                         </p>
                     )}
                 </CardContent>
