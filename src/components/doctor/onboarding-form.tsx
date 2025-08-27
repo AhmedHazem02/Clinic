@@ -18,7 +18,7 @@ import { Label } from "@/components/ui/label";
 
 const onboardingSchema = z.object({
   name: z.string().min(2, "يجب أن يتكون الاسم من حرفين على الأقل."),
-  clinicPhoneNumber: z.string().regex(/^\d{11}$/, "الرجاء إدخال رقم هاتف صالح مكون من 11 رقمًا."),
+  clinicPhoneNumbers: z.array(z.object({ value: z.string().regex(/^\d{11}$/, "الرجاء إدخال رقم هاتف صالح مكون من 11 رقمًا.") })).min(1, "مطلوب رقم هاتف عيادة واحد على الأقل."),
   specialty: z.string().min(2, "التخصص مطلوب."),
   locations: z.array(z.object({ value: z.string().min(3, "لا يمكن أن يكون الموقع فارغًا.") })).min(1, "مطلوب موقع عيادة واحد على الأقل."),
 });
@@ -35,15 +35,20 @@ export function OnboardingForm() {
     resolver: zodResolver(onboardingSchema),
     defaultValues: {
       name: "",
-      clinicPhoneNumber: "",
+      clinicPhoneNumbers: [{ value: "" }],
       specialty: "",
       locations: [{ value: "" }],
     },
   });
 
-  const { fields, append, remove } = useFieldArray({
+  const { fields: locationFields, append: appendLocation, remove: removeLocation } = useFieldArray({
     control: form.control,
     name: "locations",
+  });
+
+  const { fields: phoneFields, append: appendPhone, remove: removePhone } = useFieldArray({
+    control: form.control,
+    name: "clinicPhoneNumbers",
   });
 
   const onSubmit = async (values: OnboardingFormValues) => {
@@ -55,7 +60,7 @@ export function OnboardingForm() {
     try {
       const profileData = {
         name: values.name,
-        clinicPhoneNumber: values.clinicPhoneNumber,
+        clinicPhoneNumbers: values.clinicPhoneNumbers.map(p => p.value),
         specialty: values.specialty,
         locations: values.locations.map(l => l.value),
       };
@@ -104,40 +109,27 @@ export function OnboardingForm() {
                 </FormItem>
               )}
             />
-            <FormField
-              control={form.control}
-              name="clinicPhoneNumber"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>رقم هاتف العيادة</FormLabel>
-                  <FormControl>
-                    <Input placeholder="01234567890" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <div>
-              <Label>موقع (مواقع) العيادة</Label>
+             <div>
+              <Label>أرقام هواتف العيادة</Label>
               <div className="space-y-2 mt-2">
-                {fields.map((field, index) => (
+                {phoneFields.map((field, index) => (
                     <FormField
                         key={field.id}
                         control={form.control}
-                        name={`locations.${index}.value`}
+                        name={`clinicPhoneNumbers.${index}.value`}
                         render={({ field }) => (
                             <FormItem>
                                 <div className="flex items-center gap-2">
                                     <FormControl>
-                                        <Input placeholder={`الموقع ${index + 1}`} {...field} />
+                                        <Input placeholder={`رقم الهاتف ${index + 1}`} {...field} />
                                     </FormControl>
-                                    {fields.length > 1 && (
+                                    {phoneFields.length > 1 && (
                                         <Button
                                             type="button"
                                             variant="ghost"
                                             size="icon"
                                             className="text-destructive"
-                                            onClick={() => remove(index)}
+                                            onClick={() => removePhone(index)}
                                         >
                                             <Trash2 className="h-4 w-4" />
                                         </Button>
@@ -154,7 +146,50 @@ export function OnboardingForm() {
                 variant="outline"
                 size="sm"
                 className="mt-2"
-                onClick={() => append({ value: "" })}
+                onClick={() => appendPhone({ value: "" })}
+              >
+                <PlusCircle className="ml-2 h-4 w-4" />
+                إضافة رقم هاتف
+              </Button>
+            </div>
+            <div>
+              <Label>موقع (مواقع) العيادة</Label>
+              <div className="space-y-2 mt-2">
+                {locationFields.map((field, index) => (
+                    <FormField
+                        key={field.id}
+                        control={form.control}
+                        name={`locations.${index}.value`}
+                        render={({ field }) => (
+                            <FormItem>
+                                <div className="flex items-center gap-2">
+                                    <FormControl>
+                                        <Input placeholder={`الموقع ${index + 1}`} {...field} />
+                                    </FormControl>
+                                    {locationFields.length > 1 && (
+                                        <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="icon"
+                                            className="text-destructive"
+                                            onClick={() => removeLocation(index)}
+                                        >
+                                            <Trash2 className="h-4 w-4" />
+                                        </Button>
+                                    )}
+                                </div>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                ))}
+              </div>
+               <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="mt-2"
+                onClick={() => appendLocation({ value: "" })}
               >
                 <PlusCircle className="ml-2 h-4 w-4" />
                 إضافة موقع

@@ -53,7 +53,7 @@ export interface ClinicSettings {
 export interface DoctorProfile {
     name: string;
     specialty: string;
-    clinicPhoneNumber: string;
+    clinicPhoneNumbers: string[];
     locations: string[];
     avatarUrl?: string;
     isAvailable?: boolean;

@@ -19,7 +19,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 
 const profileSchema = z.object({
   name: z.string().min(2, "يجب أن يتكون الاسم من حرفين على الأقل."),
-  clinicPhoneNumber: z.string().regex(/^\d{11}$/, "الرجاء إدخال رقم هاتف صالح مكون من 11 رقمًا."),
+  clinicPhoneNumbers: z.array(z.object({ value: z.string().regex(/^\d{11}$/, "الرجاء إدخال رقم هاتف صالح مكون من 11 رقمًا.") })).min(1, "مطلوب رقم هاتف عيادة واحد على الأقل."),
   specialty: z.string().min(2, "التخصص مطلوب."),
   locations: z.array(z.object({ value: z.string().min(3, "لا يمكن أن يكون الموقع فارغًا.") })).min(1, "مطلوب موقع عيادة واحد على الأقل."),
 });
@@ -37,7 +37,7 @@ export function ProfileForm() {
     resolver: zodResolver(profileSchema),
     defaultValues: {
       name: "",
-      clinicPhoneNumber: "",
+      clinicPhoneNumbers: [{ value: "" }],
       specialty: "",
       locations: [{ value: "" }],
     },
@@ -47,16 +47,21 @@ export function ProfileForm() {
     if (profile) {
       form.reset({
         name: profile.name,
-        clinicPhoneNumber: profile.clinicPhoneNumber,
+        clinicPhoneNumbers: (profile.clinicPhoneNumbers || []).map(p => ({ value: p })),
         specialty: profile.specialty,
         locations: (profile.locations || []).map(l => ({ value: l })),
       });
     }
   }, [profile, form]);
 
-  const { fields, append, remove } = useFieldArray({
+  const { fields: locationFields, append: appendLocation, remove: removeLocation } = useFieldArray({
     control: form.control,
     name: "locations",
+  });
+
+  const { fields: phoneFields, append: appendPhone, remove: removePhone } = useFieldArray({
+    control: form.control,
+    name: "clinicPhoneNumbers",
   });
 
   const onSubmit = async (values: ProfileFormValues) => {
@@ -68,7 +73,7 @@ export function ProfileForm() {
     try {
       const profileData = {
         name: values.name,
-        clinicPhoneNumber: values.clinicPhoneNumber,
+        clinicPhoneNumbers: values.clinicPhoneNumbers.map(p => p.value),
         specialty: values.specialty,
         locations: values.locations.map(l => l.value),
         // In a real app, you would handle the avatar upload here
@@ -169,23 +174,53 @@ export function ProfileForm() {
                     </FormItem>
                 )}
                 />
-                <FormField
-                control={form.control}
-                name="clinicPhoneNumber"
-                render={({ field }) => (
-                    <FormItem>
-                    <FormLabel>رقم هاتف العيادة</FormLabel>
-                    <FormControl>
-                        <Input placeholder="01234567890" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                    </FormItem>
-                )}
-                />
+                <div>
+                  <Label>أرقام هواتف العيادة</Label>
+                  <div className="space-y-2 mt-2">
+                    {phoneFields.map((field, index) => (
+                        <FormField
+                            key={field.id}
+                            control={form.control}
+                            name={`clinicPhoneNumbers.${index}.value`}
+                            render={({ field }) => (
+                                <FormItem>
+                                    <div className="flex items-center gap-2">
+                                        <FormControl>
+                                            <Input placeholder={`رقم الهاتف ${index + 1}`} {...field} />
+                                        </FormControl>
+                                        {phoneFields.length > 1 && (
+                                            <Button
+                                                type="button"
+                                                variant="ghost"
+                                                size="icon"
+                                                className="text-destructive"
+                                                onClick={() => removePhone(index)}
+                                            >
+                                                <Trash2 className="h-4 w-4" />
+                                            </Button>
+                                        )}
+                                    </div>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                    ))}
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="mt-2"
+                    onClick={() => appendPhone({ value: "" })}
+                  >
+                    <PlusCircle className="ml-2 h-4 w-4" />
+                    إضافة رقم هاتف
+                  </Button>
+                </div>
                 <div>
                 <Label>موقع (مواقع) العيادة</Label>
                 <div className="space-y-2 mt-2">
-                    {fields.map((field, index) => (
+                    {locationFields.map((field, index) => (
                         <FormField
                             key={field.id}
                             control={form.control}
@@ -196,13 +231,13 @@ export function ProfileForm() {
                                         <FormControl>
                                             <Input placeholder={`الموقع ${index + 1}`} {...field} />
                                         </FormControl>
-                                        {fields.length > 1 && (
+                                        {locationFields.length > 1 && (
                                             <Button
                                                 type="button"
                                                 variant="ghost"
                                                 size="icon"
                                                 className="text-destructive"
-                                                onClick={() => remove(index)}
+                                                onClick={() => removeLocation(index)}
                                             >
                                                 <Trash2 className="h-4 w-4" />
                                             </Button>
@@ -219,7 +254,7 @@ export function ProfileForm() {
                     variant="outline"
                     size="sm"
                     className="mt-2"
-                    onClick={() => append({ value: "" })}
+                    onClick={() => appendLocation({ value: "" })}
                 >
                     <PlusCircle className="ml-2 h-4 w-4" />
                     إضافة موقع

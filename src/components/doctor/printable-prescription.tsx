@@ -33,7 +33,7 @@ export function PrintablePrescription({ patient, doctor, prescription }: Printab
             <div className="space-y-1 text-sm">
                  <h2 className="text-xl font-bold mb-4">معلومات الطبيب</h2>
                  <p><strong>د.</strong> {doctor.name}</p>
-                 <p><strong>الهاتف:</strong> {doctor.clinicPhoneNumber}</p>
+                 <p><strong>الهاتف:</strong> {(doctor.clinicPhoneNumbers || []).join(", ")}</p>
                  <p><strong>الموقع (المواقع):</strong> {(doctor.locations || []).join(", ")}</p>
             </div>
         </div>
