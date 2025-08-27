@@ -7,7 +7,7 @@ import {
   type AiAssistedPrescriptionOutput,
 } from "@/ai/flows/ai-assisted-prescription";
 import { createUser } from "@/services/authService";
-import { getPatientsForLast30Days, getClinicSettings, getAllDoctors, setDoctorProfile } from "@/services/queueService";
+import { getPatientsForLast30Days, getClinicSettings, getAllDoctors, setDoctorProfile, removePatientFromQueue } from "@/services/queueService";
 import { format } from "date-fns";
 import { ar } from 'date-fns/locale';
 
@@ -116,4 +116,13 @@ export async function setDoctorAvailability(uid: string, isAvailable: boolean) {
     console.error("Error setting doctor availability:", error);
     throw new Error("Failed to update doctor availability.");
   }
+}
+
+export async function deletePatientAction(patientId: string) {
+    try {
+        await removePatientFromQueue(patientId);
+    } catch (error) {
+        console.error("Error deleting patient:", error);
+        throw new Error("Failed to delete patient.");
+    }
 }
