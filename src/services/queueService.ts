@@ -32,6 +32,7 @@ export interface NewPatient {
     chronicDiseases: string | null;
     consultationReason: string | null;
     queueType: QueueType;
+    doctorId?: string;
     nurseId?: string;
     nurseName?: string;
     prescription?: string;
@@ -75,13 +76,14 @@ const nursesCollection = collection(db, 'nurses');
 
 
 // Get the next queue number
-const getNextQueueNumber = async (): Promise<number> => {
+const getNextQueueNumber = async (doctorId: string): Promise<number> => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const startOfToday = Timestamp.fromDate(today);
 
     const q = query(
         patientsCollection, 
+        where("doctorId", "==", doctorId),
         where("createdAt", ">=", startOfToday),
         orderBy("createdAt", "desc"), 
         limit(1)
@@ -96,21 +98,25 @@ const getNextQueueNumber = async (): Promise<number> => {
 
 // Add a new patient to the queue
 export const addPatientToQueue = async (patientData: NewPatient) => {
-    // Check if patient with the same phone number is already waiting or consulting
+    if (!patientData.doctorId) {
+        throw new Error("Doctor ID is required to add a patient.");
+    }
+    // Check if patient with the same phone number is already waiting or consulting for this doctor
     const existingPatientQuery = query(
         patientsCollection,
         and(
             where("phone", "==", patientData.phone),
+            where("doctorId", "==", patientData.doctorId),
             or(where("status", "==", "Waiting"), where("status", "==", "Consulting"))
         )
     );
     const existingPatientSnapshot = await getDocs(existingPatientQuery);
 
     if (!existingPatientSnapshot.empty) {
-        throw new Error("A patient with this phone number is already in the queue.");
+        throw new Error("A patient with this phone number is already in the queue for this doctor.");
     }
 
-    const queueNumber = await getNextQueueNumber();
+    const queueNumber = await getNextQueueNumber(patientData.doctorId);
 
     const newPatientDoc = {
         ...patientData,
@@ -126,11 +132,13 @@ export const addPatientToQueue = async (patientData: NewPatient) => {
 
 // Listen for real-time updates to the queue (for doctor/history view)
 export const listenToQueue = (
+    doctorId: string,
     callback: (patients: PatientInQueue[]) => void,
     errorCallback?: (error: Error) => void
 ) => {
     const q = query(
         patientsCollection,
+        where("doctorId", "==", doctorId),
         orderBy("queueNumber")
     );
 
@@ -152,6 +160,7 @@ export const listenToQueue = (
                 status: data.status,
                 createdAt: data.createdAt,
                 queueType: data.queueType || 'Consultation',
+                doctorId: data.doctorId,
                 nurseId: data.nurseId,
                 nurseName: data.nurseName,
                 prescription: data.prescription,
@@ -171,11 +180,13 @@ export const listenToQueue = (
 
 // Listen for real-time updates for a specific nurse's patients
 export const listenToQueueForNurse = (
+    doctorId: string,
     callback: (patients: PatientInQueue[]) => void,
     errorCallback?: (error: Error) => void
 ) => {
     const q = query(
-        patientsCollection
+        patientsCollection,
+        where("doctorId", "==", doctorId)
     );
 
     const unsubscribe = onSnapshot(q, (querySnapshot) => {
@@ -195,6 +206,7 @@ export const listenToQueueForNurse = (
                 status: data.status,
                 createdAt: data.createdAt,
                 queueType: data.queueType || 'Consultation',
+                doctorId: data.doctorId,
                 nurseId: data.nurseId,
                 nurseName: data.nurseName,
                 prescription: data.prescription,
@@ -213,12 +225,13 @@ export const listenToQueueForNurse = (
 };
 
 
-// Get an active patient by phone number
-export const getPatientByPhone = async (phone: string): Promise<PatientInQueue | null> => {
+// Get an active patient by phone number for a specific doctor
+export const getPatientByPhone = async (phone: string, doctorId: string): Promise<PatientInQueue | null> => {
     const q = query(
         patientsCollection, 
         and(
             where("phone", "==", phone), 
+            where("doctorId", "==", doctorId),
             or(where("status", "==", "Waiting"), where("status", "==", "Consulting"))
         ),
         limit(1)
@@ -371,14 +384,11 @@ export const setDoctorProfile = async (uid: string, profile: Partial<DoctorProfi
 }
 
 // Listen to a doctor's availability
-export const listenToDoctorAvailability = (callback: (isAvailable: boolean) => void) => {
-    // This assumes there's only one doctor for simplicity.
-    // In a multi-doctor scenario, you'd need a way to specify which doctor to listen to.
-    const q = query(doctorsCollection, limit(1));
-
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-        if (!snapshot.empty) {
-            const doctorData = snapshot.docs[0].data();
+export const listenToDoctorAvailability = (doctorId: string, callback: (isAvailable: boolean) => void) => {
+    const docRef = doc(doctorsCollection, doctorId);
+    const unsubscribe = onSnapshot(docRef, (doc) => {
+        if (doc.exists()) {
+            const doctorData = doc.data() as DoctorProfile;
             callback(doctorData.isAvailable ?? true);
         } else {
             // Default to available if no doctor profile is found
@@ -410,14 +420,15 @@ export const setNurseProfile = async (uid: string, profile: Partial<NurseProfile
 
 // --- Report Functions ---
 
-// Get patients from the last 30 days
-export const getPatientsForLast30Days = async (): Promise<PatientInQueue[]> => {
+// Get patients from the last 30 days for a specific doctor
+export const getPatientsForLast30Days = async (doctorId: string): Promise<PatientInQueue[]> => {
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
     const startTimestamp = Timestamp.fromDate(thirtyDaysAgo);
 
     const q = query(
         patientsCollection,
+        where("doctorId", "==", doctorId),
         where("bookingDate", ">=", startTimestamp),
         orderBy("bookingDate", "desc")
     );

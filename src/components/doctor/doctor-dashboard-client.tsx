@@ -48,7 +48,7 @@ export function DoctorDashboardClient() {
       }
     });
 
-    const unsubscribeQueue = listenToQueue((updatedQueue) => {
+    const unsubscribeQueue = listenToQueue(user.uid, (updatedQueue) => {
       setQueue(updatedQueue);
       setIsLoading(false);
     });

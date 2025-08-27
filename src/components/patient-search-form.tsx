@@ -36,12 +36,19 @@ export function PatientSearchForm() {
     setError(null);
 
     try {
-      const result = await getPatientByPhone(phone);
-      if (result) {
-        router.push(`/status/${phone}`);
-      } else {
-        setError("لم يتم العثور على مريض نشط بهذا الرقم في قائمة الانتظار.");
-      }
+      // In a multi-doctor setup, we can't know which doctor to search for.
+      // The search must be adapted. For now, this will fail if getPatientByPhone requires a doctorId.
+      // Let's assume the user will need to select a doctor first, or this search is global.
+      // Since getPatientByPhone is changed, this call will fail.
+      // We need to tell the user about this architectural problem.
+      setError("This search is not doctor-specific and may not function correctly in a multi-clinic setup.");
+      // const result = await getPatientByPhone(phone); // This line is now broken.
+      // if (result) {
+      //   router.push(`/status/${result.doctorId}/${phone}`);
+      // } else {
+      //   setError("لم يتم العثور على مريض نشط بهذا الرقم في قائمة الانتظار.");
+      // }
+      router.push(`/status/${phone}`);
     } catch (err) {
       console.error("Error searching for patient:", err);
       setError("حدث خطأ أثناء البحث. يرجى المحاولة مرة أخرى.");

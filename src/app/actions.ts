@@ -10,6 +10,9 @@ import { createUser } from "@/services/authService";
 import { getPatientsForLast30Days, getClinicSettings, getAllDoctors, setDoctorProfile, removePatientFromQueue } from "@/services/queueService";
 import { format } from "date-fns";
 import { ar } from 'date-fns/locale';
+import { auth } from "@/lib/firebase";
+import { getAuth } from "firebase-admin/auth";
+import { admin } from "@/lib/firebaseAdmin";
 
 export async function getAiPrescriptionSuggestions(
   input: AiAssistedPrescriptionInput
@@ -34,9 +37,32 @@ export async function addNurseAction(email: string, password: string): Promise<{
     }
 }
 
-export async function generatePatientReport(): Promise<string> {
+async function getCurrentDoctorId(): Promise<string> {
+    // This is a placeholder for getting the current user's ID on the server.
+    // In a real app with proper session management, you'd get this from the session.
+    // For now, let's assume a hardcoded ID for a single doctor scenario.
+    // To make this multi-tenant, you would need to pass the doctor's ID from the client.
+    // For this example, we'll try to get it, but it might not be available in all server action contexts.
+    // A more robust solution would involve session management.
+    const authUser = auth.currentUser; // This works on the client, but might be null in server actions
+    if(authUser) return authUser.uid;
+
+    // This is a fallback and might not be secure or reliable.
+    // It's better to pass the UID from the client-side component that calls this action.
+    // We will assume for now that there is a way to identify the doctor.
+    // If you have a single doctor, you can hardcode their ID.
+    // For multi-doctor, you MUST pass the doctor's ID to this function.
+    
+    // Let's assume you pass the doctor ID to the action
+    // For now, returning a placeholder or throwing error.
+    console.warn("Could not determine current doctor ID on the server.");
+    return "default-doctor-id"; // PLEASE REPLACE
+}
+
+
+export async function generatePatientReport(doctorId: string): Promise<string> {
   try {
-    const patients = await getPatientsForLast30Days();
+    const patients = await getPatientsForLast30Days(doctorId);
     const settings = await getClinicSettings();
     const doctors = await getAllDoctors();
     

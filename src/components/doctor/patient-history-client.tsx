@@ -19,7 +19,7 @@ import { PrintablePrescription } from './printable-prescription';
 import { useDoctorProfile } from './doctor-profile-provider';
 
 export function PatientHistoryClient() {
-    const { profile } = useDoctorProfile();
+    const { user, profile } = useDoctorProfile();
     const [patients, setPatients] = useState<PatientInQueue[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState("");
@@ -29,13 +29,14 @@ export function PatientHistoryClient() {
     const { toast } = useToast();
 
     useEffect(() => {
-        const unsubscribe = listenToQueue((updatedQueue) => {
+        if (!user) return;
+        const unsubscribe = listenToQueue(user.uid, (updatedQueue) => {
             const sortedQueue = updatedQueue.sort((a, b) => b.bookingDate.getTime() - a.bookingDate.getTime());
             setPatients(sortedQueue);
             setIsLoading(false);
         });
         return () => unsubscribe();
-    }, []);
+    }, [user]);
 
     const filteredPatients = useMemo(() => {
         if (!searchQuery) return patients;
@@ -131,7 +132,7 @@ export function PatientHistoryClient() {
                                     <TableHead>الهاتف</TableHead>
                                     <TableHead>تاريخ الحجز</TableHead>
                                     <TableHead>الحالة</TableHead>
-                                    <TableHead className="text-left">الإجراءات</TableHead>
+                                    <TableHead>الإجراءات</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -146,7 +147,7 @@ export function PatientHistoryClient() {
                                                     {patient.status}
                                                 </Badge>
                                             </TableCell>
-                                            <TableCell className="text-left space-x-2">
+                                            <TableCell className="space-x-2">
                                                 {patient.prescription && (
                                                     <>
                                                         <Button variant="outline" size="sm" onClick={() => setSelectedPatient(patient)}>

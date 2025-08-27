@@ -93,6 +93,8 @@ export function PatientRegistrationForm({ onPatientRegistered }: PatientRegistra
     try {
       await addPatientToQueue({
         name: values.name,
+        // Since nurse and doctor are the same user, we use the nurse's UID as the doctorId
+        doctorId: user.uid,
         phone: values.phone,
         bookingDate: values.bookingDate,
         age: values.age || null,
@@ -103,7 +105,7 @@ export function PatientRegistrationForm({ onPatientRegistered }: PatientRegistra
         nurseName: profile.name,
       });
 
-      const newPatient = await getPatientByPhone(values.phone);
+      const newPatient = await getPatientByPhone(values.phone, user.uid);
       if (newPatient) {
         onPatientRegistered(newPatient);
       }
