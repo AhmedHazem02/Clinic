@@ -12,15 +12,16 @@ import {
 import { Button } from "@/components/ui/button";
 import { type PatientInQueue } from "@/services/queueService";
 import { format } from "date-fns";
-import { FileText } from "lucide-react";
+import { FileText, Printer } from "lucide-react";
 
 interface PrescriptionViewDialogProps {
   patient: PatientInQueue | null;
   isOpen: boolean;
   onClose: () => void;
+  onPrint: () => void;
 }
 
-export function PrescriptionViewDialog({ patient, isOpen, onClose }: PrescriptionViewDialogProps) {
+export function PrescriptionViewDialog({ patient, isOpen, onClose, onPrint }: PrescriptionViewDialogProps) {
   if (!patient) return null;
 
   return (
@@ -49,7 +50,10 @@ export function PrescriptionViewDialog({ patient, isOpen, onClose }: Prescriptio
                 </div>
             </div>
         </div>
-        <DialogFooter>
+        <DialogFooter className="gap-2">
+          <Button variant="secondary" onClick={onPrint}>
+            <Printer className="ml-2" /> طباعة
+          </Button>
           <Button onClick={onClose}>إغلاق</Button>
         </DialogFooter>
       </DialogContent>

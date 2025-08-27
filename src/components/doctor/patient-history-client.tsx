@@ -182,6 +182,11 @@ export function PatientHistoryClient() {
                 patient={selectedPatient}
                 isOpen={!!selectedPatient}
                 onClose={() => setSelectedPatient(null)}
+                onPrint={() => {
+                    if (selectedPatient) {
+                        handlePrint(selectedPatient);
+                    }
+                }}
             />
             <AlertDialog open={!!patientToDelete} onOpenChange={(open) => !open && setPatientToDelete(null)}>
                 <AlertDialogContent>
