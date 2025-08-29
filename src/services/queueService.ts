@@ -231,7 +231,6 @@ export const getPatientByPhone = async (phone: string, doctorId: string): Promis
         patientsCollection, 
         and(
             where("phone", "==", phone), 
-            where("doctorId", "==", doctorId),
             or(where("status", "==", "Waiting"), where("status", "==", "Consulting"))
         ),
         limit(1)
