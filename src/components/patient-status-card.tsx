@@ -69,7 +69,7 @@ export function PatientStatusCard({ data, peopleAhead, isDoctorAvailable }: Pati
             </div>
              <div className="bg-primary/10 p-4 rounded-lg">
                 <Users className="mx-auto h-6 w-6 text-primary mb-1" />
-                <p className="text-sm text-muted-foreground">الأشخاص في الانتظار</p>
+                <p className="text-sm text-muted-foreground">عدد الاشخاص قبلك</p>
                 <p className="text-3xl font-bold">{peopleAhead}</p>
             </div>
             <div className="bg-primary/10 p-4 rounded-lg">
