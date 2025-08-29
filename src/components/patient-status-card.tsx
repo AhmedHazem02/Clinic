@@ -64,7 +64,7 @@ export function PatientStatusCard({ data, peopleAhead, isDoctorAvailable }: Pati
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
             <div className="bg-primary/10 p-4 rounded-lg">
                 <Hash className="mx-auto h-6 w-6 text-primary mb-1" />
-                <p className="text-sm text-muted-foreground">رقم الانتظار</p>
+                <p className="text-sm text-muted-foreground">رقم الكشف</p>
                 <p className="text-3xl font-bold">{data.queueNumber}</p>
             </div>
              <div className="bg-primary/10 p-4 rounded-lg">
