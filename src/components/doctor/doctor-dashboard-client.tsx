@@ -53,7 +53,7 @@ export function DoctorDashboardClient() {
       setIsLoading(false);
     });
     
-    const unsubscribeMessage = listenToDoctorMessage((message) => {
+    const unsubscribeMessage = listenToDoctorMessage(user.uid, (message) => {
       setDoctorMessage(message);
     });
 
@@ -88,7 +88,7 @@ export function DoctorDashboardClient() {
         await setDoctorAvailability(user.uid, checked);
         if (checked) {
             setDoctorMessage("");
-            await updateDoctorMessage("");
+            await updateDoctorMessage("", user.uid);
         }
       } catch (error) {
            toast({ variant: "destructive", title: "خطأ", description: "لا يمكن تحديث حالة التوافر." });
@@ -147,9 +147,10 @@ export function DoctorDashboardClient() {
   }
   
   const handleUpdateMessage = async () => {
+    if (!user) return;
     setIsUpdatingMessage(true);
     try {
-      await updateDoctorMessage(doctorMessage);
+      await updateDoctorMessage(doctorMessage, user.uid);
       toast({
         title: "تم تحديث الرسالة",
         description: "تم تحديث رسالتك لجميع المرضى.",

@@ -16,7 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { QrCode, Phone } from "lucide-react";
 import { Separator } from "./ui/separator";
-import { getPatientByPhone } from "@/services/queueService";
+import { getPatientByPhoneAcrossClinics } from "@/services/queueService";
 import { QrScannerDialog } from "./qr-scanner-dialog";
 
 export function PatientSearchForm() {
@@ -36,19 +36,12 @@ export function PatientSearchForm() {
     setError(null);
 
     try {
-      // In a multi-doctor setup, we can't know which doctor to search for.
-      // The search must be adapted. For now, this will fail if getPatientByPhone requires a doctorId.
-      // Let's assume the user will need to select a doctor first, or this search is global.
-      // Since getPatientByPhone is changed, this call will fail.
-      // We need to tell the user about this architectural problem.
-      setError("This search is not doctor-specific and may not function correctly in a multi-clinic setup.");
-      // const result = await getPatientByPhone(phone); // This line is now broken.
-      // if (result) {
-      //   router.push(`/status/${result.doctorId}/${phone}`);
-      // } else {
-      //   setError("لم يتم العثور على مريض نشط بهذا الرقم في قائمة الانتظار.");
-      // }
-      router.push(`/status/${phone}`);
+      const result = await getPatientByPhoneAcrossClinics(phone);
+      if (result) {
+        router.push(`/status/${result.doctorId}/${phone}`);
+      } else {
+        setError("لم يتم العثور على مريض نشط بهذا الرقم في قائمة الانتظار.");
+      }
     } catch (err) {
       console.error("Error searching for patient:", err);
       setError("حدث خطأ أثناء البحث. يرجى المحاولة مرة أخرى.");
@@ -62,10 +55,22 @@ export function PatientSearchForm() {
     handleSearch(phoneNumber);
   };
 
-  const handleScanSuccess = (result: string) => {
-    setPhoneNumber(result);
+  const handleScanSuccess = (url: string) => {
     setIsScannerOpen(false);
-    handleSearch(result);
+    try {
+        const urlParts = new URL(url);
+        const pathParts = urlParts.pathname.split('/');
+        // Expected format: /status/[doctorId]/[phone]
+        if (pathParts.length >= 4 && pathParts[1] === 'status') {
+            const doctorId = pathParts[2];
+            const phone = pathParts[3];
+            router.push(`/status/${doctorId}/${phone}`);
+        } else {
+            setError("رمز QR غير صالح.");
+        }
+    } catch(e) {
+        setError("رمز QR غير صالح.");
+    }
   };
 
   return (

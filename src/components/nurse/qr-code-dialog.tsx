@@ -26,7 +26,7 @@ export function QrCodeDialog({ patient, isOpen, onClose }: QrCodeDialogProps) {
 
   useEffect(() => {
     if (patient && typeof window !== "undefined") {
-      setStatusUrl(`${window.location.origin}/status/${patient.phone}`);
+      setStatusUrl(`${window.location.origin}/status/${patient.doctorId}/${patient.phone}`);
     }
   }, [patient]);
 

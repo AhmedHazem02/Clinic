@@ -231,6 +231,34 @@ export const getPatientByPhone = async (phone: string, doctorId: string): Promis
         patientsCollection, 
         and(
             where("phone", "==", phone), 
+            where("doctorId", "==", doctorId),
+            or(where("status", "==", "Waiting"), where("status", "==", "Consulting"))
+        ),
+        limit(1)
+    );
+    
+    const snapshot = await getDocs(q);
+
+    if (snapshot.empty) {
+        return null;
+    }
+
+    const doc = snapshot.docs[0];
+    const data = doc.data();
+    const bookingDateTimestamp = data.bookingDate || data.createdAt || Timestamp.now();
+    return { 
+        id: doc.id,
+        ...data,
+        bookingDate: bookingDateTimestamp.toDate(),
+    } as PatientInQueue;
+}
+
+// Get an active patient by phone number across all doctors (for patient search)
+export const getPatientByPhoneAcrossClinics = async (phone: string): Promise<PatientInQueue | null> => {
+    const q = query(
+        patientsCollection, 
+        and(
+            where("phone", "==", phone), 
             or(where("status", "==", "Waiting"), where("status", "==", "Consulting"))
         ),
         limit(1)
@@ -294,17 +322,18 @@ export const removePatientFromQueue = async (patientId: string) => {
 };
 
 // Update the doctor's global message
-export const updateDoctorMessage = async (message: string) => {
+export const updateDoctorMessage = async (message: string, doctorId: string) => {
     const statusDocRef = doc(clinicInfoCollection, 'status');
-    return await setDoc(statusDocRef, { doctorMessage: message }, { merge: true });
+    // Store message per doctor
+    await setDoc(statusDocRef, { [`message_${doctorId}`]: message }, { merge: true });
 };
 
 // Listen to the doctor's global message
-export const listenToDoctorMessage = (callback: (message: string) => void) => {
+export const listenToDoctorMessage = (doctorId: string, callback: (message: string) => void) => {
     const statusDocRef = doc(clinicInfoCollection, 'status');
     const unsubscribe = onSnapshot(statusDocRef, (doc) => {
         if (doc.exists()) {
-            callback(doc.data().doctorMessage || "");
+            callback(doc.data()[`message_${doctorId}`] || "");
         } else {
             callback("");
         }
