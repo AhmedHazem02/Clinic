@@ -124,11 +124,18 @@ export function PatientRegistrationForm({ onPatientRegistered }: PatientRegistra
         queueType: "Consultation",
       });
     } catch (error: any) {
-       toast({
-        variant: "destructive",
-        title: "فشل التسجيل",
-        description: error.message || "لا يمكن إضافة المريض إلى قائمة الانتظار. يرجى المحاولة مرة أخرى.",
-      });
+       if (error.message.includes("is already in the queue")) {
+        form.setError("phone", {
+          type: "manual",
+          message: "هذا المريض موجود بالفعل في قائمة الانتظار النشطة.",
+        });
+      } else {
+        toast({
+          variant: "destructive",
+          title: "فشل التسجيل",
+          description: error.message || "لا يمكن إضافة المريض إلى قائمة الانتظار. يرجى المحاولة مرة أخرى.",
+        });
+      }
       console.error("Failed to register patient:", error);
     } finally {
         setIsSubmitting(false);
