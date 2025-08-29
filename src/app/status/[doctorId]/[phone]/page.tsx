@@ -1,13 +1,13 @@
 
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { listenToQueue, type PatientInQueue, listenToDoctorMessage, listenToDoctorAvailability } from "@/services/queueService";
 import { PatientStatusCard } from "@/components/patient-status-card";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertTriangle, ArrowLeft, Info } from "lucide-react";
+import { AlertTriangle, ArrowLeft, Info, UserCheck, Bell } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
@@ -19,6 +19,14 @@ export default function PatientStatusPage({ params }: { params: { doctorId: stri
   const [error, setError] = useState<string | null>(null);
   const [doctorMessage, setDoctorMessage] = useState<string | null>(null);
   const [isDoctorAvailable, setIsDoctorAvailable] = useState(true);
+
+  // State for one-time notifications
+  const [showDoctorAvailableAlert, setShowDoctorAvailableAlert] = useState(false);
+  const [showTurnSoonAlert, setShowTurnSoonAlert] = useState(false);
+
+  // Refs to track previous states
+  const prevDoctorAvailableRef = useRef<boolean>();
+  const turnSoonAlertShownRef = useRef(false);
 
   useEffect(() => {
     if (phone && doctorId) {
@@ -33,6 +41,17 @@ export default function PatientStatusPage({ params }: { params: { doctorId: stri
           const waitingPatients = queue.filter(p => p.status === 'Waiting' && (p.queueType || 'Consultation') === (patient.queueType || 'Consultation'));
           const ahead = waitingPatients.filter(p => p.queueNumber < patient.queueNumber).length;
           setPeopleAhead(ahead);
+
+          // Check for "turn is soon" condition
+          if (ahead === 2 && !turnSoonAlertShownRef.current) {
+            setShowTurnSoonAlert(true);
+            turnSoonAlertShownRef.current = true; // Ensure it's only shown once
+          } else if (ahead > 2) {
+             // If patient count goes up, reset the flag
+             turnSoonAlertShownRef.current = false;
+             setShowTurnSoonAlert(false);
+          }
+
         } else {
           setPatientData(null);
           setError("لم يتم العثور على حجز نشط لهذا المريض.");
@@ -44,6 +63,11 @@ export default function PatientStatusPage({ params }: { params: { doctorId: stri
       });
 
       const unsubscribeAvailability = listenToDoctorAvailability(doctorId, (available) => {
+          // Check if the doctor was previously unavailable and is now available
+          if (prevDoctorAvailableRef.current === false && available === true) {
+              setShowDoctorAvailableAlert(true);
+          }
+          prevDoctorAvailableRef.current = available;
           setIsDoctorAvailable(available);
       });
 
@@ -74,6 +98,26 @@ export default function PatientStatusPage({ params }: { params: { doctorId: stri
                     </Link>
                 </Button>
             </div>
+
+            {showDoctorAvailableAlert && (
+                <Alert className="bg-green-100 border-green-400 text-green-700">
+                    <UserCheck className="h-4 w-4 text-green-700" />
+                    <AlertTitle>الطبيب متاح الآن</AlertTitle>
+                    <AlertDescription>
+                        استأنف الطبيب الاستشارات. قائمة الانتظار تتحرك الآن.
+                    </AlertDescription>
+                </Alert>
+            )}
+
+            {showTurnSoonAlert && (
+                <Alert className="bg-yellow-100 border-yellow-400 text-yellow-800">
+                    <Bell className="h-4 w-4 text-yellow-800" />
+                    <AlertTitle>دورك قريب!</AlertTitle>
+                    <AlertDescription>
+                        يوجد مريضان فقط أمامك. يرجى الاستعداد لاستشارتك.
+                    </AlertDescription>
+                </Alert>
+            )}
 
             {doctorMessage && (
                  <Alert>
