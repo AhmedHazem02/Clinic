@@ -11,7 +11,7 @@ import {
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { useState, useEffect, useRef } from "react";
 import { CameraOff } from "lucide-react";
-import { BrowserMultiFormatReader } from '@zxing/browser';
+import { BrowserMultiFormatReader, type IScannerControls } from '@zxing/browser';
 import { NotFoundException } from '@zxing/library';
 import { useToast } from "@/hooks/use-toast";
 
@@ -28,6 +28,7 @@ export function QrScannerDialog({
 }: QrScannerDialogProps) {
   const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const controlsRef = useRef<IScannerControls | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -47,8 +48,8 @@ export function QrScannerDialog({
         // Attach the stream to the video element
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
-          // Start decoding from the video element
-          codeReader.decodeFromVideoDevice(undefined, videoRef.current, (result, err) => {
+          // Start decoding from the video element and get controls
+          const controls = await codeReader.decodeFromVideoDevice(undefined, videoRef.current, (result, err) => {
             if (result) {
               onScanSuccess(result.getText());
             }
@@ -61,6 +62,7 @@ export function QrScannerDialog({
               });
             }
           });
+          controlsRef.current = controls;
         }
       } catch (error) {
         console.error('Error accessing camera:', error);
@@ -77,7 +79,10 @@ export function QrScannerDialog({
 
     // Cleanup function to stop the camera when the component unmounts or dialog closes
     return () => {
-      codeReader.reset();
+      if (controlsRef.current) {
+        controlsRef.current.stop();
+        controlsRef.current = null;
+      }
       if (stream) {
         stream.getTracks().forEach(track => track.stop());
       }
