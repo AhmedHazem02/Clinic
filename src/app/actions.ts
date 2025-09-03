@@ -7,8 +7,8 @@ import {
   type AiAssistedPrescriptionOutput,
 } from "@/ai/flows/ai-assisted-prescription";
 import { createUser } from "@/services/authService";
-import { getPatientsForLast30Days, getClinicSettings, getAllDoctors, removePatientFromQueue } from "@/services/queueService";
-import { setDoctorProfile } from "@/services/queueService.admin";
+import { getPatientsForLast30Days, getClinicSettings, getAllDoctors } from "@/services/queueService";
+import { setDoctorProfile, removePatientFromQueueAdmin } from "@/services/queueService.admin";
 import { format } from "date-fns";
 import { ar } from 'date-fns/locale';
 import { auth } from "@/lib/firebase";
@@ -152,7 +152,7 @@ export async function setDoctorAvailability(uid: string, isAvailable: boolean): 
 
 export async function deletePatientAction(patientId: string) {
     try {
-        await removePatientFromQueue(patientId);
+        await removePatientFromQueueAdmin(patientId);
         return { success: true };
     } catch (error) {
         console.error("Error deleting patient:", error);

@@ -342,7 +342,7 @@ export const finishAndCallNext = async (currentPatientId: string, nextPatientId:
     await batch.commit();
 }
 
-// Remove a patient from the queue
+// Remove a patient from the queue (client-side)
 export const removePatientFromQueue = async (patientId: string) => {
     const patientDocRef = doc(patientsCollection, patientId);
     return await deleteDoc(patientDocRef);
