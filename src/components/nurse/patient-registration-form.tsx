@@ -124,7 +124,7 @@ export function PatientRegistrationForm({ onPatientRegistered }: PatientRegistra
         queueType: "Consultation",
       });
     } catch (error: any) {
-       if (error.message.includes("is already in the queue")) {
+       if (error.message.includes("is already in the queue for this doctor")) {
         form.setError("phone", {
           type: "manual",
           message: "هذا المريض موجود بالفعل في قائمة الانتظار النشطة.",
@@ -134,8 +134,7 @@ export function PatientRegistrationForm({ onPatientRegistered }: PatientRegistra
             type: "manual",
             message: "المريض غير موجود. يجب تسجيله للاستشارة أولاً.",
         });
-      }
-      else {
+      } else {
         toast({
           variant: "destructive",
           title: "فشل التسجيل",
