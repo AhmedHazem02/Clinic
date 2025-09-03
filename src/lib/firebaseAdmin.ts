@@ -1,9 +1,9 @@
-import * as admin from 'firebase-admin';
+import * as firebaseAdmin from 'firebase-admin';
 
 // This function now handles the "just-in-time" initialization of Firebase Admin.
 function initializeFirebaseAdmin() {
-  if (admin.apps.length > 0) {
-    return admin;
+  if (firebaseAdmin.apps.length > 0) {
+    return firebaseAdmin;
   }
 
   const serviceAccountString = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
@@ -17,10 +17,10 @@ function initializeFirebaseAdmin() {
 
   try {
     const serviceAccount = JSON.parse(serviceAccountString);
-    admin.initializeApp({
-      credential: admin.credential.cert(serviceAccount),
+    firebaseAdmin.initializeApp({
+      credential: firebaseAdmin.credential.cert(serviceAccount),
     });
-    return admin;
+    return firebaseAdmin;
   } catch (error: any) {
     throw new Error(
       `Failed to parse FIREBASE_SERVICE_ACCOUNT_KEY or initialize Firebase Admin: ${error.message}`
