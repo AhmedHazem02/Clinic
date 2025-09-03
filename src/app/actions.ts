@@ -153,8 +153,9 @@ export async function setDoctorAvailability(uid: string, isAvailable: boolean): 
 export async function deletePatientAction(patientId: string) {
     try {
         await removePatientFromQueue(patientId);
+        return { success: true };
     } catch (error) {
         console.error("Error deleting patient:", error);
-        throw new Error("Failed to delete patient.");
+        return { success: false, error: "Failed to delete patient." };
     }
 }

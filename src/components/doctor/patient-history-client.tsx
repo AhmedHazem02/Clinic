@@ -64,21 +64,20 @@ export function PatientHistoryClient() {
 
     const handleDeletePatient = async () => {
         if (!patientToDelete) return;
-        try {
-            await deletePatientAction(patientToDelete.id);
+        const result = await deletePatientAction(patientToDelete.id);
+        if (result.success) {
             toast({
                 title: "تم حذف المريض",
                 description: `تم حذف سجل ${patientToDelete.name} بنجاح.`,
             });
-        } catch (error) {
+        } else {
             toast({
                 variant: "destructive",
                 title: "خطأ",
-                description: "لا يمكن حذف المريض. يرجى المحاولة مرة أخرى.",
+                description: result.error || "لا يمكن حذف المريض. يرجى المحاولة مرة أخرى.",
             });
-        } finally {
-            setPatientToDelete(null);
         }
+        setPatientToDelete(null);
     };
 
     const handlePrint = (patient: PatientInQueue) => {
