@@ -4,35 +4,37 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
-    // A function to check if the user is an authenticated doctor or nurse
+    // Helper function to check if a user is an authenticated staff member (doctor or nurse)
     function isStaff() {
-      return request.auth != null && request.auth.token.role in ['doctor', 'nurse'];
+      return request.auth != null && (request.auth.token.role == 'doctor' || request.auth.token.role == 'nurse');
     }
 
-    // Doctors collection: Staff can read/write their own profile.
+    // Doctors can fully manage their own profiles.
+    // Nurses can read doctor profiles.
     match /doctors/{doctorId} {
-      allow read, write: if isStaff() && request.auth.uid == doctorId;
-      // Also allow any authenticated user to read doctor profiles (for patient status page)
-      allow get: if request.auth != null;
+      allow read: if isStaff();
+      allow write: if request.auth.uid == doctorId;
     }
 
-    // Nurses collection: Staff can manage nurse profiles.
+    // Nurses can fully manage their own profiles.
+    // Doctors can read nurse profiles.
     match /nurses/{nurseId} {
-      allow read, write: if isStaff();
+      allow read: if isStaff();
+      allow write: if request.auth.uid == nurseId;
     }
 
-    // Clinic Info: Staff can manage settings, authenticated users can read.
-    match /clinicInfo/{infoId} {
-      allow read: if request.auth != null;
+    // Staff can create, read, update, and delete patient records.
+    // Anyone can read patient data for status checks.
+    match /patients/{patientId} {
+      allow read: if true;
       allow write: if isStaff();
     }
 
-    // Patients collection: 
-    // Staff can manage all patient records.
-    // Any user (including unauthenticated) can read a patient document to check status.
-    match /patients/{patientId} {
-      allow read: if true; // Open read for status checks
-      allow create, update, delete: if isStaff();
+    // Staff can manage clinic-wide settings and messages.
+    // Anyone can read this information.
+    match /clinicInfo/{docId} {
+      allow read: if true;
+      allow write: if isStaff();
     }
   }
 }
