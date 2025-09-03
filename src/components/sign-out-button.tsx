@@ -2,28 +2,15 @@
 "use client";
 
 import { LogOut } from "lucide-react";
-import { Button } from "./ui/button";
 import { signOutUser } from "@/services/authClientService";
-import { usePathname, useRouter } from "next/navigation";
-import { setDoctorAvailability } from "@/app/actions";
-import { auth } from "@/lib/firebase";
-import { useDoctorProfile } from "./doctor/doctor-profile-provider";
+import { useRouter } from "next/navigation";
 
 export function SignOutButton() {
     const router = useRouter();
-    const pathname = usePathname();
-    const { user } = useDoctorProfile();
 
     const handleSignOut = async () => {
-        if (user && pathname?.startsWith('/doctor')) {
-            await setDoctorAvailability(user.uid, false);
-        }
         await signOutUser();
         router.push('/login');
-    }
-
-    if (!user) {
-        return null;
     }
 
     // Render as a child of DropdownMenuItem
