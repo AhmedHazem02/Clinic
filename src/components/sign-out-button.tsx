@@ -7,18 +7,16 @@ import { signOutUser } from "@/services/authClientService";
 import { usePathname, useRouter } from "next/navigation";
 import { setDoctorAvailability } from "@/app/actions";
 import { auth } from "@/lib/firebase";
+import { useDoctorProfile } from "./doctor/doctor-profile-provider";
 
 export function SignOutButton() {
     const router = useRouter();
     const pathname = usePathname();
+    const { user } = useDoctorProfile();
 
     const handleSignOut = async () => {
-        const user = auth.currentUser;
-        if (user) {
-            // Check if the user is a doctor before setting availability.
-            if (pathname?.startsWith('/doctor')) {
-                 await setDoctorAvailability(user.uid, false);
-            }
+        if (user && pathname?.startsWith('/doctor')) {
+            await setDoctorAvailability(user.uid, false);
         }
         await signOutUser();
         router.push('/login');
