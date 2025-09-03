@@ -22,6 +22,10 @@ export function SignOutButton() {
         router.push('/login');
     }
 
+    if (!user) {
+        return null;
+    }
+
     // Render as a child of DropdownMenuItem
     return (
         <button className="relative flex cursor-pointer select-none items-center gap-2 rounded-md px-3 py-2 text-sm outline-none transition-colors hover:bg-destructive/10 text-destructive font-medium w-full" onClick={handleSignOut}>
