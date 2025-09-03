@@ -129,7 +129,13 @@ export function PatientRegistrationForm({ onPatientRegistered }: PatientRegistra
           type: "manual",
           message: "هذا المريض موجود بالفعل في قائمة الانتظار النشطة.",
         });
-      } else {
+      } else if (error.message.includes("Patient not found for re-consultation")) {
+        form.setError("phone", {
+            type: "manual",
+            message: "المريض غير موجود. يجب تسجيله للاستشارة أولاً.",
+        });
+      }
+      else {
         toast({
           variant: "destructive",
           title: "فشل التسجيل",

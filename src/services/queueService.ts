@@ -96,11 +96,25 @@ const getNextQueueNumber = async (doctorId: string): Promise<number> => {
     return (lastPatient.queueNumber || 0) + 1;
 }
 
+// Check if a patient has any previous record with a doctor
+const checkIfPatientExists = async (phone: string, doctorId: string): Promise<boolean> => {
+    const q = query(
+        patientsCollection,
+        where("phone", "==", phone),
+        where("doctorId", "==", doctorId),
+        limit(1)
+    );
+    const snapshot = await getDocs(q);
+    return !snapshot.empty;
+}
+
+
 // Add a new patient to the queue
 export const addPatientToQueue = async (patientData: NewPatient) => {
     if (!patientData.doctorId) {
         throw new Error("Doctor ID is required to add a patient.");
     }
+
     // Check if patient with the same phone number is already waiting or consulting for this doctor
     const existingPatientQuery = query(
         patientsCollection,
@@ -115,6 +129,15 @@ export const addPatientToQueue = async (patientData: NewPatient) => {
     if (!existingPatientSnapshot.empty) {
         throw new Error("A patient with this phone number is already in the queue for this doctor.");
     }
+    
+    // If it's a re-consultation, check if the patient has a prior record.
+    if (patientData.queueType === 'Re-consultation') {
+        const patientExists = await checkIfPatientExists(patientData.phone, patientData.doctorId);
+        if (!patientExists) {
+            throw new Error("Patient not found for re-consultation. A patient must have a previous consultation to book a re-consultation.");
+        }
+    }
+
 
     const queueNumber = await getNextQueueNumber(patientData.doctorId);
 
