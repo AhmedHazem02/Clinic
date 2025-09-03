@@ -1,35 +1,35 @@
 rules_version = '2';
-
 service cloud.firestore {
   match /databases/{database}/documents {
     
-    // By default, deny all reads and writes.
+    // Default deny all
     match /{document=**} {
       allow read, write: if false;
     }
 
-    // Allow public read access to clinic settings and doctor profiles.
-    // Patients need this to see clinic info and queue status.
+    // Allow public read for clinic info, but only authenticated users can write
     match /clinicInfo/{docId} {
       allow read: if true;
-      allow write: if request.auth != null; // Only authenticated users can write
+      allow write: if request.auth != null;
     }
+
+    // Allow public read for doctor profiles
+    // Allow a doctor to write ONLY to their own profile
     match /doctors/{doctorId} {
       allow read: if true;
-      allow write: if request.auth != null && request.auth.uid == doctorId; // Only the doctor can edit their own profile
+      allow write: if request.auth != null && request.auth.uid == doctorId;
     }
-
-    // Allow nurses to be managed by authenticated users.
+    
+    // Allow authenticated users to manage nurses
     match /nurses/{nurseId} {
-        allow read, write: if request.auth != null;
+      allow read, write: if request.auth != null;
     }
-
-    // Allow patients to be read by anyone (for status checks).
-    // Allow creation, updates, and deletion only by authenticated staff.
+    
+    // Allow public read for patients (for status checks)
+    // Allow authenticated users (staff) to manage patient records
     match /patients/{patientId} {
       allow read: if true;
-      allow create, update: if request.auth != null;
-      allow delete: if request.auth != null;
+      allow create, update, delete: if request.auth != null;
     }
   }
 }
