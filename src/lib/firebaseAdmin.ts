@@ -1,33 +1,31 @@
 import * as admin from 'firebase-admin';
 
-const serviceAccount = process.env.FIREBASE_SERVICE_ACCOUNT_KEY
-  ? JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY)
-  : null;
+function initializeFirebaseAdmin() {
+  if (admin.apps.length) {
+    return admin;
+  }
 
-if (!admin.apps.length) {
-    if (serviceAccount) {
-        admin.initializeApp({
-            credential: admin.credential.cert(serviceAccount),
-        });
-    } else {
-        console.warn("Firebase Admin SDK not initialized. FIREBASE_SERVICE_ACCOUNT_KEY is not set.");
-    }
+  const serviceAccountString = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
+  if (!serviceAccountString) {
+    throw new Error(
+      'FIREBASE_SERVICE_ACCOUNT_KEY is not set. Firebase Admin SDK cannot be initialized.'
+    );
+  }
+
+  try {
+    const serviceAccount = JSON.parse(serviceAccountString);
+    admin.initializeApp({
+      credential: admin.credential.cert(serviceAccount),
+    });
+    return admin;
+  } catch (error: any) {
+    throw new Error(
+      `Failed to parse FIREBASE_SERVICE_ACCOUNT_KEY or initialize Firebase Admin: ${error.message}`
+    );
+  }
 }
 
-let authAdmin;
+const adminInstance = initializeFirebaseAdmin();
+const authAdmin = adminInstance.auth();
 
-if (admin.apps.length > 0) {
-    authAdmin = admin.auth();
-} else {
-    // Provide a dummy object or throw an error to prevent the app from crashing.
-    // In this case, we'll log an error and functions using authAdmin will fail gracefully.
-    console.error("Firebase Admin has not been initialized. authAdmin will not be available.");
-    authAdmin = {
-      createUser: () => Promise.reject(new Error("Firebase Admin not initialized.")),
-      setCustomUserClaims: () => Promise.reject(new Error("Firebase Admin not initialized.")),
-      // Add other methods you use if necessary, all rejecting with an error.
-    }
-}
-
-
-export { admin, authAdmin };
+export { adminInstance as admin, authAdmin };
