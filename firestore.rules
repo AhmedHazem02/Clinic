@@ -3,33 +3,36 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Doctors can manage their own profiles
-    match /doctors/{doctorId} {
-      allow read, write: if request.auth != null && request.auth.uid == doctorId;
-    }
     
-    // Authenticated users (doctors/nurses) can manage patients
-    match /patients/{patientId} {
-      allow read, create, update, delete: if request.auth != null;
-    }
-    
-    // Clinic-wide info can be read by authenticated users and written by doctors
-    match /clinicInfo/{docId} {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null && request.auth.token.role == 'doctor';
-    }
-    
-    // Nurses can manage their own profiles
-    match /nurses/{nurseId} {
-        allow read, write: if request.auth != null && request.auth.uid == nurseId;
+    // A function to check if the user is an authenticated doctor or nurse
+    function isStaff() {
+      return request.auth != null && request.auth.token.role in ['doctor', 'nurse'];
     }
 
-    // Allow authenticated users to read all doctor/nurse profiles for general app functionality
-    match /doctors/{docId} {
-      allow list: if request.auth != null;
+    // Doctors collection: Staff can read/write their own profile.
+    match /doctors/{doctorId} {
+      allow read, write: if isStaff() && request.auth.uid == doctorId;
+      // Also allow any authenticated user to read doctor profiles (for patient status page)
+      allow get: if request.auth != null;
     }
-     match /nurses/{docId} {
-      allow list: if request.auth != null;
+
+    // Nurses collection: Staff can manage nurse profiles.
+    match /nurses/{nurseId} {
+      allow read, write: if isStaff();
+    }
+
+    // Clinic Info: Staff can manage settings, authenticated users can read.
+    match /clinicInfo/{infoId} {
+      allow read: if request.auth != null;
+      allow write: if isStaff();
+    }
+
+    // Patients collection: 
+    // Staff can manage all patient records.
+    // Any user (including unauthenticated) can read a patient document to check status.
+    match /patients/{patientId} {
+      allow read: if true; // Open read for status checks
+      allow create, update, delete: if isStaff();
     }
   }
 }
