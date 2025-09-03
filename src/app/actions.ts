@@ -136,9 +136,18 @@ export async function generatePatientReport(doctorId: string): Promise<string> {
   }
 }
 
-export async function setDoctorAvailability(uid: string, isAvailable: boolean): Promise<{ success: boolean }> {
-    await setDoctorProfile(uid, { isAvailable });
-    return { success: true };
+export async function setDoctorAvailability(uid: string, isAvailable: boolean): Promise<{ success: boolean; error?: string }> {
+    try {
+        await setDoctorProfile(uid, { isAvailable });
+        return { success: true };
+    } catch (error: any) {
+        console.error("Error in setDoctorAvailability action:", error.message);
+        // This is a critical configuration error. The developer needs to know about it.
+        if (error.message.includes("FIREBASE_SERVICE_ACCOUNT_KEY")) {
+             return { success: false, error: "Server configuration error: Firebase Admin SDK is not initialized. Please check server logs." };
+        }
+        return { success: false, error: "Failed to update availability status." };
+    }
 }
 
 export async function deletePatientAction(patientId: string) {
