@@ -1,6 +1,6 @@
 import * as admin from 'firebase-admin';
 
-function initializeFirebaseAdmin() {
+function getFirebaseAdmin() {
   if (admin.apps.length) {
     return admin;
   }
@@ -25,7 +25,8 @@ function initializeFirebaseAdmin() {
   }
 }
 
-const adminInstance = initializeFirebaseAdmin();
-const authAdmin = adminInstance.auth();
+function getAuthAdmin() {
+    return getFirebaseAdmin().auth();
+}
 
-export { adminInstance as admin, authAdmin };
+export { getFirebaseAdmin as admin, getAuthAdmin as authAdmin };
