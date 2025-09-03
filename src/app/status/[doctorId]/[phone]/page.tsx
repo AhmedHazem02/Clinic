@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, use } from "react";
 import {
   listenToQueue,
   type PatientInQueue,
@@ -25,10 +25,11 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
 export default function PatientStatusPage({
-  params: { doctorId, phone },
+  params,
 }: {
-  params: { doctorId: string; phone: string };
+  params: Promise<{ doctorId: string; phone: string }>;
 }) {
+  const { doctorId, phone } = use(params);
   const [patientData, setPatientData] = useState<PatientInQueue | null>(null);
   const [peopleAhead, setPeopleAhead] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
