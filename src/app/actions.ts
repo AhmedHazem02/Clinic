@@ -135,12 +135,13 @@ export async function generatePatientReport(doctorId: string): Promise<string> {
   }
 }
 
-export async function setDoctorAvailability(uid: string, isAvailable: boolean) {
+export async function setDoctorAvailability(uid: string, isAvailable: boolean): Promise<{success: boolean}> {
   try {
     await setDoctorProfile(uid, { isAvailable });
+    return { success: true };
   } catch (error) {
     console.error("Error setting doctor availability:", error);
-    throw new Error("Failed to update doctor availability.");
+    return { success: false };
   }
 }
 

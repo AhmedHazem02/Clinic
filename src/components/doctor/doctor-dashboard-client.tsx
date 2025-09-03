@@ -83,16 +83,20 @@ export function DoctorDashboardClient() {
 
   const handleAvailabilityChange = async (checked: boolean) => {
       if (!user) return;
-      setIsAvailable(checked);
-      try {
-        await setDoctorAvailability(user.uid, checked);
+      
+      const previousState = isAvailable;
+      setIsAvailable(checked); // Optimistically update UI
+
+      const result = await setDoctorAvailability(user.uid, checked);
+      
+      if (!result.success) {
+        toast({ variant: "destructive", title: "خطأ", description: "لا يمكن تحديث حالة التوافر." });
+        setIsAvailable(previousState); // Revert UI on failure
+      } else {
         if (checked) {
             setDoctorMessage("");
             await updateDoctorMessage("", user.uid);
         }
-      } catch (error) {
-           toast({ variant: "destructive", title: "خطأ", description: "لا يمكن تحديث حالة التوافر." });
-           setIsAvailable(!checked);
       }
   }
 
