@@ -469,3 +469,9 @@ export const getPatientsForLast30Days = async (doctorId: string): Promise<Patien
 
     return patients;
 };
+
+// Set/Update a doctor's profile
+export const setDoctorProfile = async (uid: string, profile: Partial<DoctorProfile>) => {
+    const docRef = doc(db, 'doctors', uid);
+    return await setDoc(docRef, profile, { merge: true });
+}
