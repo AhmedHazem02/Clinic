@@ -7,7 +7,8 @@ import {
   type AiAssistedPrescriptionOutput,
 } from "@/ai/flows/ai-assisted-prescription";
 import { createUser } from "@/services/authService";
-import { getPatientsForLast30Days, getClinicSettings, getAllDoctors, setDoctorProfile, removePatientFromQueue } from "@/services/queueService";
+import { getPatientsForLast30Days, getClinicSettings, getAllDoctors, removePatientFromQueue } from "@/services/queueService";
+import { setDoctorProfile } from "@/services/queueService.admin";
 import { format } from "date-fns";
 import { ar } from 'date-fns/locale';
 import { auth } from "@/lib/firebase";

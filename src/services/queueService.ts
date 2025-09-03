@@ -405,12 +405,6 @@ export const listenToDoctorProfile = (uid: string, callback: (profile: DoctorPro
     return unsubscribe;
 };
 
-// Set/Update a doctor's profile
-export const setDoctorProfile = async (uid: string, profile: Partial<DoctorProfile>) => {
-    const docRef = doc(doctorsCollection, uid);
-    return await setDoc(docRef, profile, { merge: true });
-}
-
 // Listen to a doctor's availability
 export const listenToDoctorAvailability = (doctorId: string, callback: (isAvailable: boolean) => void) => {
     const docRef = doc(doctorsCollection, doctorId);
