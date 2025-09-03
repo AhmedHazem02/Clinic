@@ -91,7 +91,7 @@ export function PatientRegistrationForm({ onPatientRegistered }: PatientRegistra
 
     setIsSubmitting(true);
     try {
-      await addPatientToQueue({
+      const result = await addPatientToQueue({
         name: values.name,
         // Since nurse and doctor are the same user, we use the nurse's UID as the doctorId
         doctorId: user.uid,
@@ -110,10 +110,18 @@ export function PatientRegistrationForm({ onPatientRegistered }: PatientRegistra
         onPatientRegistered(newPatient);
       }
 
-      toast({
-        title: "تم تسجيل المريض",
-        description: `تمت إضافة ${values.name} إلى قائمة الانتظار.`,
-      });
+      if (result.wasCorrected) {
+        toast({
+            title: "تم تسجيل المريض (تم التصحيح)",
+            description: `المريض لم يتم العثور عليه وأضيف إلى قائمة الاستشارات العادية.`,
+        });
+      } else {
+        toast({
+            title: "تم تسجيل المريض",
+            description: `تمت إضافة ${values.name} إلى قائمة الانتظار.`,
+        });
+      }
+
       form.reset({
         name: "",
         phone: "",
@@ -128,11 +136,6 @@ export function PatientRegistrationForm({ onPatientRegistered }: PatientRegistra
         form.setError("phone", {
           type: "manual",
           message: "هذا المريض موجود بالفعل في قائمة الانتظار النشطة.",
-        });
-      } else if (error.message.includes("Patient not found for re-consultation")) {
-        form.setError("phone", {
-            type: "manual",
-            message: "المريض غير موجود. يجب تسجيله للاستشارة أولاً.",
         });
       } else {
         toast({

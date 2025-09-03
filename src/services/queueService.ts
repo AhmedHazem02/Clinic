@@ -110,7 +110,7 @@ const checkIfPatientExists = async (phone: string, doctorId: string): Promise<bo
 
 
 // Add a new patient to the queue
-export const addPatientToQueue = async (patientData: NewPatient) => {
+export const addPatientToQueue = async (patientData: NewPatient): Promise<{ wasCorrected: boolean }> => {
     if (!patientData.doctorId) {
         throw new Error("Doctor ID is required to add a patient.");
     }
@@ -130,11 +130,14 @@ export const addPatientToQueue = async (patientData: NewPatient) => {
         throw new Error("A patient with this phone number is already in the queue for this doctor.");
     }
     
+    let wasCorrected = false;
     // If it's a re-consultation, check if the patient has a prior record.
     if (patientData.queueType === 'Re-consultation') {
         const patientExists = await checkIfPatientExists(patientData.phone, patientData.doctorId);
         if (!patientExists) {
-            throw new Error("Patient not found for re-consultation. A patient must have a previous consultation to book a re-consultation.");
+            // Patient doesn't exist, automatically switch them to a regular consultation.
+            patientData.queueType = 'Consultation';
+            wasCorrected = true;
         }
     }
 
@@ -150,7 +153,8 @@ export const addPatientToQueue = async (patientData: NewPatient) => {
         prescription: "",
     };
 
-    return await addDoc(patientsCollection, newPatientDoc);
+    await addDoc(patientsCollection, newPatientDoc);
+    return { wasCorrected };
 }
 
 // Listen for real-time updates to the queue (for doctor/history view)
