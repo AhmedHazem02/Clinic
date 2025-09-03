@@ -1,8 +1,8 @@
 // Import the functions you need from the SDKs you need
-import { initializeApp, getApps, getApp } from "firebase/app";
-import { getPerformance } from "firebase/performance";
-import { getFirestore } from "firebase/firestore";
-import { getAuth } from "firebase/auth";
+import { initializeApp, getApps, getApp, type FirebaseApp } from "firebase/app";
+import { getPerformance, type Performance } from "firebase/performance";
+import { getFirestore, type Firestore } from "firebase/firestore";
+import { getAuth, type Auth } from "firebase/auth";
 // TODO: Add SDKs for Firebase products that you want to use
 // https://firebase.google.com/docs/web/setup#available-libraries
 
@@ -18,12 +18,19 @@ const firebaseConfig = {
 };
 
 // Initialize Firebase
-const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
-const db = getFirestore(app);
-const auth = getAuth(app);
-let perf;
+const app: FirebaseApp = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+const db: Firestore = getFirestore(app);
+
+let auth: Auth;
+let perf: Performance | undefined;
+
 if (typeof window !== 'undefined') {
+  auth = getAuth(app);
   perf = getPerformance(app);
+} else {
+  // Provide a dummy auth object for the server-side to avoid errors.
+  // The actual auth operations should only happen on the client.
+  auth = {} as Auth;
 }
 
 export { app, db, auth, perf };
