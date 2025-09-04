@@ -93,6 +93,7 @@ export function DoctorDashboardClient() {
         toast({ variant: "destructive", title: "خطأ", description: "لا يمكن تحديث حالة التوافر." });
         setIsAvailable(previousState); // Revert UI on failure
       } else {
+        toast({ title: "تم تحديث الحالة", description: `أنت الآن ${checked ? 'متاح' : 'غير متاح'}.` });
         if (checked) {
             setDoctorMessage("");
             await updateDoctorMessage("", user.uid);
@@ -292,11 +293,12 @@ export function DoctorDashboardClient() {
                         placeholder="مثال: سأتأخر 15 دقيقة."
                         value={doctorMessage}
                         onChange={(e) => setDoctorMessage(e.target.value)}
+                        disabled={!isAvailable} 
                     />
                 </div>
             </CardContent>
             <CardFooter>
-                <Button onClick={handleUpdateMessage} disabled={isUpdatingMessage}>
+                <Button onClick={handleUpdateMessage} disabled={isUpdatingMessage || !isAvailable}>
                 <MessageSquarePlus /> {isUpdatingMessage ? 'جاري التحديث...' : 'تحديث الرسالة'}
                 </Button>
             </CardFooter>

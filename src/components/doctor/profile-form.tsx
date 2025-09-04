@@ -14,6 +14,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { useToast } from "@/hooks/use-toast";
 import { PlusCircle, Trash2, Upload } from "lucide-react";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "../ui/skeleton";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 
@@ -22,6 +23,7 @@ const profileSchema = z.object({
   clinicPhoneNumbers: z.array(z.object({ value: z.string().regex(/^\d{11}$/, "الرجاء إدخال رقم هاتف صالح مكون من 11 رقمًا.") })).min(1, "مطلوب رقم هاتف عيادة واحد على الأقل."),
   specialty: z.string().min(2, "التخصص مطلوب."),
   locations: z.array(z.object({ value: z.string().min(3, "لا يمكن أن يكون الموقع فارغًا.") })).min(1, "مطلوب موقع عيادة واحد على الأقل."),
+  isAvailable: z.boolean().optional(),
 });
 
 type ProfileFormValues = z.infer<typeof profileSchema>;
@@ -40,6 +42,7 @@ export function ProfileForm() {
       clinicPhoneNumbers: [{ value: "" }],
       specialty: "",
       locations: [{ value: "" }],
+      isAvailable: true,
     },
   });
 
@@ -50,6 +53,7 @@ export function ProfileForm() {
         clinicPhoneNumbers: (profile.clinicPhoneNumbers || []).map(p => ({ value: p })),
         specialty: profile.specialty,
         locations: (profile.locations || []).map(l => ({ value: l })),
+        isAvailable: profile.isAvailable ?? true,
       });
     }
   }, [profile, form]);
@@ -76,6 +80,7 @@ export function ProfileForm() {
         clinicPhoneNumbers: values.clinicPhoneNumbers.map(p => p.value),
         specialty: values.specialty,
         locations: values.locations.map(l => l.value),
+        isAvailable: values.isAvailable,
         // In a real app, you would handle the avatar upload here
       };
       await setDoctorProfile(user.uid, profileData);
@@ -135,7 +140,7 @@ export function ProfileForm() {
             <CardContent className="space-y-6">
                  <div className="flex items-center gap-4">
                     <Avatar className="h-20 w-20">
-                        <AvatarImage src={avatarPreview || "https://placehold.co/80x80.png"} alt={profile?.name} data-ai-hint="doctor avatar" />
+                        <AvatarImage src={avatarPreview || profile?.avatarUrl || "https://placehold.co/80x80.png"} alt={profile?.name} data-ai-hint="doctor avatar" />
                         {profile?.name && <AvatarFallback>{getInitials(profile.name)}</AvatarFallback>}
                     </Avatar>
                     <input
@@ -260,6 +265,26 @@ export function ProfileForm() {
                     إضافة موقع
                 </Button>
                 </div>
+                <FormField
+                  control={form.control}
+                  name="isAvailable"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                      <div className="space-y-0.5">
+                        <FormLabel className="text-base">الحالة</FormLabel>
+                        <FormDescription>
+                          عند التفعيل، يمكن لمرضاك الانضمام إلى قائمة الانتظار الخاصة بك.
+                        </FormDescription>
+                      </div>
+                      <FormControl>
+                        <Switch
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
             </CardContent>
             <CardFooter>
                 <Button type="submit" disabled={isSubmitting}>

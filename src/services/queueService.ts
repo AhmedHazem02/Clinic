@@ -500,5 +500,15 @@ export const getPatientsForLast30Days = async (doctorId: string): Promise<Patien
 // Set/Update a doctor's profile
 export const setDoctorProfile = async (uid: string, profile: Partial<DoctorProfile>) => {
     const docRef = doc(db, 'doctors', uid);
-    return await setDoc(docRef, profile, { merge: true });
+    const docSnap = await getDoc(docRef);
+
+    const profileData = { ...profile };
+
+    // If the doctor profile does not exist (it's a new doctor), 
+    // and `isAvailable` is not already defined, set it to true.
+    if (!docSnap.exists() && typeof profileData.isAvailable === 'undefined') {
+        profileData.isAvailable = true;
+    }
+
+    return await setDoc(docRef, profileData, { merge: true });
 }
