@@ -2,10 +2,10 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { setDoc, doc, getDoc, deleteDoc } from "firebase/firestore";
+import { deleteDoc } from "firebase/firestore";
 import { admin } from "@/lib/firebaseAdmin"; // Using admin SDK for server-side operations
-import { PatientInQueue, DoctorProfile } from "@/services/queueService";
 import { z } from "zod";
+import { removePatientFromQueueAdmin } from "@/services/queueService.admin";
 
 const PatientReportSchema = z.object({
     patientName: z.string(),
@@ -32,8 +32,8 @@ export async function setDoctorAvailability(uid: string, isAvailable: boolean) {
 
     try {
         const db = admin().firestore();
-        const docRef = doc(db, "doctors", uid);
-        await setDoc(docRef, { isAvailable }, { merge: true });
+        const docRef = db.collection("doctors").doc(uid);
+        await docRef.set({ isAvailable }, { merge: true });
         
         // Revalidate the path to ensure the UI updates
         revalidatePath("/doctor/dashboard");
@@ -50,9 +50,7 @@ export async function deletePatientAction(patientId: string) {
         return { success: false, error: "Patient ID is required." };
     }
     try {
-        const db = admin().firestore();
-        const patientDocRef = doc(db, 'patients', patientId);
-        await deleteDoc(patientDocRef);
+        await removePatientFromQueueAdmin(patientId);
         revalidatePath('/doctor/history'); // Revalidate the history page to show the change
         return { success: true };
     } catch (error) {

@@ -1,12 +1,10 @@
+
 // Import the functions you need from the SDKs you need
 import { initializeApp, getApps, getApp, type FirebaseApp } from "firebase/app";
-import { getPerformance, type Performance } from "firebase/performance";
 import { getFirestore, type Firestore } from "firebase/firestore";
 import { getAuth, type Auth } from "firebase/auth";
-// TODO: Add SDKs for Firebase products that you want to use
-// https://firebase.google.com/docs/web/setup#available-libraries
 
-// Your web app's Firebase configuration - Hardcoded to fix invalid API key issue
+// Your web app's Firebase configuration
 const firebaseConfig = {
   apiKey: "AIzaSyCHUXPQGzzUau7rDmNZBQSGhpnpTj8I28w",
   authDomain: "queuewise-clinic-bgafu.firebaseapp.com",
@@ -16,20 +14,33 @@ const firebaseConfig = {
   appId: "1:823213877401:web:d516081a75bbd9b95db008"
 };
 
-// Initialize Firebase
-const app: FirebaseApp = !getApps().length ? initializeApp(firebaseConfig) : getApp();
-const db: Firestore = getFirestore(app);
-
+// Just-in-time initialization
+let app: FirebaseApp;
+let db: Firestore;
 let auth: Auth;
-let perf: Performance | undefined;
 
-if (typeof window !== 'undefined') {
-  auth = getAuth(app);
-  perf = getPerformance(app);
-} else {
-  // Provide a dummy auth object for the server-side to avoid errors.
-  // The actual auth operations should only happen on the client.
-  auth = {} as Auth;
+function getFirebase() {
+    if (!getApps().length) {
+        app = initializeApp(firebaseConfig);
+        db = getFirestore(app);
+        
+        if (typeof window !== 'undefined') {
+            auth = getAuth(app);
+        } else {
+            // Provide a dummy auth object for the server-side
+            auth = {} as Auth; 
+        }
+    } else {
+        app = getApp();
+        db = getFirestore(app);
+        if (typeof window !== 'undefined') {
+            auth = getAuth(app);
+        } else {
+            auth = {} as Auth;
+        }
+    }
+    return { app, db, auth };
 }
 
-export { app, db, auth, perf };
+// Export the getter function
+export { getFirebase };

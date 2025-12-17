@@ -1,3 +1,7 @@
+    git add .
+    ```
+
+4.  **تثبيت التغييرات (Commit):**
 # Firebase Studio
 
 This is a NextJS starter in Firebase Studio.

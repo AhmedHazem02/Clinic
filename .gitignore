@@ -39,6 +39,9 @@ next-env.d.ts
 
 .genkit/*
 .env*
+.env.local*
+/home/user/studio/queuewise-clinic-bgafu-firebase-adminsdk-fbsvc-6ff0ffa5bd.json*
+
 
 # firebase
 firebase-debug.log

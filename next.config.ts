@@ -18,7 +18,7 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  serverExternalPackages: ['@firebase/auth'],
+  serverExternalPackages: ['@firebase/auth', '@firebase/app'],
 };
 
 export default nextConfig;

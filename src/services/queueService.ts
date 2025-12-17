@@ -1,5 +1,5 @@
 
-import { db } from "@/lib/firebase";
+import { getFirebase } from "@/lib/firebase";
 import { 
     collection, 
     addDoc, 
@@ -67,16 +67,10 @@ export interface NurseProfile {
     avatarUrl?: string;
 }
 
-
-// Get collections
-const patientsCollection = collection(db, 'patients');
-const clinicInfoCollection = collection(db, 'clinicInfo');
-const doctorsCollection = collection(db, 'doctors');
-const nursesCollection = collection(db, 'nurses');
-
-
 // Get the next queue number
 const getNextQueueNumber = async (doctorId: string): Promise<number> => {
+    const { db } = getFirebase();
+    const patientsCollection = collection(db, 'patients');
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const startOfToday = Timestamp.fromDate(today);
@@ -98,6 +92,8 @@ const getNextQueueNumber = async (doctorId: string): Promise<number> => {
 
 // Check if a patient has any previous record with a doctor
 const checkIfPatientExists = async (phone: string, doctorId: string): Promise<boolean> => {
+    const { db } = getFirebase();
+    const patientsCollection = collection(db, 'patients');
     const q = query(
         patientsCollection,
         where("phone", "==", phone),
@@ -111,6 +107,8 @@ const checkIfPatientExists = async (phone: string, doctorId: string): Promise<bo
 
 // Add a new patient to the queue
 export const addPatientToQueue = async (patientData: NewPatient): Promise<{ wasCorrected: boolean }> => {
+    const { db } = getFirebase();
+    const patientsCollection = collection(db, 'patients');
     if (!patientData.doctorId) {
         throw new Error("Doctor ID is required to add a patient.");
     }
@@ -163,6 +161,8 @@ export const listenToQueue = (
     callback: (patients: PatientInQueue[]) => void,
     errorCallback?: (error: Error) => void
 ) => {
+    const { db } = getFirebase();
+    const patientsCollection = collection(db, 'patients');
     const q = query(
         patientsCollection,
         where("doctorId", "==", doctorId),
@@ -211,6 +211,8 @@ export const listenToQueueForNurse = (
     callback: (patients: PatientInQueue[]) => void,
     errorCallback?: (error: Error) => void
 ) => {
+    const { db } = getFirebase();
+    const patientsCollection = collection(db, 'patients');
     const q = query(
         patientsCollection,
         where("doctorId", "==", doctorId)
@@ -254,6 +256,8 @@ export const listenToQueueForNurse = (
 
 // Get an active patient by phone number for a specific doctor
 export const getPatientByPhone = async (phone: string, doctorId: string): Promise<PatientInQueue | null> => {
+    const { db } = getFirebase();
+    const patientsCollection = collection(db, 'patients');
     const q = query(
         patientsCollection, 
         and(
@@ -282,6 +286,8 @@ export const getPatientByPhone = async (phone: string, doctorId: string): Promis
 
 // Get an active patient by phone number across all doctors (for patient search)
 export const getPatientByPhoneAcrossClinics = async (phone: string): Promise<PatientInQueue | null> => {
+    const { db } = getFirebase();
+    const patientsCollection = collection(db, 'patients');
     const q = query(
         patientsCollection, 
         and(
@@ -310,7 +316,8 @@ export const getPatientByPhoneAcrossClinics = async (phone: string): Promise<Pat
 
 // Update a patient's status
 export const updatePatientStatus = async (patientId: string, status: PatientStatus, prescription?: string) => {
-    const patientDocRef = doc(patientsCollection, patientId);
+    const { db } = getFirebase();
+    const patientDocRef = doc(db, 'patients', patientId);
     const updateData: { status: PatientStatus, prescription?: string } = { status };
     if (prescription) {
         updateData.prescription = prescription;
@@ -320,23 +327,25 @@ export const updatePatientStatus = async (patientId: string, status: PatientStat
 
 // Update the doctor's total revenue
 export const updateDoctorRevenue = async (doctorId: string, amount: number) => {
-    const doctorRef = doc(doctorsCollection, doctorId);
+    const { db } = getFirebase();
+    const doctorRef = doc(db, 'doctors', doctorId);
     // Use the Firestore 'increment' FieldValue to add to the existing revenue.
     await setDoc(doctorRef, { totalRevenue: increment(amount) }, { merge: true });
 }
 
 // Finish a consultation and call the next patient
 export const finishAndCallNext = async (currentPatientId: string, nextPatientId: string, prescription?: string) => {
+    const { db } = getFirebase();
     const batch = writeBatch(db);
     
-    const finishedPatientRef = doc(patientsCollection, currentPatientId);
+    const finishedPatientRef = doc(db, 'patients', currentPatientId);
     const updateData: { status: PatientStatus, prescription?: string } = { status: 'Finished' };
     if (prescription) {
         updateData.prescription = prescription;
     }
     batch.update(finishedPatientRef, updateData);
 
-    const nextPatientRef = doc(patientsCollection, nextPatientId);
+    const nextPatientRef = doc(db, 'patients', nextPatientId);
     batch.update(nextPatientRef, { status: 'Consulting' });
     
     await batch.commit();
@@ -344,20 +353,23 @@ export const finishAndCallNext = async (currentPatientId: string, nextPatientId:
 
 // Remove a patient from the queue (client-side)
 export const removePatientFromQueue = async (patientId: string) => {
-    const patientDocRef = doc(patientsCollection, patientId);
+    const { db } = getFirebase();
+    const patientDocRef = doc(db, 'patients', patientId);
     return await deleteDoc(patientDocRef);
 };
 
 // Update the doctor's global message
 export const updateDoctorMessage = async (message: string, doctorId: string) => {
-    const statusDocRef = doc(clinicInfoCollection, 'status');
+    const { db } = getFirebase();
+    const statusDocRef = doc(db, 'clinicInfo', 'status');
     // Store message per doctor
     await setDoc(statusDocRef, { [`message_${doctorId}`]: message }, { merge: true });
 };
 
 // Listen to the doctor's global message
 export const listenToDoctorMessage = (doctorId: string, callback: (message: string) => void) => {
-    const statusDocRef = doc(clinicInfoCollection, 'status');
+    const { db } = getFirebase();
+    const statusDocRef = doc(db, 'clinicInfo', 'status');
     const unsubscribe = onSnapshot(statusDocRef, (doc) => {
         if (doc.exists()) {
             callback(doc.data()[`message_${doctorId}`] || "");
@@ -370,13 +382,15 @@ export const listenToDoctorMessage = (doctorId: string, callback: (message: stri
 
 // Update clinic settings
 export const updateClinicSettings = async (settings: ClinicSettings) => {
-    const settingsDocRef = doc(clinicInfoCollection, 'settings');
+    const { db } = getFirebase();
+    const settingsDocRef = doc(db, 'clinicInfo', 'settings');
     return await setDoc(settingsDocRef, settings, { merge: true });
 };
 
 // Get clinic settings once
 export const getClinicSettings = async (): Promise<ClinicSettings | null> => {
-    const settingsDocRef = doc(clinicInfoCollection, 'settings');
+    const { db } = getFirebase();
+    const settingsDocRef = doc(db, 'clinicInfo', 'settings');
     const docSnap = await getDoc(settingsDocRef);
     if (docSnap.exists()) {
         return docSnap.data() as ClinicSettings;
@@ -386,7 +400,8 @@ export const getClinicSettings = async (): Promise<ClinicSettings | null> => {
 
 // Listen to clinic settings
 export const listenToClinicSettings = (callback: (settings: ClinicSettings | null) => void) => {
-    const settingsDocRef = doc(clinicInfoCollection, 'settings');
+    const { db } = getFirebase();
+    const settingsDocRef = doc(db, 'clinicInfo', 'settings');
     const unsubscribe = onSnapshot(settingsDocRef, (doc) => {
         if (doc.exists()) {
             callback(doc.data() as ClinicSettings);
@@ -401,6 +416,8 @@ export const listenToClinicSettings = (callback: (settings: ClinicSettings | nul
 
 // Get all doctors' profiles (for report generation)
 export const getAllDoctors = async (): Promise<DoctorProfile[]> => {
+    const { db } = getFirebase();
+    const doctorsCollection = collection(db, 'doctors');
     const snapshot = await getDocs(doctorsCollection);
     const doctors: DoctorProfile[] = [];
     snapshot.forEach(doc => {
@@ -411,7 +428,8 @@ export const getAllDoctors = async (): Promise<DoctorProfile[]> => {
 
 // Get a doctor's profile
 export const getDoctorProfile = async (uid: string): Promise<DoctorProfile | null> => {
-    const docRef = doc(doctorsCollection, uid);
+    const { db } = getFirebase();
+    const docRef = doc(db, 'doctors', uid);
     const docSnap = await getDoc(docRef);
     if (docSnap.exists()) {
         return docSnap.data() as DoctorProfile;
@@ -421,7 +439,8 @@ export const getDoctorProfile = async (uid: string): Promise<DoctorProfile | nul
 
 // Listen to a doctor's profile
 export const listenToDoctorProfile = (uid: string, callback: (profile: DoctorProfile | null) => void) => {
-    const docRef = doc(doctorsCollection, uid);
+    const { db } = getFirebase();
+    const docRef = doc(db, 'doctors', uid);
     const unsubscribe = onSnapshot(docRef, (doc) => {
         if (doc.exists()) {
             callback(doc.data() as DoctorProfile);
@@ -434,7 +453,8 @@ export const listenToDoctorProfile = (uid: string, callback: (profile: DoctorPro
 
 // Listen to a doctor's availability
 export const listenToDoctorAvailability = (doctorId: string, callback: (isAvailable: boolean) => void) => {
-    const docRef = doc(doctorsCollection, doctorId);
+    const { db } = getFirebase();
+    const docRef = doc(db, 'doctors', doctorId);
     const unsubscribe = onSnapshot(docRef, (doc) => {
         if (doc.exists()) {
             const doctorData = doc.data() as DoctorProfile;
@@ -453,7 +473,8 @@ export const listenToDoctorAvailability = (doctorId: string, callback: (isAvaila
 
 // Get a nurse's profile
 export const getNurseProfile = async (uid: string): Promise<NurseProfile | null> => {
-    const docRef = doc(nursesCollection, uid);
+    const { db } = getFirebase();
+    const docRef = doc(db, 'nurses', uid);
     const docSnap = await getDoc(docRef);
     if (docSnap.exists()) {
         return docSnap.data() as NurseProfile;
@@ -463,7 +484,8 @@ export const getNurseProfile = async (uid: string): Promise<NurseProfile | null>
 
 // Set/Update a nurse's profile
 export const setNurseProfile = async (uid: string, profile: Partial<NurseProfile>) => {
-    const docRef = doc(nursesCollection, uid);
+    const { db } = getFirebase();
+    const docRef = doc(db, 'nurses', uid);
     return await setDoc(docRef, profile, { merge: true });
 }
 
@@ -471,6 +493,8 @@ export const setNurseProfile = async (uid: string, profile: Partial<NurseProfile
 
 // Get patients from the last 30 days for a specific doctor
 export const getPatientsForLast30Days = async (doctorId: string): Promise<PatientInQueue[]> => {
+    const { db } = getFirebase();
+    const patientsCollection = collection(db, 'patients');
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
     const startTimestamp = Timestamp.fromDate(thirtyDaysAgo);
@@ -497,8 +521,45 @@ export const getPatientsForLast30Days = async (doctorId: string): Promise<Patien
     return patients;
 };
 
+export const getPreviousBookings = async (
+    doctorId: string, 
+    startDate: Date, 
+    endDate: Date
+): Promise<PatientInQueue[]> => {
+    const { db } = getFirebase();
+    const patientsCollection = collection(db, 'patients');
+    const startTimestamp = Timestamp.fromDate(startDate);
+    // Add one day to the end date to include the entire day in the query
+    const endOfDay = new Date(endDate);
+    endOfDay.setHours(23, 59, 59, 999);
+    const endTimestamp = Timestamp.fromDate(endOfDay);
+
+    const q = query(
+        patientsCollection,
+        where("doctorId", "==", doctorId),
+        where("bookingDate", ">=", startTimestamp),
+        where("bookingDate", "<=", endTimestamp),
+        orderBy("bookingDate", "desc")
+    );
+
+    const snapshot = await getDocs(q);
+    const bookings: PatientInQueue[] = [];
+    snapshot.forEach((doc) => {
+        const data = doc.data();
+        const bookingDateTimestamp = data.bookingDate || data.createdAt || Timestamp.now();
+        bookings.push({
+            id: doc.id,
+            ...data,
+            bookingDate: bookingDateTimestamp.toDate(),
+        } as PatientInQueue);
+    });
+
+    return bookings;
+};
+
 // Set/Update a doctor's profile
 export const setDoctorProfile = async (uid: string, profile: Partial<DoctorProfile>) => {
+    const { db } = getFirebase();
     const docRef = doc(db, 'doctors', uid);
     const docSnap = await getDoc(docRef);
 

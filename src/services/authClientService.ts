@@ -1,6 +1,7 @@
+
 "use client";
 
-import { auth } from "@/lib/firebase";
+import { getFirebase } from "@/lib/firebase";
 import { 
     signInWithEmailAndPassword,
     signOut,
@@ -10,18 +11,22 @@ import {
 } from "firebase/auth";
 
 export const signInUser = (email: string, password: string) => {
+    const { auth } = getFirebase();
     return signInWithEmailAndPassword(auth, email, password);
 }
 
 export const signOutUser = () => {
+    const { auth } = getFirebase();
     return signOut(auth);
 }
 
 export const onAuthChange = (callback: (user: User | null) => void) => {
+    const { auth } = getFirebase();
     return onAuthStateChanged(auth, callback);
 }
 
 export const sendPasswordReset = (email: string) => {
+    const { auth } = getFirebase();
     return sendPasswordResetEmail(auth, email);
 }
 

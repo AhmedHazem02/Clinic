@@ -1,4 +1,5 @@
 import * as firebaseAdmin from 'firebase-admin';
+import serviceAccount from '../../queuewise-clinic-bgafu-firebase-adminsdk-fbsvc-6ff0ffa5bd.json';
 
 // This function now handles the "just-in-time" initialization of Firebase Admin.
 function initializeFirebaseAdmin() {
@@ -6,24 +7,15 @@ function initializeFirebaseAdmin() {
     return firebaseAdmin;
   }
 
-  const serviceAccountString = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
-  if (!serviceAccountString) {
-    // This error will now only be thrown when an admin function is actually called,
-    // not when the application starts up.
-    throw new Error(
-      'FIREBASE_SERVICE_ACCOUNT_KEY is not set. Firebase Admin SDK cannot be initialized.'
-    );
-  }
-
   try {
-    const serviceAccount = JSON.parse(serviceAccountString);
     firebaseAdmin.initializeApp({
-      credential: firebaseAdmin.credential.cert(serviceAccount),
+      // Use the imported service account object directly
+      credential: firebaseAdmin.credential.cert(serviceAccount as any),
     });
     return firebaseAdmin;
   } catch (error: any) {
     throw new Error(
-      `Failed to parse FIREBASE_SERVICE_ACCOUNT_KEY or initialize Firebase Admin: ${error.message}`
+      `Failed to initialize Firebase Admin: ${error.message}`
     );
   }
 }

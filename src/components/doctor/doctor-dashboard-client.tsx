@@ -3,7 +3,8 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import {
+import { DateRange } from "react-day-picker";
+import { 
   Card,
   CardContent,
   CardDescription,
@@ -16,13 +17,23 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Download, Printer, User, HeartPulse, LogIn, CheckCircle, MessageSquarePlus, DollarSign, Info, Settings, FileText } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { DatePickerWithRange } from "@/components/ui/date-range-picker";
+import { Download, Printer, User, HeartPulse, LogIn, CheckCircle, MessageSquarePlus, DollarSign, Info, Settings, FileText, CalendarClock, Users } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { listenToQueue, type PatientInQueue, finishAndCallNext, updatePatientStatus, updateDoctorMessage, listenToDoctorMessage, listenToClinicSettings, updateDoctorRevenue, listenToDoctorProfile } from "@/services/queueService";
+import { listenToQueue, type PatientInQueue, finishAndCallNext, updatePatientStatus, updateDoctorMessage, listenToDoctorMessage, listenToClinicSettings, updateDoctorRevenue, listenToDoctorProfile, getPreviousBookings } from "@/services/queueService";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useDoctorProfile } from "./doctor-profile-provider";
 import { generatePatientReport, setDoctorAvailability } from "@/app/actions";
 import { PrintablePrescription } from "./printable-prescription";
+import { addDays, isToday } from "date-fns";
+import {
+  AiAssistedPrescriptionInput,
+  generatePrescriptionPhrases,
+} from "@/ai/flows/ai-assisted-prescription";
+import { Wand2 } from "lucide-react";
+import { ScrollArea } from "../ui/scroll-area";
+import { Badge } from "../ui/badge";
 
 export function DoctorDashboardClient() {
   const { user, profile } = useDoctorProfile();
@@ -31,12 +42,21 @@ export function DoctorDashboardClient() {
   const { toast } = useToast();
 
   const [queue, setQueue] = useState<PatientInQueue[]>([]);
+  const [upcomingReservations, setUpcomingReservations] = useState<PatientInQueue[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [doctorMessage, setDoctorMessage] = useState("");
   const [isUpdatingMessage, setIsUpdatingMessage] = useState(false);
   const [todaysRevenue, setTodaysRevenue] = useState(0);
   const [consultationCost, setConsultationCost] = useState(0);
   const [reConsultationCost, setReConsultationCost] = useState(0);
+  const [previousBookings, setPreviousBookings] = useState<PatientInQueue[]>([]);
+  const [isFetchingBookings, setIsFetchingBookings] = useState(false);
+  const [dateRange, setDateRange] = useState<DateRange | undefined>({
+    from: addDays(new Date(), -7),
+    to: new Date(),
+  });
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [desiredEffect, setDesiredEffect] = useState("");
 
   useEffect(() => {
     if (!user) return;
@@ -50,6 +70,12 @@ export function DoctorDashboardClient() {
 
     const unsubscribeQueue = listenToQueue(user.uid, (updatedQueue) => {
       setQueue(updatedQueue);
+      
+      const upcoming = updatedQueue
+        .filter(p => p.status === 'Waiting' && isToday(p.bookingDate))
+        .sort((a, b) => a.queueNumber - b.queueNumber);
+      setUpcomingReservations(upcoming);
+      
       setIsLoading(false);
     });
     
@@ -170,6 +196,72 @@ export function DoctorDashboardClient() {
       setIsUpdatingMessage(false);
     }
   };
+
+  const handleFetchPreviousBookings = async () => {
+    if (!user || !dateRange || !dateRange.from || !dateRange.to) {
+      toast({
+        variant: "destructive",
+        title: "خطأ",
+        description: "يرجى تحديد نطاق زمني.",
+      });
+      return;
+    }
+    setIsFetchingBookings(true);
+    try {
+      const allBookings = await getPreviousBookings(
+        user.uid,
+        dateRange.from,
+        dateRange.to
+      );
+      // Filter and sort for finished bookings on the client side
+      const finishedBookings = allBookings
+        .filter((b) => b.status === "Finished")
+        .sort((a, b) => b.bookingDate.getTime() - a.bookingDate.getTime());
+      
+      setPreviousBookings(finishedBookings);
+
+      if (finishedBookings.length === 0) {
+        toast({
+          title: "لا توجد حجوزات",
+          description:
+            "لم يتم العثور على حجوزات مكتملة في هذا النطاق الزمني.",
+        });
+      }
+    } catch (error) {
+      console.error("Error fetching previous bookings:", error);
+      toast({
+        variant: "destructive",
+        title: "خطأ",
+        description: "فشل في جلب الحجوزات السابقة.",
+      });
+    } finally {
+      setIsFetchingBookings(false);
+    }
+  };
+
+  const handleGeneratePrescription = async () => {
+    if (!currentPatient || !desiredEffect) return;
+
+    setIsGenerating(true);
+    try {
+      const input: AiAssistedPrescriptionInput = {
+        patientName: currentPatient.name,
+        patientDetails: `Age: ${currentPatient.age}, Chronic Diseases: ${currentPatient.chronicDiseases}, Consultation Reason: ${currentPatient.consultationReason}`,
+        desiredEffect: desiredEffect,
+      };
+      const result = await generatePrescriptionPhrases(input);
+      setPrescription(result.prescriptionPhrases.join("\n"));
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "فشل إنشاء الروشتة",
+        description:
+          "حدث خطأ أثناء إنشاء الروشتة. يرجى المحاولة مرة أخرى.",
+      });
+    } finally {
+      setIsGenerating(false);
+    }
+  };
   
   const isNewAccount = !isLoading && queue.length === 0;
 
@@ -244,6 +336,44 @@ export function DoctorDashboardClient() {
             </Card>
 
             <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                        <Users className="text-primary"/> الحجوزات القادمة
+                    </CardTitle>
+                    <CardDescription>المرضى المنتظرون في قائمة الانتظار لهذا اليوم.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <ScrollArea className="h-64">
+                        {isLoading ? (
+                             <div className="space-y-2">
+                                <Skeleton className="h-8 w-full" />
+                                <Skeleton className="h-8 w-full" />
+                                <Skeleton className="h-8 w-full" />
+                            </div>
+                        ) : upcomingReservations.length > 0 ? (
+                            <div className="space-y-2">
+                                {upcomingReservations.map(patient => (
+                                     <div key={patient.id} className="flex justify-between items-center p-2 border rounded-md">
+                                        <div>
+                                            <p className="font-semibold">{patient.name}</p>
+                                            <p className="text-sm text-muted-foreground">
+                                                #{patient.queueNumber}
+                                            </p>
+                                        </div>
+                                        <Badge variant={patient.queueType === 'Re-consultation' ? 'secondary' : 'outline'}>
+                                            {patient.queueType === 'Re-consultation' ? 'إعادة استشارة' : 'استشارة'}
+                                        </Badge>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                             <p className="text-muted-foreground text-center py-4">لا توجد حجوزات قادمة اليوم.</p>
+                        )}
+                    </ScrollArea>
+                </CardContent>
+            </Card>
+
+            <Card>
               <CardHeader>
                 <CardTitle>كتابة الروشتة</CardTitle>
                 <CardDescription>
@@ -258,12 +388,73 @@ export function DoctorDashboardClient() {
                   onChange={(e) => setPrescription(e.target.value)}
                   disabled={!currentPatient}
                 />
+                <div className="space-y-2">
+                  <Label htmlFor="desired-effect">
+                    التأثير المطلوب (للمساعدة بالذكاء الاصطناعي)
+                  </Label>
+                  <div className="flex gap-2">
+                    <Input
+                      id="desired-effect"
+                      placeholder="مثال: خافض للحرارة ومسكن للألم"
+                      value={desiredEffect}
+                      onChange={(e) => setDesiredEffect(e.target.value)}
+                      disabled={!currentPatient || isGenerating}
+                    />
+                    <Button
+                      onClick={handleGeneratePrescription}
+                      disabled={!currentPatient || isGenerating || !desiredEffect}
+                    >
+                      <Wand2 />
+                      {isGenerating ? "جاري الإنشاء..." : "إنشاء"}
+                    </Button>
+                  </div>
+                </div>
               </CardContent>
               <CardFooter className="gap-2 justify-end">
                 <Button variant="secondary" onClick={handlePrint} disabled={!currentPatient || !prescription.trim()}>
                   <Printer className="ml-2" /> طباعة
                 </Button>
               </CardFooter>
+            </Card>
+
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                        <CalendarClock className="text-primary"/> الحجوزات السابقة
+                    </CardTitle>
+                    <CardDescription>عرض الحجوزات المكتملة في نطاق زمني محدد.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    <div className="flex items-center gap-2">
+                       <DatePickerWithRange date={dateRange} setDate={setDateRange} />
+                        <Button onClick={handleFetchPreviousBookings} disabled={isFetchingBookings}>
+                            {isFetchingBookings ? 'جاري البحث...' : 'بحث'}
+                        </Button>
+                    </div>
+                    <div className="space-y-2">
+                        {isFetchingBookings ? (
+                            <>
+                                <Skeleton className="h-8 w-full" />
+                                <Skeleton className="h-8 w-full" />
+                                <Skeleton className="h-8 w-full" />
+                            </>
+                        ) : previousBookings.length > 0 ? (
+                            previousBookings.map(booking => (
+                                <div key={booking.id} className="flex justify-between items-center p-2 border rounded-md">
+                                    <div>
+                                        <p className="font-semibold">{booking.name}</p>
+                                        <p className="text-sm text-muted-foreground">
+                                            {new Date(booking.bookingDate).toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' })}
+                                        </p>
+                                    </div>
+                                    <p className="text-sm font-medium">{booking.queueType}</p>
+                                </div>
+                            ))
+                        ) : (
+                            <p className="text-muted-foreground text-center py-4">حدد نطاقًا زمنيًا واضغط على بحث لعرض الحجوزات.</p>
+                        )}
+                    </div>
+                </CardContent>
             </Card>
         </div>
 
@@ -332,3 +523,4 @@ export function DoctorDashboardClient() {
     </>
   );
 }
+
