@@ -26,7 +26,14 @@ export function QrCodeDialog({ patient, isOpen, onClose }: QrCodeDialogProps) {
 
   useEffect(() => {
     if (patient && typeof window !== "undefined") {
-      setStatusUrl(`${window.location.origin}/status/${patient.doctorId}/${patient.phone}`);
+      // Use new ticket-based URL if ticketId exists (multi-tenant mode)
+      // Otherwise fallback to legacy URL format
+      if (patient.ticketId && patient.clinicId) {
+        setStatusUrl(`${window.location.origin}/status/${patient.clinicId}/${patient.doctorId}/${patient.ticketId}`);
+      } else {
+        // Legacy format (backward compatibility)
+        setStatusUrl(`${window.location.origin}/status/legacy/${patient.doctorId}/${patient.phone}`);
+      }
     }
   }, [patient]);
 

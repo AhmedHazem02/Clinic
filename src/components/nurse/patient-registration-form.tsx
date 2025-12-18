@@ -39,6 +39,7 @@ import { addPatientToQueue, getPatientByPhone, type PatientInQueue, type QueueTy
 import { useState, useEffect } from "react";
 import { RadioGroup, RadioGroupItem } from "../ui/radio-group";
 import { useNurseProfile } from "./nurse-profile-provider";
+import { isModernProfile } from "@/services/userProfileService";
 
 const formSchema = z.object({
   name: z.string().min(2, "يجب أن يتكون الاسم من حرفين على الأقل."),
@@ -57,7 +58,7 @@ interface PatientRegistrationFormProps {
 }
 
 export function PatientRegistrationForm({ onPatientRegistered }: PatientRegistrationFormProps) {
-  const { user, profile } = useNurseProfile();
+  const { user, profile, userProfile } = useNurseProfile();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const form = useForm<z.infer<typeof formSchema>>({
@@ -91,7 +92,8 @@ export function PatientRegistrationForm({ onPatientRegistered }: PatientRegistra
 
     setIsSubmitting(true);
     try {
-      const result = await addPatientToQueue({
+      // Prepare patient data with optional clinicId for multi-tenant support
+      const patientData: any = {
         name: values.name,
         // Since nurse and doctor are the same user, we use the nurse's UID as the doctorId
         doctorId: user.uid,
@@ -103,7 +105,14 @@ export function PatientRegistrationForm({ onPatientRegistered }: PatientRegistra
         queueType: values.queueType as QueueType,
         nurseId: user.uid,
         nurseName: profile.name,
-      });
+      };
+
+      // Add clinicId if user has a modern profile (multi-tenant)
+      if (userProfile && isModernProfile(userProfile)) {
+        patientData.clinicId = userProfile.clinicId;
+      }
+
+      const result = await addPatientToQueue(patientData);
 
       const newPatient = await getPatientByPhone(values.phone, user.uid);
       if (newPatient) {

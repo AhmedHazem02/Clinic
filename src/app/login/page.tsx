@@ -20,13 +20,20 @@ export default function LoginPage() {
           </p>
         </div>
         <LoginTabs />
-        <div className="text-center mt-6">
+        <div className="text-center mt-6 space-y-3">
             <Button variant="ghost" asChild>
                 <Link href="/">
                     <ArrowLeft className="ml-2" />
                     العودة إلى الصفحة الرئيسية
                 </Link>
             </Button>
+            <div className="pt-2 border-t border-muted">
+              <Button variant="link" asChild className="text-xs text-muted-foreground hover:text-foreground">
+                <Link href="/platform/login">
+                  🔐 دخول Super Admin
+                </Link>
+              </Button>
+            </div>
         </div>
       </div>
     </div>

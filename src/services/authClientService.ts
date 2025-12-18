@@ -30,4 +30,10 @@ export const sendPasswordReset = (email: string) => {
     return sendPasswordResetEmail(auth, email);
 }
 
+export const signUpUser = async (email: string, password: string) => {
+    const { auth } = getFirebase();
+    const { createUserWithEmailAndPassword } = await import('firebase/auth');
+    return createUserWithEmailAndPassword(auth, email, password);
+}
+
 export type { User };

@@ -36,7 +36,7 @@ import { ScrollArea } from "../ui/scroll-area";
 import { Badge } from "../ui/badge";
 
 export function DoctorDashboardClient() {
-  const { user, profile } = useDoctorProfile();
+  const { user, profile, userProfile } = useDoctorProfile();
   const [isAvailable, setIsAvailable] = useState(true);
   const [prescription, setPrescription] = useState("");
   const { toast } = useToast();
@@ -59,7 +59,7 @@ export function DoctorDashboardClient() {
   const [desiredEffect, setDesiredEffect] = useState("");
 
   useEffect(() => {
-    if (!user) return;
+    if (!user || !userProfile) return;
 
     const unsubscribeSettings = listenToClinicSettings((settings) => {
       if (settings) {
@@ -68,16 +68,28 @@ export function DoctorDashboardClient() {
       }
     });
 
-    const unsubscribeQueue = listenToQueue(user.uid, (updatedQueue) => {
-      setQueue(updatedQueue);
-      
-      const upcoming = updatedQueue
-        .filter(p => p.status === 'Waiting' && isToday(p.bookingDate))
-        .sort((a, b) => a.queueNumber - b.queueNumber);
-      setUpcomingReservations(upcoming);
-      
-      setIsLoading(false);
-    });
+    const unsubscribeQueue = listenToQueue(
+      user.uid, 
+      (updatedQueue) => {
+        setQueue(updatedQueue);
+        
+        const upcoming = updatedQueue
+          .filter(p => p.status === 'Waiting' && isToday(p.bookingDate))
+          .sort((a, b) => a.queueNumber - b.queueNumber);
+        setUpcomingReservations(upcoming);
+        
+        setIsLoading(false);
+      },
+      async (error) => {
+        // Handle permission errors - user might be deactivated
+        if (error.message.includes('permission-denied') || error.message.includes('insufficient permissions')) {
+          const { signOutUser } = await import('@/services/authClientService');
+          await signOutUser();
+          window.location.href = '/login?message=تم إيقاف حسابك من قبل الإدارة';
+        }
+      },
+      'clinicId' in userProfile ? userProfile.clinicId : undefined
+    );
     
     const unsubscribeMessage = listenToDoctorMessage(user.uid, (message) => {
       setDoctorMessage(message);
@@ -96,7 +108,7 @@ export function DoctorDashboardClient() {
       unsubscribeSettings();
       unsubscribeProfile();
     };
-  }, [user]);
+  }, [user, userProfile]);
 
   const currentPatient = queue.find(p => p.status === 'Consulting');
   const nextPatient = queue.find(p => p.status === 'Waiting');

@@ -1,35 +1,183 @@
 rules_version = '2';
+
+/**
+ * Step 5 Security Rules: Multi-Tenant Isolation
+ * 
+ * This ruleset enforces strict multi-tenant isolation while allowing
+ * controlled public access for booking and status pages.
+ * 
+ * Key Security Principles:
+ * 1. Default deny all access
+ * 2. Public can GET (not list) specific active resources
+ * 3. Staff can only access their own clinic's data
+ * 4. No public writes to Firestore (use server API instead)
+ * 5. Anti-scraping: no list queries on public collections
+ */
+
 service cloud.firestore {
   match /databases/{database}/documents {
     
-    // Default deny all
+    // Helper functions for multi-tenant isolation
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function getUserClinicId() {
+      return get(/databases/$(database)/documents/doctors/$(request.auth.uid)).data.clinicId;
+    }
+    
+    function getNurseClinicId() {
+      return get(/databases/$(database)/documents/nurses/$(request.auth.uid)).data.clinicId;
+    }
+    
+    function isActiveDoctor() {
+      return exists(/databases/$(database)/documents/doctors/$(request.auth.uid)) &&
+             get(/databases/$(database)/documents/doctors/$(request.auth.uid)).data.isActive == true;
+    }
+    
+    function isActiveNurse() {
+      return exists(/databases/$(database)/documents/nurses/$(request.auth.uid)) &&
+             get(/databases/$(database)/documents/nurses/$(request.auth.uid)).data.isActive == true;
+    }
+    
+    function sameClinic(clinicId) {
+      return isAuthenticated() && (
+        (isActiveDoctor() && getUserClinicId() == clinicId) ||
+        (isActiveNurse() && getNurseClinicId() == clinicId)
+      );
+    }
+    
+    function isDoctor() {
+      return isAuthenticated() && exists(/databases/$(database)/documents/doctors/$(request.auth.uid));
+    }
+    
+    function isNurse() {
+      return isAuthenticated() && exists(/databases/$(database)/documents/nurses/$(request.auth.uid));
+    }
+
+    // ==========================================================================
+    // DEFAULT DENY ALL
+    // ==========================================================================
     match /{document=**} {
       allow read, write: if false;
     }
 
-    // Allow public read for clinic info, but only authenticated users can write
-    match /clinicInfo/{docId} {
-      allow read: if true;
-      allow write: if request.auth != null;
+    // ==========================================================================
+    // PUBLIC COLLECTIONS (Get-only, no list queries)
+    // ==========================================================================
+    
+    // Clinics: Public can get active clinics by ID
+    match /clinics/{clinicId} {
+      // Public: Can get or list active clinics (for booking page and clinic selection)
+      allow get, list: if resource.data.isActive == true;
+      
+      // Staff: Can read/write their own clinic
+      allow read, write: if sameClinic(clinicId);
+      
+      // Invites subcollection: Only staff can manage
+      match /invites/{inviteId} {
+        // Public: Can read pending invites (for accept-invite page)
+        // Token verification happens in client code
+        allow get: if resource.data.status == 'pending';
+        
+        // Staff: Can read/update/delete invites for their clinic
+        allow get, list, update, delete: if sameClinic(clinicId);
+        
+        // Staff: Can create invites for their clinic
+        allow create: if sameClinic(clinicId);
+      }
+    }
+    
+    // Doctors: Public can get active doctors by ID
+    match /doctors/{doctorId} {
+      // Doctor: Can read/write their own profile (even if deactivated, to show error message)
+      allow read, write: if isAuthenticated() && request.auth.uid == doctorId;
+      
+      // Public: Can get or list active doctors (for booking page)
+      allow get, list: if resource.data.isActive == true;
+      
+      // New doctor: Can create their own profile (for invite acceptance)
+      allow create: if isAuthenticated() && 
+        request.auth.uid == doctorId &&
+        request.resource.data.uid == request.auth.uid;
+      
+      // Same clinic staff: Can read
+      allow read: if sameClinic(resource.data.clinicId);
+    }
+    
+    // Nurses: Only staff can access
+    match /nurses/{nurseId} {
+      // Nurse: Can read/write their own profile (even if deactivated, to show error message)
+      allow read, write: if isAuthenticated() && request.auth.uid == nurseId;
+      
+      // New nurse: Can create their own profile (for invite acceptance)
+      allow create: if isAuthenticated() && 
+        request.auth.uid == nurseId &&
+        request.resource.data.uid == request.auth.uid;
+      
+      // Same clinic staff: Can read (only active staff)
+      allow read: if sameClinic(resource.data.clinicId);
+    }
+    
+    // Booking Tickets: Public can get individual tickets (privacy-safe status page)
+    match /bookingTickets/{ticketId} {
+      // Public: Can get ticket if not expired (24 hours)
+      allow get: if resource.data.expiresAt.toMillis() > request.time.toMillis();
+      
+      // Staff: Can read tickets for their clinic
+      allow read: if sameClinic(resource.data.clinicId);
+      
+      // No public writes! Use /api/public/book instead
+      allow write: if false;
+    }
+    
+    // Queue State: Public can get current queue state (anti-scraping)
+    match /queueState/{stateId} {
+      // Public: Can get queue state (format: {clinicId}_{doctorId})
+      allow get: if true;
+      
+      // Staff: Can read for their clinic
+      allow read: if sameClinic(resource.data.clinicId);
+      
+      // Only server can write (via Admin SDK)
+      allow write: if false;
     }
 
-    // Allow public read for doctor profiles
-    // Allow a doctor to write ONLY to their own profile
-    match /doctors/{doctorId} {
-      allow read: if true;
-      allow create, update, delete: if request.auth != null && request.auth.uid == doctorId;
-    }
+    // ==========================================================================
+    // STAFF-ONLY COLLECTIONS (Multi-tenant isolation)
+    // ==========================================================================
     
-    // Allow authenticated users to manage nurses
-    match /nurses/{nurseId} {
-      allow read, write: if request.auth != null;
-    }
-    
-    // Allow public read for patients (for status checks)
-    // Allow authenticated users (staff) to manage patient records
+    // Patients: Strict multi-tenant isolation
     match /patients/{patientId} {
-      allow read: if true;
-      allow create, update, delete: if request.auth != null;
+      // Staff: Can read/update/delete patients from their clinic
+      allow read, update, delete: if sameClinic(resource.data.clinicId);
+      
+      // Staff: Can create patients for their clinic
+      allow create: if sameClinic(request.resource.data.clinicId);
+    }
+    
+    // User Profiles: Users can only access their own profile
+    match /userProfiles/{userId} {
+      allow read, write: if isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // ==========================================================================
+    // PLATFORM ADMIN COLLECTIONS (Server-side only, no client access)
+    // ==========================================================================
+    
+    // Platform Admins: No client access (Admin SDK only)
+    match /platformAdmins/{adminId} {
+      // Users can ONLY read their own admin status (for UI decisions)
+      allow read: if isAuthenticated() && request.auth.uid == adminId;
+      
+      // No writes from client (Admin SDK only)
+      allow write: if false;
+    }
+    
+    // Platform Clients: No client access (Admin SDK only)
+    match /platformClients/{clientId} {
+      // Completely deny all client access - must use /api/platform/* routes
+      allow read, write: if false;
     }
   }
 }

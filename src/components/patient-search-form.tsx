@@ -16,7 +16,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { QrCode, Phone } from "lucide-react";
 import { Separator } from "./ui/separator";
-import { getPatientByPhoneAcrossClinics } from "@/services/queueService";
 import { QrScannerDialog } from "./qr-scanner-dialog";
 
 export function PatientSearchForm() {
@@ -36,9 +35,30 @@ export function PatientSearchForm() {
     setError(null);
 
     try {
-      const result = await getPatientByPhoneAcrossClinics(phone);
-      if (result) {
-        router.push(`/status/${result.doctorId}/${phone}`);
+      // Call server API to search for patient
+      const response = await fetch('/api/public/search-patient', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ phone }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Search failed');
+      }
+
+      if (result.found && result.patient) {
+        const patient = result.patient;
+        // Use new ticket-based URL if ticketId and clinicId exist
+        if (patient.ticketId && patient.clinicId) {
+          router.push(`/status/${patient.clinicId}/${patient.doctorId}/${patient.ticketId}`);
+        } else {
+          // Legacy URL format
+          router.push(`/status/legacy/${patient.doctorId}/${phone}`);
+        }
       } else {
         setError("لم يتم العثور على مريض نشط بهذا الرقم في قائمة الانتظار.");
       }
@@ -59,12 +79,20 @@ export function PatientSearchForm() {
     setIsScannerOpen(false);
     try {
         const urlParts = new URL(url);
-        const pathParts = urlParts.pathname.split('/');
-        // Expected format: /status/[doctorId]/[phone]
-        if (pathParts.length >= 4 && pathParts[1] === 'status') {
-            const doctorId = pathParts[2];
-            const phone = pathParts[3];
-            router.push(`/status/${doctorId}/${phone}`);
+        const pathParts = urlParts.pathname.split('/').filter(p => p);
+        // Expected formats:
+        // New: /status/[clinicId]/[doctorId]/[ticketId] (4 parts)
+        // Legacy: /status/legacy-[doctorId]/[phone] (3 parts)
+        if (pathParts[0] === 'status') {
+            if (pathParts.length === 4) {
+                // New ticket-based format
+                router.push(`/status/${pathParts[1]}/${pathParts[2]}/${pathParts[3]}`);
+            } else if (pathParts.length === 3) {
+                // Legacy format
+                router.push(`/status/${pathParts[1]}/${pathParts[2]}`);
+            } else {
+                setError("رمز QR غير صالح.");
+            }
         } else {
             setError("رمز QR غير صالح.");
         }

@@ -12,27 +12,67 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
 import { useNurseProfile } from "./nurse-profile-provider";
 
 export function NurseDashboardClient() {
-    const { user } = useNurseProfile();
+    const { user, userProfile } = useNurseProfile();
     const [qrCodeData, setQrCodeData] = useState<PatientInQueue | null>(null);
     const [searchQuery, setSearchQuery] = useState("");
     const [patients, setPatients] = useState<PatientInQueue[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
-        if (!user) return;
+        if (!user || !userProfile) {
+            console.warn('NurseDashboardClient: Missing user or userProfile', { user, userProfile });
+            return;
+        }
+
+        // Get clinicId from userProfile (multi-tenant)
+        const clinicId = 'clinicId' in userProfile ? userProfile.clinicId : undefined;
+        if (!clinicId) {
+            console.error('NurseDashboardClient: userProfile missing clinicId', { userProfile });
+            return;
+        }
 
         // Since nurse and doctor are the same user, we use the nurse's UID as the doctorId
         const doctorId = user.uid;
 
-        const unsubscribe = listenToQueueForNurse(doctorId, (updatedQueue) => {
-            const activePatients = updatedQueue
-                .filter(p => p.status !== 'Finished')
-                .sort((a, b) => a.queueNumber - b.queueNumber);
-            setPatients(activePatients);
-            setIsLoading(false);
+        console.log('Setting up queue listener for nurse:', {
+            doctorId,
+            clinicId,
+            nurseId: 'nurseId' in userProfile ? userProfile.nurseId : undefined
         });
+
+        const unsubscribe = listenToQueueForNurse(
+            doctorId, 
+            (updatedQueue) => {
+                const activePatients = updatedQueue
+                    .filter(p => p.status !== 'Finished')
+                    .sort((a, b) => a.queueNumber - b.queueNumber);
+                setPatients(activePatients);
+                setIsLoading(false);
+            },
+            async (error) => {
+                // Handle permission errors - user might be deactivated or not properly set up
+                console.error('🚨 Queue listener error:', {
+                    error: error.message,
+                    code: (error as any).code,
+                    userProfile: {
+                        uid: user.uid,
+                        clinicId: clinicId
+                    }
+                });
+                
+                if (error.message.includes('permission-denied') || error.message.includes('insufficient permissions')) {
+                    alert('⚠️ خطأ في الصلاحيات!\n\nيبدو أن حسابك غير مفعّل أو تم حذفه.\nسيتم تسجيل خروجك الآن.');
+                    
+                    // Force logout and redirect
+                    const { signOutUser } = await import('@/services/authClientService');
+                    await signOutUser();
+                    window.location.href = '/login?message=لا توجد لديك صلاحيات للوصول إلى هذه الصفحة';
+                }
+            },
+            clinicId  // Pass clinicId for multi-tenant filtering
+        );
         return () => unsubscribe();
-    }, [user]);
+    }, [user, userProfile]);
 
     const handlePatientRegistered = (patient: PatientInQueue) => {
         setQrCodeData(patient);

@@ -20,6 +20,8 @@ import * as z from "zod";
 import { signInUser } from "@/services/authClientService";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { getUserProfileWithLegacyFallback, isLegacyProfile } from "@/services/userProfileService";
+import type { UserProfile, LegacyUserProfile } from "@/types/multitenant";
 
 const loginSchema = z.object({
   email: z.string().email("الرجاء إدخال عنوان بريد إلكتروني صالح."),
@@ -47,14 +49,45 @@ function LoginForm({ role }: { role: 'Doctor' | 'Nurse' }) {
     const handleSubmit = async (values: LoginFormValues) => {
         setIsLoading(true);
         try {
-            await signInUser(values.email, values.password);
-            
-            // Mock role-based redirection
-            if (role === 'Doctor') {
-                router.push('/doctor/dashboard');
-            } else {
-                router.push('/nurse/dashboard');
+            const userCredential = await signInUser(values.email, values.password);
+
+            // Fetch user profile to determine actual role and routing
+            const profile = await getUserProfileWithLegacyFallback(userCredential.user.uid);
+
+            if (!profile) {
+                // No profile found - redirect to onboarding
+                toast({
+                    title: "الحساب غير مكتمل",
+                    description: "يرجى إكمال إعداد حسابك.",
+                });
+                router.push('/onboarding/clinic');
+                return;
             }
+
+            // Determine redirect path based on actual role
+            let redirectPath = '/doctor/dashboard'; // Default fallback
+
+            if (isLegacyProfile(profile)) {
+                // Legacy user - route based on old role
+                const legacyProfile = profile as LegacyUserProfile;
+                redirectPath = legacyProfile.role === 'doctor' ? '/doctor/dashboard' : '/nurse/dashboard';
+            } else {
+                // Modern user - route based on userProfile role
+                const modernProfile = profile as UserProfile;
+                switch (modernProfile.role) {
+                    case 'owner':
+                        redirectPath = '/admin/dashboard';
+                        break;
+                    case 'doctor':
+                        redirectPath = '/doctor/dashboard';
+                        break;
+                    case 'nurse':
+                        redirectPath = '/nurse/dashboard';
+                        break;
+                }
+            }
+
+            router.push(redirectPath);
         } catch (error: any) {
             toast({
                 variant: "destructive",
@@ -65,25 +98,25 @@ function LoginForm({ role }: { role: 'Doctor' | 'Nurse' }) {
             setIsLoading(false);
         }
     };
-    
+
   return (
     <form onSubmit={form.handleSubmit(handleSubmit)}>
         <CardContent className="space-y-4">
         <div className="space-y-2">
             <Label htmlFor={`${role.toLowerCase()}-email`}>البريد الإلكتروني</Label>
-            <Input 
-                id={`${role.toLowerCase()}-email`} 
-                type="email" 
-                placeholder="m@example.com" 
+            <Input
+                id={`${role.toLowerCase()}-email`}
+                type="email"
+                placeholder="m@example.com"
                 {...form.register("email")}
             />
              {form.formState.errors.email && <p className="text-sm text-destructive">{form.formState.errors.email.message}</p>}
         </div>
         <div className="space-y-2">
             <Label htmlFor={`${role.toLowerCase()}-password`}>كلمة المرور</Label>
-            <Input 
-                id={`${role.toLowerCase()}-password`} 
-                type="password" 
+            <Input
+                id={`${role.toLowerCase()}-password`}
+                type="password"
                 {...form.register("password")}
             />
             {form.formState.errors.password && <p className="text-sm text-destructive">{form.formState.errors.password.message}</p>}
