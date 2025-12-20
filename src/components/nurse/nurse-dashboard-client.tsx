@@ -59,10 +59,10 @@ export function NurseDashboardClient() {
             const unsubscribe = listenToQueueForNurse(
                 doctorId,
                 (updatedQueue) => {
-                    const activePatients = updatedQueue
-                        .filter(p => p.status !== 'Finished')
+                    // Show all patients including finished ones
+                    const allPatients = updatedQueue
                         .sort((a, b) => a.queueNumber - b.queueNumber);
-                    setPatients(activePatients);
+                    setPatients(allPatients);
                     setIsLoading(false);
                 },
                 async (error) => {
@@ -88,10 +88,10 @@ export function NurseDashboardClient() {
         const unsubscribe = listenToClinicQueue(
             clinicId,
             (updatedQueue) => {
-                const activePatients = updatedQueue
-                    .filter(p => p.status !== 'Finished')
+                // Show all patients (including Finished) and sort by queue number
+                const allPatients = updatedQueue
                     .sort((a, b) => a.queueNumber - b.queueNumber);
-                setPatients(activePatients);
+                setPatients(allPatients);
                 setIsLoading(false);
             },
             async (error) => {
@@ -116,7 +116,7 @@ export function NurseDashboardClient() {
             },
             {
                 doctorId: nurseDoctorId, // FIXED: Filter by nurse's assigned doctor!
-                includeFinished: false // Only show Waiting and Consulting patients
+                includeFinished: true // Show all patients including finished ones
             }
         );
         return () => unsubscribe();

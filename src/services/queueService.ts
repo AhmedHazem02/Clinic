@@ -47,6 +47,8 @@ export interface PatientInQueue extends NewPatient {
     queueNumber: number;
     status: PatientStatus;
     createdAt: Timestamp;
+    consultingStartTime?: Timestamp; // Timestamp when consultation started (status changed to 'Consulting')
+    finishedAt?: Timestamp; // Timestamp when consultation finished (status changed to 'Finished')
 }
 
 export interface ClinicSettings {
@@ -277,12 +279,17 @@ export const getPatientByPhoneAcrossClinics = async (phone: string): Promise<Pat
 
 // Update a patient's status
 // Updated: also updates booking ticket status if ticketId exists
+// Updated: sets consultingStartTime when status changes to 'Consulting' for accurate wait time calculation
 export const updatePatientStatus = async (patientId: string, status: PatientStatus, prescription?: string) => {
     const { db } = getFirebase();
     const patientDocRef = doc(db, 'patients', patientId);
-    const updateData: { status: PatientStatus, prescription?: string } = { status };
+    const updateData: any = { status };
     if (prescription) {
         updateData.prescription = prescription;
+    }
+    // Set consultingStartTime when status changes to 'Consulting'
+    if (status === 'Consulting') {
+        updateData.consultingStartTime = Timestamp.now();
     }
     await updateDoc(patientDocRef, updateData);
 
@@ -317,23 +324,71 @@ export const updateDoctorRevenue = async (doctorId: string, amount: number) => {
     await setDoc(doctorRef, { totalRevenue: increment(amount) }, { merge: true });
 }
 
+// Finish consultation for current patient (marks as Finished)
+// Updated: also updates booking ticket status and queueState
+export const finishConsultation = async (patientId: string, prescription?: string) => {
+    const { db } = getFirebase();
+    const patientDocRef = doc(db, 'patients', patientId);
+
+    // Update patient status to Finished and record finish time
+    const updateData: any = {
+        status: 'Finished',
+        finishedAt: Timestamp.now() // Record exact finish time for accurate tracking
+    };
+    if (prescription) {
+        updateData.prescription = prescription;
+    }
+    await updateDoc(patientDocRef, updateData);
+
+    // Get patient data for ticket and queueState updates
+    const patientSnap = await getDoc(patientDocRef);
+    if (patientSnap.exists()) {
+        const patientData = patientSnap.data();
+        const ticketId = patientData.ticketId;
+        const clinicId = patientData.clinicId;
+        const doctorId = patientData.doctorId;
+        const queueNumber = patientData.queueNumber;
+
+        // Update booking ticket status if ticketId exists
+        if (ticketId) {
+            const { updateBookingTicketStatus } = await import('@/services/bookingTicketService');
+            await updateBookingTicketStatus(ticketId, 'Finished');
+        }
+
+        // Update queueState to clear the current patient (set to null)
+        if (clinicId && doctorId) {
+            const { updateQueueState } = await import('@/services/queueStateService');
+            await updateQueueState(clinicId, doctorId, null);
+        }
+    }
+
+    console.log(`✅ Finished consultation for patient ${patientId}`);
+};
+
 // Finish a consultation and call the next patient
 // Updated: also updates booking ticket statuses if ticketIds exist
 // Updated: also updates queueState for real-time status page
+// Updated: sets consultingStartTime when calling next patient for accurate wait time calculation
 export const finishAndCallNext = async (currentPatientId: string, nextPatientId: string, prescription?: string) => {
     const { db } = getFirebase();
     const batch = writeBatch(db);
-    
+
     const finishedPatientRef = doc(db, 'patients', currentPatientId);
-    const updateData: { status: PatientStatus, prescription?: string } = { status: 'Finished' };
+    const updateData: any = {
+        status: 'Finished',
+        finishedAt: Timestamp.now() // Record exact finish time
+    };
     if (prescription) {
         updateData.prescription = prescription;
     }
     batch.update(finishedPatientRef, updateData);
 
     const nextPatientRef = doc(db, 'patients', nextPatientId);
-    batch.update(nextPatientRef, { status: 'Consulting' });
-    
+    batch.update(nextPatientRef, {
+        status: 'Consulting',
+        consultingStartTime: Timestamp.now() // Set start time for accurate wait time calculation
+    });
+
     await batch.commit();
 
     // Update booking ticket statuses
@@ -369,10 +424,68 @@ export const finishAndCallNext = async (currentPatientId: string, nextPatientId:
 }
 
 // Remove a patient from the queue (client-side)
+// Reorganize queue numbers after a patient is removed
+// Decrements queue numbers for all patients after the removed patient on the same day/doctor
+export const reorganizeQueue = async (
+    deletedQueueNumber: number,
+    bookingDay: string,
+    doctorId: string,
+    clinicId?: string
+) => {
+    const { db } = getFirebase();
+    const patientsCollection = collection(db, 'patients');
+
+    // Build query to find all patients with higher queue numbers on the same day
+    const constraints = [
+        where("doctorId", "==", doctorId),
+        where("bookingDay", "==", bookingDay),
+        where("queueNumber", ">", deletedQueueNumber),
+        or(where("status", "==", "Waiting"), where("status", "==", "Consulting"))
+    ];
+
+    if (clinicId) {
+        constraints.unshift(where("clinicId", "==", clinicId));
+    }
+
+    const q = query(patientsCollection, and(...constraints));
+    const snapshot = await getDocs(q);
+
+    // Update each patient's queue number (decrement by 1)
+    const batch = writeBatch(db);
+    snapshot.docs.forEach((docSnapshot) => {
+        const patientRef = doc(db, 'patients', docSnapshot.id);
+        const currentQueueNumber = docSnapshot.data().queueNumber;
+        batch.update(patientRef, { queueNumber: currentQueueNumber - 1 });
+    });
+
+    await batch.commit();
+    console.log(`🔄 Reorganized ${snapshot.size} patients after queue #${deletedQueueNumber}`);
+};
+
+// Remove a patient from the queue and reorganize queue numbers
 export const removePatientFromQueue = async (patientId: string) => {
     const { db } = getFirebase();
     const patientDocRef = doc(db, 'patients', patientId);
-    return await deleteDoc(patientDocRef);
+
+    // Get patient data before deletion for reorganization
+    const patientSnap = await getDoc(patientDocRef);
+    if (!patientSnap.exists()) {
+        throw new Error("Patient not found");
+    }
+
+    const patientData = patientSnap.data();
+    const queueNumber = patientData.queueNumber;
+    const bookingDay = patientData.bookingDay;
+    const doctorId = patientData.doctorId;
+    const clinicId = patientData.clinicId;
+
+    // Delete the patient
+    await deleteDoc(patientDocRef);
+
+    // Reorganize queue if patient was waiting or consulting
+    if ((patientData.status === 'Waiting' || patientData.status === 'Consulting') && bookingDay && doctorId && queueNumber) {
+        await reorganizeQueue(queueNumber, bookingDay, doctorId, clinicId);
+    }
 };
 
 // Update the doctor's global message
