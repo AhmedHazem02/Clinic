@@ -78,6 +78,19 @@ export function DoctorDashboardClient() {
           .sort((a, b) => a.queueNumber - b.queueNumber);
         setUpcomingReservations(upcoming);
         
+        // حساب إيرادات اليوم من المرضى المكتملين فقط
+        const finishedToday = updatedQueue.filter(p => 
+          p.status === 'Finished' && isToday(p.bookingDate)
+        );
+        
+        const revenue = finishedToday.reduce((total, patient) => {
+          const cost = patient.queueType === 'Re-consultation' 
+            ? reConsultationCost 
+            : consultationCost;
+          return total + cost;
+        }, 0);
+        
+        setTodaysRevenue(revenue);
         setIsLoading(false);
       },
       async (error) => {
@@ -98,7 +111,6 @@ export function DoctorDashboardClient() {
     const unsubscribeProfile = listenToDoctorProfile(user.uid, (profile) => {
         if(profile) {
             setIsAvailable(profile.isAvailable ?? true);
-            setTodaysRevenue(profile.totalRevenue || 0);
         }
     });
 
@@ -108,7 +120,7 @@ export function DoctorDashboardClient() {
       unsubscribeSettings();
       unsubscribeProfile();
     };
-  }, [user, userProfile]);
+  }, [user, userProfile, consultationCost, reConsultationCost]);
 
   const currentPatient = queue.find(p => p.status === 'Consulting');
   const nextPatient = queue.find(p => p.status === 'Waiting');
