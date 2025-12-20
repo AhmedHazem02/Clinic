@@ -43,7 +43,10 @@ service cloud.firestore {
     function sameClinic(clinicId) {
       return isAuthenticated() && (
         (isActiveDoctor() && getUserClinicId() == clinicId) ||
-        (isActiveNurse() && getNurseClinicId() == clinicId)
+        (isActiveNurse() && getNurseClinicId() == clinicId) ||
+        (exists(/databases/$(database)/documents/userProfiles/$(request.auth.uid)) && 
+         get(/databases/$(database)/documents/userProfiles/$(request.auth.uid)).data.clinicId == clinicId &&
+         get(/databases/$(database)/documents/userProfiles/$(request.auth.uid)).data.isActive == true)
       );
     }
     
@@ -66,6 +69,12 @@ service cloud.firestore {
     // PUBLIC COLLECTIONS (Get-only, no list queries)
     // ==========================================================================
     
+    // Legacy Clinic Info: Support for old settings
+    match /clinicInfo/{docId} {
+      allow read: if true;
+      allow write: if isAuthenticated();
+    }
+
     // Clinics: Public can get active clinics by ID
     match /clinics/{clinicId} {
       // Public: Can get or list active clinics (for booking page and clinic selection)
@@ -102,7 +111,8 @@ service cloud.firestore {
         request.resource.data.uid == request.auth.uid;
       
       // Same clinic staff: Can read
-      allow read: if sameClinic(resource.data.clinicId);
+      allow read: if (resource.data.get('clinicId', null) != null && sameClinic(resource.data.clinicId)) ||
+                   (resource.data.get('clinicId', null) == null && isAuthenticated());
     }
     
     // Nurses: Only staff can access
@@ -116,7 +126,8 @@ service cloud.firestore {
         request.resource.data.uid == request.auth.uid;
       
       // Same clinic staff: Can read (only active staff)
-      allow read: if sameClinic(resource.data.clinicId);
+      allow read: if (resource.data.get('clinicId', null) != null && sameClinic(resource.data.clinicId)) ||
+                   (resource.data.get('clinicId', null) == null && isAuthenticated());
     }
     
     // Booking Tickets: Public can get individual tickets (privacy-safe status page)
@@ -127,8 +138,9 @@ service cloud.firestore {
       // Staff: Can read tickets for their clinic
       allow read: if sameClinic(resource.data.clinicId);
       
-      // No public writes! Use /api/public/book instead
-      allow write: if false;
+      // Staff: Can create/update tickets for their clinic
+      allow create: if sameClinic(request.resource.data.clinicId);
+      allow update: if sameClinic(resource.data.clinicId);
     }
     
     // Queue State: Public can get current queue state (anti-scraping)
@@ -139,8 +151,9 @@ service cloud.firestore {
       // Staff: Can read for their clinic
       allow read: if sameClinic(resource.data.clinicId);
       
-      // Only server can write (via Admin SDK)
-      allow write: if false;
+      // Staff: Can create/update queue state for their clinic
+      allow create: if sameClinic(request.resource.data.clinicId);
+      allow update: if sameClinic(resource.data.clinicId);
     }
 
     // ==========================================================================
@@ -150,10 +163,14 @@ service cloud.firestore {
     // Patients: Strict multi-tenant isolation
     match /patients/{patientId} {
       // Staff: Can read/update/delete patients from their clinic
-      allow read, update, delete: if sameClinic(resource.data.clinicId);
+      allow read, update, delete: if 
+        (resource.data.get('clinicId', null) != null && sameClinic(resource.data.clinicId)) ||
+        (resource.data.get('clinicId', null) == null && isAuthenticated());
       
       // Staff: Can create patients for their clinic
-      allow create: if sameClinic(request.resource.data.clinicId);
+      allow create: if 
+        (request.resource.data.get('clinicId', null) != null && sameClinic(request.resource.data.clinicId)) ||
+        (request.resource.data.get('clinicId', null) == null && isAuthenticated());
     }
     
     // User Profiles: Users can only access their own profile

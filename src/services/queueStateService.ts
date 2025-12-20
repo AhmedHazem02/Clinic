@@ -119,7 +119,7 @@ export async function initializeQueueState(
 
 /**
  * Close queue (mark as not accepting new patients)
- * 
+ *
  * @param clinicId - Clinic ID
  * @param doctorId - Doctor ID
  */
@@ -135,4 +135,37 @@ export async function closeQueue(
     isOpen: false,
     updatedAt: Timestamp.now(),
   }, { merge: true });
+}
+
+/**
+ * Update the maximum queue number for today
+ * Called when a new patient is added to track the highest queue number
+ *
+ * @param clinicId - Clinic ID
+ * @param doctorId - Doctor ID
+ * @param queueNumber - New queue number to compare with current max
+ */
+export async function updateMaxQueueNumber(
+  clinicId: string,
+  doctorId: string,
+  queueNumber: number
+): Promise<void> {
+  const { db } = getFirebase();
+  const queueStateId = getQueueStateId(clinicId, doctorId);
+  const queueStateRef = doc(db, 'queueState', queueStateId);
+
+  // Get current state
+  const snap = await getDoc(queueStateRef);
+  const currentMax = snap.exists() ? snap.data().currentMaxQueueNumberToday ?? 0 : 0;
+
+  // Only update if new queue number is higher
+  if (queueNumber > currentMax) {
+    await setDoc(queueStateRef, {
+      clinicId,
+      doctorId,
+      currentMaxQueueNumberToday: queueNumber,
+      isOpen: true,
+      updatedAt: Timestamp.now(),
+    }, { merge: true });
+  }
 }

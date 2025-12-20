@@ -263,13 +263,14 @@ export interface QueueState {
   id?: string;                      // Document ID: "{clinicId}_{doctorId}"
   clinicId: string;                 // Clinic reference
   doctorId: string;                 // Doctor reference
-  
+
   // Current State
   currentConsultingQueueNumber: number | null;  // Queue number currently being served (null if none)
-  
+  currentMaxQueueNumberToday?: number;          // Highest queue number assigned today (for preview)
+
   // Status
   isOpen: boolean;                  // Whether queue is accepting patients
-  
+
   // Timestamps
   updatedAt: Timestamp | Date;      // Last update time
 }

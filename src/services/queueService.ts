@@ -2,7 +2,6 @@
 import { getFirebase } from "@/lib/firebase";
 import {
     collection,
-    addDoc,
     query,
     where,
     getDocs,
@@ -20,6 +19,7 @@ import {
     getDoc,
     increment
 } from "firebase/firestore";
+import { getCairoBookingDay } from "@/lib/bookingDay";
 
 export type PatientStatus = 'Waiting' | 'Consulting' | 'Finished';
 export type QueueType = 'Consultation' | 'Re-consultation';
@@ -28,6 +28,7 @@ export interface NewPatient {
     name: string;
     phone: string;
     bookingDate: Date;
+    bookingDay?: string;              // Added: canonical day string "YYYY-MM-DD" (Cairo timezone)
     age: number | null;
     chronicDiseases: string | null;
     consultationReason: string | null;
@@ -69,143 +70,21 @@ export interface NurseProfile {
     name: string;
     email: string;
     clinicId?: string;
+    doctorId?: string; // The doctor this nurse is assigned to
     isActive?: boolean;
     avatarUrl?: string;
 }
 
-// Get the next queue number
-// Updated for multi-tenant: accepts optional clinicId for data scoping
-const getNextQueueNumber = async (doctorId: string, clinicId?: string): Promise<number> => {
-    const { db } = getFirebase();
-    const patientsCollection = collection(db, 'patients');
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const startOfToday = Timestamp.fromDate(today);
-
-    // Build query with optional clinicId filter
-    const constraints: any[] = [
-        where("doctorId", "==", doctorId),
-        where("createdAt", ">=", startOfToday),
-    ];
-
-    // Add clinicId filter if provided (multi-tenant mode)
-    if (clinicId) {
-        constraints.unshift(where("clinicId", "==", clinicId));
-    }
-
-    constraints.push(orderBy("createdAt", "desc"));
-    constraints.push(limit(1));
-
-    const q = query(patientsCollection, ...constraints);
-    const snapshot = await getDocs(q);
-    if (snapshot.empty) {
-        return 1;
-    }
-    const lastPatient = snapshot.docs[0].data();
-    return (lastPatient.queueNumber || 0) + 1;
-}
-
-// Check if a patient has any previous record with a doctor
-const checkIfPatientExists = async (phone: string, doctorId: string): Promise<boolean> => {
-    const { db } = getFirebase();
-    const patientsCollection = collection(db, 'patients');
-    const q = query(
-        patientsCollection,
-        where("phone", "==", phone),
-        where("doctorId", "==", doctorId),
-        limit(1)
-    );
-    const snapshot = await getDocs(q);
-    return !snapshot.empty;
-}
-
-
-// Add a new patient to the queue
-// Updated for multi-tenant: writes clinicId if provided
-// Updated for Step 4: creates booking ticket for public status access
-export const addPatientToQueue = async (patientData: NewPatient): Promise<{ wasCorrected: boolean; ticketId?: string; patientId?: string }> => {
-    const { db } = getFirebase();
-    const patientsCollection = collection(db, 'patients');
-    if (!patientData.doctorId) {
-        throw new Error("Doctor ID is required to add a patient.");
-    }
-
-    // Build query constraints for checking existing patient
-    const existingPatientConstraints = [
-        where("phone", "==", patientData.phone),
-        where("doctorId", "==", patientData.doctorId),
-        or(where("status", "==", "Waiting"), where("status", "==", "Consulting"))
-    ];
-
-    // Add clinicId filter if provided (multi-tenant mode)
-    if (patientData.clinicId) {
-        existingPatientConstraints.unshift(where("clinicId", "==", patientData.clinicId));
-    }
-
-    // Check if patient with the same phone number is already waiting or consulting for this doctor
-    const existingPatientQuery = query(
-        patientsCollection,
-        and(...existingPatientConstraints)
-    );
-    const existingPatientSnapshot = await getDocs(existingPatientQuery);
-
-    if (!existingPatientSnapshot.empty) {
-        throw new Error("A patient with this phone number is already in the queue for this doctor.");
-    }
-
-    let wasCorrected = false;
-    // If it's a re-consultation, check if the patient has a prior record.
-    if (patientData.queueType === 'Re-consultation') {
-        const patientExists = await checkIfPatientExists(patientData.phone, patientData.doctorId);
-        if (!patientExists) {
-            // Patient doesn't exist, automatically switch them to a regular consultation.
-            patientData.queueType = 'Consultation';
-            wasCorrected = true;
-        }
-    }
-
-
-    const queueNumber = await getNextQueueNumber(patientData.doctorId, patientData.clinicId);
-
-    const newPatientDoc = {
-        ...patientData,
-        bookingDate: Timestamp.fromDate(patientData.bookingDate),
-        queueNumber,
-        status: 'Waiting' as PatientStatus,
-        createdAt: Timestamp.now(),
-        prescription: "",
-    };
-
-    // Ensure clinicId is included in the document if provided
-    if (patientData.clinicId) {
-        (newPatientDoc as any).clinicId = patientData.clinicId;
-    }
-
-    // Add patient document
-    const patientDocRef = await addDoc(patientsCollection, newPatientDoc);
-    const patientId = patientDocRef.id;
-
-    // Create booking ticket if clinicId is present (multi-tenant mode)
-    let ticketId: string | undefined;
-    if (patientData.clinicId && patientData.doctorId) {
-        const { createBookingTicket, sanitizeDisplayName, getPhoneLast4 } = await import('@/services/bookingTicketService');
-        
-        ticketId = await createBookingTicket({
-            clinicId: patientData.clinicId,
-            doctorId: patientData.doctorId,
-            patientId: patientId,
-            queueNumber: queueNumber,
-            status: 'Waiting',
-            displayName: sanitizeDisplayName(patientData.name),
-            phoneLast4: getPhoneLast4(patientData.phone),
-        });
-
-        // Update patient document with ticketId
-        await updateDoc(patientDocRef, { ticketId });
-    }
-
-    return { wasCorrected, ticketId, patientId };
-}
+// ============================================================================
+// REMOVED FUNCTIONS - Now handled by /api/public/book
+// ============================================================================
+// - getNextQueueNumber: Moved to server-side API for atomic queue numbering
+// - checkIfPatientExists: Moved to server-side API
+// - addPatientToQueue: Replaced by unified /api/public/book endpoint
+//
+// All bookings now go through /api/public/book for consistency.
+// This prevents queue numbering conflicts between nurse and patient bookings.
+// ============================================================================
 
 // Listen for real-time updates to the queue (for doctor/history view)
 // Updated for multi-tenant: accepts optional clinicId for data scoping
@@ -332,7 +211,7 @@ export const getPatientByPhone = async (phone: string, doctorId: string, clinicI
     const patientsCollection = collection(db, 'patients');
 
     // Build query constraints
-    const constraints = [
+    const baseConstraints = [
         where("phone", "==", phone),
         where("doctorId", "==", doctorId),
         or(where("status", "==", "Waiting"), where("status", "==", "Consulting"))
@@ -340,12 +219,12 @@ export const getPatientByPhone = async (phone: string, doctorId: string, clinicI
 
     // Add clinicId filter if provided (multi-tenant mode)
     if (clinicId) {
-        constraints.unshift(where("clinicId", "==", clinicId));
+        baseConstraints.unshift(where("clinicId", "==", clinicId));
     }
 
     const q = query(
         patientsCollection,
-        and(...constraints),
+        and(...baseConstraints),
         limit(1)
     );
 
@@ -397,8 +276,7 @@ export const getPatientByPhoneAcrossClinics = async (phone: string): Promise<Pat
 
 
 // Update a patient's status
-// Updated for Step 4: also updates booking ticket status if ticketId exists
-// Updated for Step 5: maintains queueState for public status pages
+// Updated: also updates booking ticket status if ticketId exists
 export const updatePatientStatus = async (patientId: string, status: PatientStatus, prescription?: string) => {
     const { db } = getFirebase();
     const patientDocRef = doc(db, 'patients', patientId);
@@ -408,11 +286,14 @@ export const updatePatientStatus = async (patientId: string, status: PatientStat
     }
     await updateDoc(patientDocRef, updateData);
 
-    // Get patient data for queue state and ticket updates
+    // Get patient data for ticket and queueState updates
     const patientSnap = await getDoc(patientDocRef);
     if (patientSnap.exists()) {
         const patientData = patientSnap.data();
         const ticketId = patientData.ticketId;
+        const clinicId = patientData.clinicId;
+        const doctorId = patientData.doctorId;
+        const queueNumber = patientData.queueNumber;
         
         // Update booking ticket status if ticketId exists
         if (ticketId) {
@@ -420,14 +301,10 @@ export const updatePatientStatus = async (patientId: string, status: PatientStat
             await updateBookingTicketStatus(ticketId, status);
         }
 
-        // Update queue state if patient is now consulting (Step 5: security)
-        if (status === 'Consulting' && patientData.clinicId && patientData.doctorId) {
+        // Update queueState if patient is now consulting
+        if (status === 'Consulting' && clinicId && doctorId && queueNumber !== undefined) {
             const { updateQueueState } = await import('@/services/queueStateService');
-            await updateQueueState(
-                patientData.clinicId,
-                patientData.doctorId,
-                patientData.queueNumber
-            );
+            await updateQueueState(clinicId, doctorId, queueNumber);
         }
     }
 }
@@ -441,8 +318,8 @@ export const updateDoctorRevenue = async (doctorId: string, amount: number) => {
 }
 
 // Finish a consultation and call the next patient
-// Updated for Step 4: also updates booking ticket statuses if ticketIds exist
-// Updated for Step 5: maintains queueState for public status pages
+// Updated: also updates booking ticket statuses if ticketIds exist
+// Updated: also updates queueState for real-time status page
 export const finishAndCallNext = async (currentPatientId: string, nextPatientId: string, prescription?: string) => {
     const { db } = getFirebase();
     const batch = writeBatch(db);
@@ -459,12 +336,11 @@ export const finishAndCallNext = async (currentPatientId: string, nextPatientId:
     
     await batch.commit();
 
-    // Update booking ticket statuses and queue state
+    // Update booking ticket statuses
     const finishedPatientSnap = await getDoc(finishedPatientRef);
     const nextPatientSnap = await getDoc(nextPatientRef);
 
     const { updateBookingTicketStatus } = await import('@/services/bookingTicketService');
-    const { updateQueueState } = await import('@/services/queueStateService');
 
     if (finishedPatientSnap.exists()) {
         const ticketId = finishedPatientSnap.data().ticketId;
@@ -476,18 +352,18 @@ export const finishAndCallNext = async (currentPatientId: string, nextPatientId:
     if (nextPatientSnap.exists()) {
         const nextPatientData = nextPatientSnap.data();
         const ticketId = nextPatientData.ticketId;
+        const clinicId = nextPatientData.clinicId;
+        const doctorId = nextPatientData.doctorId;
+        const queueNumber = nextPatientData.queueNumber;
         
         if (ticketId) {
             await updateBookingTicketStatus(ticketId, 'Consulting');
         }
 
-        // Update queue state to next patient's queue number (Step 5: security)
-        if (nextPatientData.clinicId && nextPatientData.doctorId) {
-            await updateQueueState(
-                nextPatientData.clinicId,
-                nextPatientData.doctorId,
-                nextPatientData.queueNumber
-            );
+        // Update queueState for real-time status page
+        if (clinicId && doctorId && queueNumber !== undefined) {
+            const { updateQueueState } = await import('@/services/queueStateService');
+            await updateQueueState(clinicId, doctorId, queueNumber);
         }
     }
 }
@@ -517,6 +393,8 @@ export const listenToDoctorMessage = (doctorId: string, callback: (message: stri
         } else {
             callback("");
         }
+    }, (error) => {
+        console.error("Error listening to doctor message:", error);
     });
     return unsubscribe;
 };
@@ -540,17 +418,38 @@ export const getClinicSettings = async (): Promise<ClinicSettings | null> => {
 }
 
 // Listen to clinic settings
-export const listenToClinicSettings = (callback: (settings: ClinicSettings | null) => void) => {
+export const listenToClinicSettings = (
+    callback: (settings: ClinicSettings | null) => void,
+    clinicId?: string
+) => {
     const { db } = getFirebase();
-    const settingsDocRef = doc(db, 'clinicInfo', 'settings');
-    const unsubscribe = onSnapshot(settingsDocRef, (doc) => {
-        if (doc.exists()) {
-            callback(doc.data() as ClinicSettings);
-        } else {
-            callback(null);
-        }
-    });
-    return unsubscribe;
+    
+    if (clinicId) {
+        // Multi-tenant: settings are in the clinic document
+        const clinicDocRef = doc(db, 'clinics', clinicId);
+        return onSnapshot(clinicDocRef, (doc) => {
+            if (doc.exists()) {
+                const data = doc.data();
+                callback(data.settings as ClinicSettings || null);
+            } else {
+                callback(null);
+            }
+        }, (error) => {
+            console.error("Error listening to clinic settings (multi-tenant):", error);
+        });
+    } else {
+        // Legacy: settings are in clinicInfo/settings
+        const settingsDocRef = doc(db, 'clinicInfo', 'settings');
+        return onSnapshot(settingsDocRef, (doc) => {
+            if (doc.exists()) {
+                callback(doc.data() as ClinicSettings);
+            } else {
+                callback(null);
+            }
+        }, (error) => {
+            console.error("Error listening to clinic settings (legacy):", error);
+        });
+    }
 };
 
 // --- Doctor Profile Functions ---
@@ -588,6 +487,8 @@ export const listenToDoctorProfile = (uid: string, callback: (profile: DoctorPro
         } else {
             callback(null);
         }
+    }, (error) => {
+        console.error("Error listening to doctor profile:", error);
     });
     return unsubscribe;
 };
@@ -604,6 +505,8 @@ export const listenToDoctorAvailability = (doctorId: string, callback: (isAvaila
             // Default to available if no doctor profile is found
             callback(true);
         }
+    }, (error) => {
+        console.error("Error listening to doctor availability:", error);
     });
 
     return unsubscribe;
@@ -665,7 +568,8 @@ export const getPatientsForLast30Days = async (doctorId: string): Promise<Patien
 export const getPreviousBookings = async (
     doctorId: string, 
     startDate: Date, 
-    endDate: Date
+    endDate: Date,
+    clinicId?: string
 ): Promise<PatientInQueue[]> => {
     const { db } = getFirebase();
     const patientsCollection = collection(db, 'patients');
@@ -675,11 +579,19 @@ export const getPreviousBookings = async (
     endOfDay.setHours(23, 59, 59, 999);
     const endTimestamp = Timestamp.fromDate(endOfDay);
 
-    const q = query(
-        patientsCollection,
+    const constraints = [
         where("doctorId", "==", doctorId),
         where("bookingDate", ">=", startTimestamp),
         where("bookingDate", "<=", endTimestamp),
+    ];
+
+    if (clinicId) {
+        constraints.unshift(where("clinicId", "==", clinicId));
+    }
+
+    const q = query(
+        patientsCollection,
+        ...constraints,
         orderBy("bookingDate", "desc")
     );
 
@@ -819,4 +731,94 @@ export const getClinicNurses = async (clinicId: string): Promise<any[]> => {
     });
 
     return nurses;
+};
+
+/**
+ * Listen to clinic-wide queue (for nurses to see all patients in their clinic)
+ * Filters by clinicId instead of doctorId, showing all today's patients
+ *
+ * @param clinicId - Clinic ID
+ * @param callback - Callback function for patient updates
+ * @param errorCallback - Optional error handler
+ * @param options - Optional filters (doctorId, status, date)
+ */
+export const listenToClinicQueue = (
+    clinicId: string,
+    callback: (patients: PatientInQueue[]) => void,
+    errorCallback?: (error: Error) => void,
+    options?: {
+        doctorId?: string;       // Optional filter by specific doctor
+        status?: PatientStatus;  // Optional filter by status
+        includeFinished?: boolean; // Include finished patients (default: false)
+    }
+) => {
+    const { db } = getFirebase();
+    const patientsCollection = collection(db, 'patients');
+
+    // Get today's bookingDay (Cairo timezone)
+    const today = getCairoBookingDay(); // "YYYY-MM-DD"
+
+    // Build base query constraints (must be wrapped in and() when using or())
+    const baseConstraints: any[] = [
+        where("clinicId", "==", clinicId),
+        where("bookingDay", "==", today), // Use canonical bookingDay field
+    ];
+
+    // Optional filters
+    if (options?.doctorId) {
+        baseConstraints.push(where("doctorId", "==", options.doctorId));
+    }
+
+    if (options?.status) {
+        baseConstraints.push(where("status", "==", options.status));
+    } else if (!options?.includeFinished) {
+        // Default: exclude finished patients (use or() within and())
+        baseConstraints.push(or(
+            where("status", "==", "Waiting"),
+            where("status", "==", "Consulting")
+        ));
+    }
+
+    // When using or(), wrap all constraints in and()
+    const hasOrFilter = !options?.status && !options?.includeFinished;
+    const q = hasOrFilter 
+        ? query(patientsCollection, and(...baseConstraints), orderBy("queueNumber", "asc"))
+        : query(patientsCollection, ...baseConstraints, orderBy("queueNumber", "asc"));
+
+    const unsubscribe = onSnapshot(q, (querySnapshot) => {
+        const patients: PatientInQueue[] = [];
+        querySnapshot.forEach((doc) => {
+            const data = doc.data();
+            const bookingDateTimestamp = data.bookingDate || data.createdAt || Timestamp.now();
+            const patient: PatientInQueue = {
+                id: doc.id,
+                name: data.name,
+                phone: data.phone,
+                bookingDate: bookingDateTimestamp.toDate(),
+                bookingDay: data.bookingDay, // Include bookingDay in result
+                age: data.age,
+                chronicDiseases: data.chronicDiseases,
+                consultationReason: data.consultationReason,
+                queueNumber: data.queueNumber,
+                status: data.status,
+                createdAt: data.createdAt,
+                queueType: data.queueType || 'Consultation',
+                doctorId: data.doctorId,
+                nurseId: data.nurseId,
+                nurseName: data.nurseName,
+                prescription: data.prescription,
+                clinicId: data.clinicId,
+                ticketId: data.ticketId,
+            };
+            patients.push(patient);
+        });
+        callback(patients);
+    }, (error) => {
+        console.error("Error listening to clinic queue:", error);
+        if (errorCallback) {
+            errorCallback(error);
+        }
+    });
+
+    return unsubscribe;
 };

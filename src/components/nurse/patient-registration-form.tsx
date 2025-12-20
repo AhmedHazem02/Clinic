@@ -35,7 +35,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { UserPlus } from "lucide-react";
-import { addPatientToQueue, getPatientByPhone, type PatientInQueue, type QueueType } from "@/services/queueService";
+import { type PatientInQueue, type QueueType } from "@/services/queueService";
 import { useState, useEffect } from "react";
 import { RadioGroup, RadioGroupItem } from "../ui/radio-group";
 import { useNurseProfile } from "./nurse-profile-provider";
@@ -92,44 +92,55 @@ export function PatientRegistrationForm({ onPatientRegistered }: PatientRegistra
 
     setIsSubmitting(true);
     try {
-      // Prepare patient data with optional clinicId for multi-tenant support
-      const patientData: any = {
-        name: values.name,
-        // Since nurse and doctor are the same user, we use the nurse's UID as the doctorId
-        doctorId: user.uid,
-        phone: values.phone,
-        bookingDate: values.bookingDate,
-        age: values.age || null,
-        chronicDiseases: values.diseases || null,
-        consultationReason: values.consultationReason || null,
-        queueType: values.queueType as QueueType,
-        nurseId: user.uid,
-        nurseName: profile.name,
-      };
-
-      // Add clinicId if user has a modern profile (multi-tenant)
+      // Get clinicId if user has a modern profile (multi-tenant)
+      let clinicId: string | undefined;
       if (userProfile && isModernProfile(userProfile)) {
-        patientData.clinicId = userProfile.clinicId;
+        clinicId = userProfile.clinicId;
       }
 
-      const result = await addPatientToQueue(patientData);
-
-      const newPatient = await getPatientByPhone(values.phone, user.uid);
-      if (newPatient) {
-        onPatientRegistered(newPatient);
-      }
-
-      if (result.wasCorrected) {
+      if (!clinicId) {
         toast({
-            title: "تم تسجيل المريض (تم التصحيح)",
-            description: `المريض لم يتم العثور عليه وأضيف إلى قائمة الاستشارات العادية.`,
+          variant: "destructive",
+          title: "خطأ",
+          description: "لا يمكن تحديد العيادة. يرجى المحاولة مرة أخرى.",
         });
-      } else {
-        toast({
-            title: "تم تسجيل المريض",
-            description: `تمت إضافة ${values.name} إلى قائمة الانتظار.`,
-        });
+        return;
       }
+
+      // Call the unified booking API
+      // Note: We don't send doctorId, the API will auto-select the first active doctor in the clinic
+      const response = await fetch('/api/public/book', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          source: 'nurse',
+          clinicId: clinicId,
+          // doctorId is omitted - API will auto-select first doctor from clinic
+          name: values.name,
+          phone: values.phone,
+          age: values.age,
+          queueType: values.queueType,
+          consultationReason: values.consultationReason,
+          chronicDiseases: values.diseases,
+          nurseId: user.uid,
+          nurseName: profile.name,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!result.ok) {
+        throw new Error(result.error || 'فشل الحجز');
+      }
+
+      // Notify parent component
+      // Note: We no longer fetch the patient here, let the real-time listener handle it
+      toast({
+        title: "تم تسجيل المريض",
+        description: `تمت إضافة ${values.name} إلى قائمة الانتظار. رقم الكشف: ${result.queueNumber}`,
+      });
 
       form.reset({
         name: "",
@@ -141,18 +152,11 @@ export function PatientRegistrationForm({ onPatientRegistered }: PatientRegistra
         queueType: "Consultation",
       });
     } catch (error: any) {
-       if (error.message.includes("is already in the queue for this doctor")) {
-        form.setError("phone", {
-          type: "manual",
-          message: "هذا المريض موجود بالفعل في قائمة الانتظار النشطة.",
-        });
-      } else {
-        toast({
-          variant: "destructive",
-          title: "فشل التسجيل",
-          description: error.message || "لا يمكن إضافة المريض إلى قائمة الانتظار. يرجى المحاولة مرة أخرى.",
-        });
-      }
+      toast({
+        variant: "destructive",
+        title: "فشل التسجيل",
+        description: error.message || "لا يمكن إضافة المريض إلى قائمة الانتظار. يرجى المحاولة مرة أخرى.",
+      });
       console.error("Failed to register patient:", error);
     } finally {
         setIsSubmitting(false);

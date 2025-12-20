@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, Calendar, User, Phone, Stethoscope, AlertCircle } from "lucide-react";
+import { Loader2, Calendar, User, Phone, Stethoscope, AlertCircle, Users } from "lucide-react";
 import { getClinicBySlug, listActiveDoctorsForClinic, validatePhoneNumber } from "@/services/clinicPublicService";
 import { Clinic, Doctor } from "@/types/multitenant";
 import { toast } from "@/hooks/use-toast";
@@ -43,6 +43,10 @@ export default function BookingPage() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Queue count state (people ahead TODAY only)
+  const [peopleAhead, setPeopleAhead] = useState<number | null>(null);
+  const [loadingCount, setLoadingCount] = useState(false);
 
   const {
     register,
@@ -98,6 +102,41 @@ export default function BookingPage() {
 
     loadClinicData();
   }, [clinicSlug, setValue]);
+
+  // Fetch queue count when doctor is selected (TODAY only)
+  useEffect(() => {
+    async function fetchQueueCount() {
+      if (!selectedDoctorId || !clinicSlug) {
+        setPeopleAhead(null);
+        return;
+      }
+
+      try {
+        setLoadingCount(true);
+        const response = await fetch(
+          `/api/public/queue-count?clinicSlug=${encodeURIComponent(clinicSlug)}&doctorId=${encodeURIComponent(selectedDoctorId)}`
+        );
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data.ok) {
+            setPeopleAhead(data.peopleAhead);
+          } else {
+            setPeopleAhead(null);
+          }
+        } else {
+          setPeopleAhead(null);
+        }
+      } catch (err) {
+        console.error("Error fetching queue count:", err);
+        setPeopleAhead(null);
+      } finally {
+        setLoadingCount(false);
+      }
+    }
+
+    fetchQueueCount();
+  }, [selectedDoctorId, clinicSlug]);
 
   // Handle form submission (Step 5: Call server API instead of direct Firestore write)
   const onSubmit = async (data: BookingFormValues) => {
@@ -254,6 +293,29 @@ export default function BookingPage() {
                   <p className="text-sm text-red-500">{errors.doctorId.message}</p>
                 )}
               </div>
+
+              {/* People Ahead Count (TODAY only) */}
+              {selectedDoctorId && (
+                <Alert className="bg-blue-50 border-blue-200">
+                  <AlertDescription>
+                    {loadingCount ? (
+                      <div className="flex items-center gap-2">
+                        <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
+                        <span className="text-sm text-gray-600">جاري تحميل عدد الأشخاص...</span>
+                      </div>
+                    ) : peopleAhead !== null ? (
+                      <div className="flex items-center gap-2">
+                        <Users className="h-4 w-4 text-blue-600" />
+                        <span className="font-semibold text-blue-900">
+                          عدد الأشخاص قبلك اليوم: {peopleAhead}
+                        </span>
+                      </div>
+                    ) : (
+                      <span className="text-sm text-gray-600">غير متاح</span>
+                    )}
+                  </AlertDescription>
+                </Alert>
+              )}
 
               {/* Name */}
               <div className="space-y-2">

@@ -43,7 +43,20 @@ export async function POST(
       );
     }
 
-    // Generate password reset link
+    // Generate password reset link with validated/normalized continue URL
+    const rawBase = (process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:9002').trim();
+    let actionUrl: string;
+    try {
+      const base = new URL(rawBase);
+      actionUrl = new URL('/login', base).toString();
+    } catch (err) {
+      console.error('Invalid NEXT_PUBLIC_APP_URL:', JSON.stringify(process.env.NEXT_PUBLIC_APP_URL));
+      return NextResponse.json(
+        { error: 'Invalid NEXT_PUBLIC_APP_URL environment variable' },
+        { status: 500 }
+      );
+    }
+
     const actionCodeSettings = {
       url: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:9002'}/login`,
       handleCodeInApp: false,

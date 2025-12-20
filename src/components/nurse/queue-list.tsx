@@ -34,6 +34,7 @@ import { removePatientFromQueue, type PatientInQueue, listenToClinicSettings, up
 import { Skeleton } from '../ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
+import { useNurseProfile } from './nurse-profile-provider';
 
 const DEFAULT_CONSULTATION_TIME = 15; // in minutes
 
@@ -44,25 +45,30 @@ interface QueueListProps {
     onShowQrCode: (patient: PatientInQueue) => void;
     searchQuery: string;
     isLoading: boolean;
+    showDoctorColumn?: boolean;
+    getDoctorName?: (doctorId: string) => string;
 }
 
-export function QueueList({ title, allPatients, queuePatients, onShowQrCode, searchQuery, isLoading }: QueueListProps) {
+export function QueueList({ title, allPatients, queuePatients, onShowQrCode, searchQuery, isLoading, showDoctorColumn, getDoctorName }: QueueListProps) {
+    const { userProfile } = useNurseProfile();
     const [patientToCancel, setPatientToCancel] = useState<PatientInQueue | null>(null);
     const { toast } = useToast();
     const [consultationTime, setConsultationTime] = useState(DEFAULT_CONSULTATION_TIME);
     
     useEffect(() => {
+        const clinicId = userProfile && 'clinicId' in userProfile ? userProfile.clinicId : undefined;
+
         const unsubscribeSettings = listenToClinicSettings((settings) => {
             if (settings) {
                 setConsultationTime(settings.consultationTime);
             }
-        });
+        }, clinicId);
 
         // Cleanup subscription on component unmount
         return () => {
             unsubscribeSettings();
         };
-    }, []);
+    }, [userProfile]);
 
     const filteredPatients = queuePatients.filter(patient => {
         const searchTerm = searchQuery.toLowerCase();
@@ -185,6 +191,7 @@ export function QueueList({ title, allPatients, queuePatients, onShowQrCode, sea
                 <TableRow>
                 <TableHead className="w-[80px]">رقم الكشف</TableHead>
                 <TableHead>الاسم</TableHead>
+                {showDoctorColumn && <TableHead>الطبيب</TableHead>}
                 <TableHead>وقت الانتظار المقدر</TableHead>
                 <TableHead>الحالة</TableHead>
                 <TableHead className="text-left">الإجراءات</TableHead>
@@ -196,6 +203,11 @@ export function QueueList({ title, allPatients, queuePatients, onShowQrCode, sea
                     <TableRow key={patient.id}>
                         <TableCell className="font-bold text-lg">{patient.queueNumber}</TableCell>
                         <TableCell className="font-medium">{patient.name}</TableCell>
+                        {showDoctorColumn && (
+                            <TableCell className="text-sm text-muted-foreground">
+                                {getDoctorName ? getDoctorName(patient.doctorId || '') : '-'}
+                            </TableCell>
+                        )}
                         <TableCell>{patient.status === 'Waiting' ? `${calculateWaitTime(patient.queueNumber)} دقيقة` : '-'}</TableCell>
                         <TableCell>
                             <Badge variant={getStatusBadgeVariant(patient.status)}>{translateStatus(patient.status)}</Badge>
@@ -220,7 +232,7 @@ export function QueueList({ title, allPatients, queuePatients, onShowQrCode, sea
                     ))
                 ) : (
                     <TableRow>
-                        <TableCell colSpan={5} className="text-center text-muted-foreground">
+                        <TableCell colSpan={showDoctorColumn ? 6 : 5} className="text-center text-muted-foreground">
                             {searchQuery ? "لا يوجد مرضى يطابقون بحثك." : "لا يوجد مرضى في قائمة الانتظار بعد."}
                         </TableCell>
                     </TableRow>
