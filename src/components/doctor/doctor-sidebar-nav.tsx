@@ -52,12 +52,7 @@ export function DoctorSidebarNav() {
                   </Link>
                 </SidebarMenuItem>
                 <SidebarMenuItem>
-                  <Link href="/doctor/settings">
-                    <SidebarMenuButton isActive={pathname === '/doctor/settings'}>
-                      <Settings />
-                      الإعدادات
-                    </SidebarMenuButton>
-                  </Link>
+                   
                 </SidebarMenuItem>
               </SidebarMenu>
             </SidebarContent>

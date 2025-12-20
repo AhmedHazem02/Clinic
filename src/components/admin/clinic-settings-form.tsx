@@ -37,6 +37,7 @@ const clinicSettingsSchema = z.object({
   // Basic Info
   name: z.string().min(2, "اسم العيادة يجب أن يكون حرفين على الأقل"),
   slug: z.string().min(2, "الرابط يجب أن يكون حرفين على الأقل").regex(/^[a-z0-9-]+$/, "الرابط يجب أن يحتوي على أحرف صغيرة وأرقام وشرطات فقط"),
+  specialty: z.string().min(2, "التخصص يجب أن يكون حرفين على الأقل"),
   
   // Contact Info
   phoneNumbers: z.string().optional(),
@@ -61,6 +62,7 @@ export function ClinicSettingsForm() {
     defaultValues: {
       name: "",
       slug: "",
+      specialty: "",
       phoneNumbers: "",
       locations: "",
       consultationTime: 15,
@@ -68,6 +70,8 @@ export function ClinicSettingsForm() {
       reConsultationCost: 25,
     },
   });
+
+  const [userId, setUserId] = useState<string | null>(null);
 
   useEffect(() => {
     const loadClinicSettings = async () => {
@@ -91,11 +95,17 @@ export function ClinicSettingsForm() {
 
           const currentClinicId = userProfile.clinicId;
           setClinicId(currentClinicId);
+          setUserId(user.uid);
 
           // Load clinic data
           const { db } = getFirebase();
           const clinicRef = doc(db, 'clinics', currentClinicId);
           const clinicSnap = await getDoc(clinicRef);
+
+          // Load doctor profile for specialty
+          const doctorRef = doc(db, 'doctors', user.uid);
+          const doctorSnap = await getDoc(doctorRef);
+          const doctorSpecialty = doctorSnap.exists() ? doctorSnap.data()?.specialty || "" : "";
 
           if (clinicSnap.exists()) {
             const clinicData = clinicSnap.data() as Clinic;
@@ -104,6 +114,7 @@ export function ClinicSettingsForm() {
             form.reset({
               name: clinicData.name || "",
               slug: clinicData.slug || "",
+              specialty: doctorSpecialty,
               phoneNumbers: clinicData.phoneNumbers?.join(', ') || "",
               locations: clinicData.locations?.join(', ') || "",
               consultationTime: clinicData.settings?.consultationTime || 15,
@@ -165,6 +176,14 @@ export function ClinicSettingsForm() {
         updatedAt: new Date(),
       });
 
+      // Update doctor specialty if userId exists
+      if (userId && values.specialty) {
+        const doctorRef = doc(db, 'doctors', userId);
+        await updateDoc(doctorRef, {
+          specialty: values.specialty,
+        });
+      }
+
       toast({
         title: "تم الحفظ",
         description: "تم تحديث إعدادات العيادة بنجاح",
@@ -202,6 +221,37 @@ export function ClinicSettingsForm() {
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        {/* Doctor Specialty */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Building2 className="h-5 w-5" />
+              التخصص الطبي
+            </CardTitle>
+            <CardDescription>
+              التخصص الخاص بالطبيب
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <FormField
+              control={form.control}
+              name="specialty"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>التخصص</FormLabel>
+                  <FormControl>
+                    <Input placeholder="مثال: طب الأطفال، جراحة عامة..." {...field} />
+                  </FormControl>
+                  <FormDescription>
+                    التخصص الطبي الخاص بك
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </CardContent>
+        </Card>
+
         {/* Contact Information */}
         <Card>
           <CardHeader>

@@ -61,12 +61,17 @@ export function DoctorDashboardClient() {
   useEffect(() => {
     if (!user || !userProfile) return;
 
+    const clinicId = 'clinicId' in userProfile ? userProfile.clinicId : undefined;
+
     const unsubscribeSettings = listenToClinicSettings((settings) => {
       if (settings) {
+        console.log('⚙️ Clinic settings loaded:', settings);
         setConsultationCost(settings.consultationCost);
         setReConsultationCost(settings.reConsultationCost);
+      } else {
+        console.warn('⚠️ No clinic settings found');
       }
-    });
+    }, clinicId);
 
     const unsubscribeQueue = listenToQueue(
       user.uid, 
@@ -78,19 +83,6 @@ export function DoctorDashboardClient() {
           .sort((a, b) => a.queueNumber - b.queueNumber);
         setUpcomingReservations(upcoming);
         
-        // حساب إيرادات اليوم من المرضى المكتملين فقط
-        const finishedToday = updatedQueue.filter(p => 
-          p.status === 'Finished' && isToday(p.bookingDate)
-        );
-        
-        const revenue = finishedToday.reduce((total, patient) => {
-          const cost = patient.queueType === 'Re-consultation' 
-            ? reConsultationCost 
-            : consultationCost;
-          return total + cost;
-        }, 0);
-        
-        setTodaysRevenue(revenue);
         setIsLoading(false);
       },
       async (error) => {
@@ -120,7 +112,35 @@ export function DoctorDashboardClient() {
       unsubscribeSettings();
       unsubscribeProfile();
     };
-  }, [user, userProfile, consultationCost, reConsultationCost]);
+  }, [user, userProfile]);
+
+  // حساب إيرادات اليوم - يتم تشغيلها كلما تغيرت القائمة أو الأسعار
+  useEffect(() => {
+    const finishedToday = queue.filter(p => 
+      p.status === 'Finished' && isToday(p.bookingDate)
+    );
+    
+    const revenue = finishedToday.reduce((total, patient) => {
+      const cost = patient.queueType === 'Re-consultation' 
+        ? reConsultationCost 
+        : consultationCost;
+      return total + cost;
+    }, 0);
+    
+    console.log('📊 Revenue calculation:', {
+      finishedToday: finishedToday.length,
+      consultationCost,
+      reConsultationCost,
+      revenue,
+      patients: finishedToday.map(p => ({
+        name: p.name,
+        type: p.queueType,
+        cost: p.queueType === 'Re-consultation' ? reConsultationCost : consultationCost
+      }))
+    });
+    
+    setTodaysRevenue(revenue);
+  }, [queue, consultationCost, reConsultationCost]);
 
   const currentPatient = queue.find(p => p.status === 'Consulting');
   const nextPatient = queue.find(p => p.status === 'Waiting');
@@ -297,11 +317,7 @@ export function DoctorDashboardClient() {
             <AlertTitle>مرحبًا بك في QueueWise!</AlertTitle>
             <AlertDescription>
                 <p>يبدو أن هذه هي المرة الأولى لك هنا. للبدء، يرجى تعيين متوسط وقت الاستشارة والتكلفة.</p>
-                <Button asChild variant="link" className="p-0 h-auto mt-2">
-                    <Link href="/doctor/settings">
-                        <Settings className="mr-2" /> الذهاب إلى الإعدادات
-                    </Link>
-                </Button>
+                
             </AlertDescription>
         </Alert>
       )}

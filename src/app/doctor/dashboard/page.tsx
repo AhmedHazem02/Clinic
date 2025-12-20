@@ -1,7 +1,6 @@
 
 import { DoctorDashboardClient } from "@/components/doctor/doctor-dashboard-client";
-import { doc, updateDoc } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+ 
 
 export const dynamic = 'force-dynamic';
 
