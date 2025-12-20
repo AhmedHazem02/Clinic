@@ -19,7 +19,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { DatePickerWithRange } from "@/components/ui/date-range-picker";
-import { Download, Printer, User, HeartPulse, LogIn, CheckCircle, MessageSquarePlus, DollarSign, Info, Settings, FileText, CalendarClock, Users } from "lucide-react";
+import { Download, Printer, User, HeartPulse, LogIn, CheckCircle, MessageSquarePlus, DollarSign, Info, Settings, FileText, CalendarClock, Users, LayoutDashboard } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { listenToQueue, type PatientInQueue, finishAndCallNext, updatePatientStatus, updateDoctorMessage, listenToDoctorMessage, listenToClinicSettings, updateDoctorRevenue, listenToDoctorProfile, getPreviousBookings } from "@/services/queueService";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -305,6 +305,14 @@ export function DoctorDashboardClient() {
             </AlertDescription>
         </Alert>
       )}
+      <div className="flex justify-end mb-4">
+        <Button asChild variant="outline">
+          <Link href="/admin/dashboard">
+            <LayoutDashboard className="ml-2 h-4 w-4" />
+            لوحة تحكم الإدارة
+          </Link>
+        </Button>
+      </div>
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         <div className="lg:col-span-2 space-y-6">
             <Card>
