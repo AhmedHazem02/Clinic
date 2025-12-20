@@ -324,7 +324,13 @@ export function QueueList({ title, allPatients, queuePatients, onShowQrCode, sea
                                 <QrCode className="ml-2 h-4 w-4" />
                                 QR
                             </Button>
-                            <Button variant="ghost" size="sm" className="text-destructive hover:bg-destructive/10" onClick={() => setPatientToCancel(patient)}>
+                            <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                className="text-destructive hover:bg-destructive/10" 
+                                onClick={() => setPatientToCancel(patient)}
+                                disabled={patient.status === 'Consulting'}
+                            >
                                 <Trash2 className="ml-2 h-4 w-4" />
                                 إلغاء
                             </Button>
