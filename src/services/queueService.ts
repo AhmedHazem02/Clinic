@@ -163,6 +163,7 @@ export interface DoctorProfile {
     locations: string[];
     avatarUrl?: string;
     isAvailable?: boolean;
+    isActive?: boolean;
     totalRevenue?: number;
 }
 
