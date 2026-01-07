@@ -3,8 +3,9 @@
 /**
  * Invitations Management Page (Admin/Owner Only)
  *
- * Create and manage staff invitations.
- * Generates secure token-based invite links for doctors and nurses.
+ * Create and manage nurse invitations.
+ * Generates secure token-based invite links for nurses only.
+ * Note: Single doctor model - only the owner is the doctor.
  */
 
 import { useEffect, useState } from "react";
@@ -51,7 +52,7 @@ import { Timestamp } from "firebase/firestore";
 
 const inviteSchema = z.object({
   email: z.string().email("يجب إدخال عنوان بريد إلكتروني صالح"),
-  role: z.enum(["doctor", "nurse"], {
+  role: z.literal("nurse", {
     required_error: "يجب اختيار الدور",
   }),
   expiryDays: z.string().optional(),
@@ -74,7 +75,7 @@ export default function InvitesManagementPage() {
     resolver: zodResolver(inviteSchema),
     defaultValues: {
       email: "",
-      role: undefined,
+      role: "nurse",
       expiryDays: "7",
     },
   });
@@ -378,7 +379,7 @@ export default function InvitesManagementPage() {
             إنشاء دعوة جديدة
           </CardTitle>
           <CardDescription>
-            أدخل البريد الإلكتروني للموظف الجديد واختر الدور
+            أدخل البريد الإلكتروني للممرض الجديد
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -401,26 +402,18 @@ export default function InvitesManagementPage() {
                 )}
               </div>
 
-              {/* Role */}
+              {/* Role - Fixed to Nurse (Single Doctor Model) */}
               <div className="space-y-2">
-                <Label htmlFor="role">الدور *</Label>
-                <Select
-                  value={form.watch('role')}
-                  onValueChange={(value) => form.setValue('role', value as 'doctor' | 'nurse')}
-                >
-                  <SelectTrigger id="role">
-                    <SelectValue placeholder="اختر الدور" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="doctor">طبيب</SelectItem>
-                    <SelectItem value="nurse">ممرض</SelectItem>
-                  </SelectContent>
-                </Select>
-                {form.formState.errors.role && (
-                  <p className="text-sm text-destructive">
-                    {form.formState.errors.role.message}
-                  </p>
-                )}
+                <Label htmlFor="role">الدور</Label>
+                <Input
+                  id="role"
+                  value="ممرض"
+                  disabled
+                  className="bg-muted"
+                />
+                <p className="text-xs text-muted-foreground">
+                  الدعوات متاحة للممرضين فقط. العيادة لها طبيب واحد (المالك).
+                </p>
               </div>
 
               {/* Expiry Days */}

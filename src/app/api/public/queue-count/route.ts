@@ -3,6 +3,8 @@ import { adminDb } from '@/lib/firebaseAdmin';
 import { Timestamp } from 'firebase-admin/firestore';
 import { getTodayRange } from '@/lib/dateRange';
 import { getCairoBookingDay } from '@/lib/bookingDay';
+import { checkRateLimit, getClientId, RATE_LIMITS, createRateLimitResponse } from '@/lib/rateLimit';
+import { logger, sanitizeErrorMessage } from '@/lib/logger';
 
 /**
  * GET /api/public/queue-count
@@ -20,6 +22,15 @@ import { getCairoBookingDay } from '@/lib/bookingDay';
  */
 export async function GET(request: NextRequest) {
   try {
+    // Rate limiting
+    const clientId = getClientId(request);
+    const rateLimitResult = checkRateLimit(clientId, RATE_LIMITS.queueCount);
+    
+    if (!rateLimitResult.success) {
+      logger.warn('Rate limit exceeded for queue-count', { clientId });
+      return createRateLimitResponse(rateLimitResult);
+    }
+
     const searchParams = request.nextUrl.searchParams;
     const clinicSlug = searchParams.get('clinicSlug');
     const doctorId = searchParams.get('doctorId');
@@ -118,7 +129,7 @@ export async function GET(request: NextRequest) {
       });
     } catch (countError) {
       // Fallback: get documents and count manually
-      console.warn('Count aggregation not available, using manual count:', countError);
+      logger.debug('Count aggregation not available, using manual count');
       const snapshot = await patientsQuery.get();
       let peopleAhead = snapshot.size;
 
@@ -146,9 +157,9 @@ export async function GET(request: NextRequest) {
       });
     }
   } catch (error) {
-    console.error('Error in queue-count API:', error);
+    logger.error('Error in queue-count API', error);
     return NextResponse.json(
-      { ok: false, error: 'Internal server error' },
+      { ok: false, error: sanitizeErrorMessage(error) },
       { status: 500 }
     );
   }

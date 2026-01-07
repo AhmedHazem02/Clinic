@@ -1,4 +1,3 @@
-
 "use client";
 
 import { getFirebase } from "@/lib/firebase";
@@ -9,20 +8,52 @@ import {
     sendPasswordResetEmail,
     type User
 } from "firebase/auth";
+import { setSessionCookie, clearSessionCookie } from "@/lib/sessionCookie";
 
-export const signInUser = (email: string, password: string) => {
+/**
+ * Sign in user with email and password
+ * Sets session cookie for middleware auth checks
+ */
+export const signInUser = async (email: string, password: string) => {
     const { auth } = getFirebase();
-    return signInWithEmailAndPassword(auth, email, password);
+    const result = await signInWithEmailAndPassword(auth, email, password);
+    
+    // Set session cookie for middleware
+    if (result.user) {
+        setSessionCookie(result.user.uid);
+    }
+    
+    return result;
 }
 
-export const signOutUser = () => {
+/**
+ * Sign out user
+ * Clears session cookie before signing out
+ */
+export const signOutUser = async () => {
     const { auth } = getFirebase();
+    
+    // Clear session cookie first
+    clearSessionCookie();
+    
     return signOut(auth);
 }
 
+/**
+ * Listen to auth state changes
+ * Updates session cookie accordingly
+ */
 export const onAuthChange = (callback: (user: User | null) => void) => {
     const { auth } = getFirebase();
-    return onAuthStateChanged(auth, callback);
+    return onAuthStateChanged(auth, (user) => {
+        // Update session cookie based on auth state
+        if (user) {
+            setSessionCookie(user.uid);
+        } else {
+            clearSessionCookie();
+        }
+        callback(user);
+    });
 }
 
 export const sendPasswordReset = (email: string) => {
@@ -33,7 +64,14 @@ export const sendPasswordReset = (email: string) => {
 export const signUpUser = async (email: string, password: string) => {
     const { auth } = getFirebase();
     const { createUserWithEmailAndPassword } = await import('firebase/auth');
-    return createUserWithEmailAndPassword(auth, email, password);
+    const result = await createUserWithEmailAndPassword(auth, email, password);
+    
+    // Set session cookie for middleware
+    if (result.user) {
+        setSessionCookie(result.user.uid);
+    }
+    
+    return result;
 }
 
 export type { User };

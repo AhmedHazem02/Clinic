@@ -1,6 +1,7 @@
 "use server";
 
 import { authAdmin } from "@/lib/firebaseAdmin";
+import { logger } from "@/lib/logger";
 
 // Generic function to create a user with a specific role
 export const createUser = async (email: string, password: string, role: 'doctor' | 'nurse') => {
@@ -19,7 +20,7 @@ export const createUser = async (email: string, password: string, role: 'doctor'
         } else if (error.code === 'auth/invalid-password') {
             throw new Error('Password should be at least 6 characters.');
         } else {
-            console.error("Firebase Admin Error:", error.message);
+            logger.error("Firebase Admin Error during user creation", error, { email, role });
             throw new Error(error.message || 'Failed to create user.');
         }
     }

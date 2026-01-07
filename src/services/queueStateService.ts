@@ -15,6 +15,7 @@ import {
   Unsubscribe,
 } from "firebase/firestore";
 import { QueueState } from "@/types/multitenant";
+import { logger } from "@/lib/logger";
 
 /**
  * Generate queue state document ID
@@ -29,23 +30,32 @@ export function getQueueStateId(clinicId: string, doctorId: string): string {
  * @param clinicId - Clinic ID
  * @param doctorId - Doctor ID
  * @param currentConsultingQueueNumber - Queue number currently consulting (null if none)
+ * @param additionalData - Optional additional data to merge (stats updates)
  */
 export async function updateQueueState(
   clinicId: string,
   doctorId: string,
-  currentConsultingQueueNumber: number | null
+  currentConsultingQueueNumber: number | null,
+  additionalData?: Partial<QueueState>
 ): Promise<void> {
   const { db } = getFirebase();
   const queueStateId = getQueueStateId(clinicId, doctorId);
   const queueStateRef = doc(db, 'queueState', queueStateId);
 
-  await setDoc(queueStateRef, {
+  const updateData: Record<string, unknown> = {
     clinicId,
     doctorId,
     currentConsultingQueueNumber,
     isOpen: true,
     updatedAt: Timestamp.now(),
-  }, { merge: true });
+  };
+
+  // Merge additional data if provided
+  if (additionalData) {
+    Object.assign(updateData, additionalData);
+  }
+
+  await setDoc(queueStateRef, updateData, { merge: true });
 }
 
 /**
@@ -98,7 +108,7 @@ export function listenToQueueState(
       }
     },
     (error) => {
-      console.error('Error listening to queue state:', error);
+      logger.error('Error listening to queue state', error);
       callback(null);
     }
   );
@@ -168,4 +178,50 @@ export async function updateMaxQueueNumber(
       updatedAt: Timestamp.now(),
     }, { merge: true });
   }
+}
+
+/**
+ * Update queue statistics (waiting count, finished count, etc.)
+ * Called periodically or on each status change
+ *
+ * @param clinicId - Clinic ID
+ * @param doctorId - Doctor ID
+ * @param stats - Queue statistics to update
+ */
+export async function updateQueueStats(
+  clinicId: string,
+  doctorId: string,
+  stats: {
+    totalWaitingCount?: number;
+    totalFinishedCount?: number;
+    averageWaitTimeMinutes?: number;
+    queueStartedAt?: Date;
+    lastPatientFinishedAt?: Date;
+  }
+): Promise<void> {
+  const { db } = getFirebase();
+  const queueStateId = getQueueStateId(clinicId, doctorId);
+  const queueStateRef = doc(db, 'queueState', queueStateId);
+
+  const updateData: Record<string, unknown> = {
+    updatedAt: Timestamp.now(),
+  };
+
+  if (stats.totalWaitingCount !== undefined) {
+    updateData.totalWaitingCount = stats.totalWaitingCount;
+  }
+  if (stats.totalFinishedCount !== undefined) {
+    updateData.totalFinishedCount = stats.totalFinishedCount;
+  }
+  if (stats.averageWaitTimeMinutes !== undefined) {
+    updateData.averageWaitTimeMinutes = stats.averageWaitTimeMinutes;
+  }
+  if (stats.queueStartedAt) {
+    updateData.queueStartedAt = Timestamp.fromDate(stats.queueStartedAt);
+  }
+  if (stats.lastPatientFinishedAt) {
+    updateData.lastPatientFinishedAt = Timestamp.fromDate(stats.lastPatientFinishedAt);
+  }
+
+  await setDoc(queueStateRef, updateData, { merge: true });
 }

@@ -8,6 +8,7 @@
 import { getFirebase } from "@/lib/firebase";
 import { doc, getDoc, setDoc, Timestamp } from "firebase/firestore";
 import type { UserProfile, LegacyUserProfile } from "@/types/multitenant";
+import { logger } from "@/lib/logger";
 
 /**
  * Get user profile by Firebase Auth UID
@@ -42,7 +43,7 @@ export async function getUserProfile(uid: string): Promise<UserProfile | null> {
 
     return null;
   } catch (error) {
-    console.error('Error fetching user profile:', error);
+    logger.error('Error fetching user profile', error, { uid });
     return null;
   }
 }
@@ -92,7 +93,7 @@ export async function detectLegacyProfile(uid: string): Promise<LegacyUserProfil
 
     return null;
   } catch (error) {
-    console.error('Error detecting legacy profile:', error);
+    logger.error('Error detecting legacy profile', error, { uid });
     return null;
   }
 }
@@ -118,8 +119,9 @@ export async function getUserProfileWithLegacyFallback(
   // Fall back to legacy detection
   const legacyProfile = await detectLegacyProfile(uid);
   if (legacyProfile) {
-    console.warn(
-      `User ${uid} is using legacy profile. Migration to userProfiles needed.`
+    logger.warn(
+      'User is using legacy profile. Migration to userProfiles needed.',
+      { uid }
     );
     return legacyProfile;
   }
@@ -147,7 +149,7 @@ export async function updateLastLogin(uid: string): Promise<void> {
       );
     }
   } catch (error) {
-    console.error('Error updating last login:', error);
+    logger.error('Error updating last login', error, { uid });
     // Don't throw - this is a non-critical operation
   }
 }
@@ -221,7 +223,7 @@ export async function createUserProfile(
 
     await setDoc(profileRef, userProfile);
   } catch (error) {
-    console.error('Error creating user profile:', error);
+    logger.error('Error creating user profile', error, { uid });
     throw error;
   }
 }

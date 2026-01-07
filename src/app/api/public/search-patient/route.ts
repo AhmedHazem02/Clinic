@@ -4,24 +4,41 @@
  * Server-side endpoint for searching active patients by phone number.
  * Uses Firebase Admin SDK to bypass Firestore security rules.
  * 
+ * SECURITY: Only returns minimal information (ticketId) to prevent data scraping.
+ * Full patient details require the ticketId for verification.
+ * 
  * POST /api/public/search-patient
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { adminDb } from '@/lib/firebaseAdmin';
+import { checkRateLimit, getClientId, RATE_LIMITS, createRateLimitResponse } from '@/lib/rateLimit';
+import { logger, sanitizeErrorMessage } from '@/lib/logger';
+import { searchPatientSchema, validateRequestBody } from '@/lib/validation';
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-    const { phone } = body;
+    // Rate limiting
+    const clientId = getClientId(request);
+    const rateLimitResult = checkRateLimit(clientId, RATE_LIMITS.search);
+    
+    if (!rateLimitResult.success) {
+      logger.warn('Rate limit exceeded for patient search', { clientId });
+      return createRateLimitResponse(rateLimitResult);
+    }
 
-    // Validate phone number
-    if (!phone || typeof phone !== 'string') {
+    const body = await request.json();
+    
+    // Validate input
+    const validation = validateRequestBody(searchPatientSchema, body);
+    if (!validation.success) {
       return NextResponse.json(
-        { ok: false, error: 'Phone number is required' },
+        { ok: false, error: validation.error },
         { status: 400 }
       );
     }
+
+    const { phone } = validation.data;
 
     const db = adminDb();
     
@@ -43,26 +60,24 @@ export async function POST(request: NextRequest) {
     const patientDoc = snapshot.docs[0];
     const patientData = patientDoc.data();
 
+    // SECURITY: Only return minimal information
+    // The ticketId is required to view full status page
     return NextResponse.json({
       ok: true,
       found: true,
       patient: {
-        id: patientDoc.id,
-        clinicId: patientData.clinicId,
-        doctorId: patientData.doctorId,
         ticketId: patientData.ticketId,
-        name: patientData.name,
-        phone: patientData.phone,
+        clinicId: patientData.clinicId,
+        // Only return queue position info, not personal details
         queueNumber: patientData.queueNumber,
         status: patientData.status,
-        queueType: patientData.queueType,
       },
     });
 
-  } catch (error) {
-    console.error('Error searching for patient:', error);
+  } catch (error: unknown) {
+    logger.error('Error searching for patient', error);
     return NextResponse.json(
-      { ok: false, error: 'Internal server error' },
+      { ok: false, error: sanitizeErrorMessage(error) },
       { status: 500 }
     );
   }

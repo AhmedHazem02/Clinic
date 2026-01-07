@@ -20,6 +20,7 @@ import {
   deleteDoc,
 } from "firebase/firestore";
 import type { UserRole } from "@/types/multitenant";
+import { logger } from "@/lib/logger";
 
 export type InviteStatus = 'pending' | 'accepted' | 'revoked' | 'expired';
 
@@ -116,7 +117,7 @@ export function parseInviteToken(token: string): {
       secret: parts[2],
     };
   } catch (error) {
-    console.error('Error parsing invite token:', error);
+    logger.error('Error parsing invite token', error);
     return null;
   }
 }
@@ -226,7 +227,7 @@ export async function verifyInviteToken(token: string): Promise<Invite | null> {
   const tokenHash = await sha256(tokenPayload);
 
   if (tokenHash !== invite.tokenHash) {
-    console.error('Token hash mismatch');
+    logger.warn('Token hash mismatch during invite verification');
     return null;
   }
 

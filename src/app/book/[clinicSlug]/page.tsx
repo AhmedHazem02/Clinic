@@ -9,16 +9,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, Calendar, User, Phone, Stethoscope, AlertCircle, Users } from "lucide-react";
-import { getClinicBySlug, listActiveDoctorsForClinic, validatePhoneNumber } from "@/services/clinicPublicService";
-import { Clinic, Doctor } from "@/types/multitenant";
+import { Loader2, Calendar, User, Phone, AlertCircle, Users } from "lucide-react";
+import { getClinicBySlug, getDoctorById, validatePhoneNumber } from "@/services/clinicPublicService";
+import { Clinic } from "@/types/multitenant";
 import { toast } from "@/hooks/use-toast";
 
 // Form validation schema
+// NOTE: doctorId is auto-filled from clinic.ownerUid (single doctor model)
 const bookingFormSchema = z.object({
   name: z.string().min(2, "الاسم يجب أن يكون حرفين على الأقل"),
   phone: z.string().refine(validatePhoneNumber, {
@@ -28,7 +28,7 @@ const bookingFormSchema = z.object({
   consultationReason: z.string().optional(),
   chronicDiseases: z.string().optional(),
   queueType: z.enum(["Consultation", "Re-consultation"]),
-  doctorId: z.string().min(1, "يجب اختيار الطبيب"),
+  doctorId: z.string().min(1), // Auto-filled, not shown to user
 });
 
 type BookingFormValues = z.infer<typeof bookingFormSchema>;
@@ -39,7 +39,7 @@ export default function BookingPage() {
   const clinicSlug = params.clinicSlug as string;
 
   const [clinic, setClinic] = useState<Clinic | null>(null);
-  const [doctors, setDoctors] = useState<Doctor[]>([]);
+  const [doctorName, setDoctorName] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -63,7 +63,7 @@ export default function BookingPage() {
 
   const selectedDoctorId = watch("doctorId");
 
-  // Load clinic and doctors
+  // Load clinic (single doctor model - doctor is ownerUid)
   useEffect(() => {
     async function loadClinicData() {
       try {
@@ -79,18 +79,21 @@ export default function BookingPage() {
 
         setClinic(clinicData);
 
-        // Fetch active doctors
-        const doctorsData = await listActiveDoctorsForClinic(clinicData.id!);
-        if (doctorsData.length === 0) {
-          setError("لا يوجد أطباء متاحين في هذه العيادة حالياً");
-          return;
-        }
+        // Auto-set doctorId to clinic owner (single doctor model)
+        // The doctor document ID is the same as ownerUid
+        setValue("doctorId", clinicData.ownerUid);
 
-        setDoctors(doctorsData);
-
-        // Auto-select if only one doctor
-        if (doctorsData.length === 1) {
-          setValue("doctorId", doctorsData[0].id!);
+        // Ensure we display the actual doctor's name. Some clinics may store a placeholder
+        // like "doctor" or leave `ownerName` empty; in that case fetch the doctor document.
+        if (clinicData.ownerName && clinicData.ownerName !== "doctor") {
+          setDoctorName(clinicData.ownerName);
+        } else if (clinicData.ownerUid) {
+          try {
+            const doc = await getDoctorById(clinicData.ownerUid);
+            if (doc && doc.name) setDoctorName(doc.name);
+          } catch (e) {
+            console.warn("Could not fetch doctor doc for ownerUid", clinicData.ownerUid, e);
+          }
         }
       } catch (err) {
         console.error("Error loading clinic data:", err);
@@ -238,8 +241,6 @@ export default function BookingPage() {
     );
   }
 
-  const selectedDoctor = doctors.find((d) => d.id === selectedDoctorId);
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-8 px-4">
       <div className="max-w-2xl mx-auto">
@@ -250,7 +251,7 @@ export default function BookingPage() {
               {clinic?.name}
             </CardTitle>
             <CardDescription>
-              احجز موعدك الآن
+              احجز موعدك الآن مع {doctorName || clinic?.ownerName}
             </CardDescription>
           </CardHeader>
         </Card>
@@ -268,32 +269,6 @@ export default function BookingPage() {
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-              {/* Doctor Selection */}
-              <div className="space-y-2">
-                <Label htmlFor="doctorId" className="flex items-center gap-2">
-                  <Stethoscope className="h-4 w-4" />
-                  اختر الطبيب *
-                </Label>
-                <Select
-                  value={selectedDoctorId}
-                  onValueChange={(value) => setValue("doctorId", value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="اختر الطبيب..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {doctors.map((doctor) => (
-                      <SelectItem key={doctor.id} value={doctor.id!}>
-                        {doctor.name} - {doctor.specialty}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {errors.doctorId && (
-                  <p className="text-sm text-red-500">{errors.doctorId.message}</p>
-                )}
-              </div>
-
               {/* People Ahead Count (TODAY only) */}
               {selectedDoctorId && (
                 <Alert className="bg-blue-50 border-blue-200">
@@ -408,13 +383,12 @@ export default function BookingPage() {
               </div>
 
               {/* Info Alert */}
-              {selectedDoctor && (
+              {clinic && (
                 <Alert>
                   <AlertDescription className="text-sm">
-                    سيتم حجزك مع <strong>{selectedDoctor.name}</strong> (
-                    {selectedDoctor.specialty})
+                    سيتم حجزك مع <strong>{doctorName || clinic?.ownerName}</strong>
                     <br />
-                    مدة الكشف المتوقعة: {clinic?.settings?.consultationTime || 15} دقيقة
+                    مدة الكشف المتوقعة: {clinic.settings?.consultationTime || 15} دقيقة
                   </AlertDescription>
                 </Alert>
               )}

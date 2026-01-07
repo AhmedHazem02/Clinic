@@ -60,19 +60,22 @@ export interface ClinicSettings {
 /**
  * Clinic - top-level tenant container
  *
+ * IMPORTANT: Each clinic has exactly ONE doctor (the owner).
+ * The clinic is essentially the doctor's practice.
+ *
  * Document ID: Auto-generated
  * Collection: clinics/{clinicId}
  */
 export interface Clinic {
   // Identity (document ID is clinicId)
   id?: string;                      // Document ID (optional when creating)
-  name: string;                     // Clinic name
+  name: string;                     // Clinic name (typically "Dr. X Clinic")
   slug: string;                     // URL-friendly unique identifier
-  ownerUid: string;                 // Firebase Auth UID of clinic owner (primary)
+  ownerUid: string;                 // Firebase Auth UID of clinic owner (THE ONLY DOCTOR)
 
   // Owner Information (for compatibility)
-  ownerId: string;                  // Firebase Auth UID of clinic owner
-  ownerName: string;                // Owner's display name
+  ownerId: string;                  // Firebase Auth UID of clinic owner (same as ownerUid)
+  ownerName: string;                // Owner's display name (the doctor's name)
   ownerEmail: string;               // Owner's email
 
   // Settings
@@ -110,27 +113,31 @@ export interface Clinic {
 /**
  * Doctor profile within a clinic
  *
- * Document ID: Auto-generated (NOT Firebase Auth UID after migration)
- * Collection: doctors/{doctorId}
+ * IMPORTANT: Each clinic has exactly ONE doctor.
+ * The doctor document ID is the same as the ownerUid (Firebase Auth UID).
+ * This doctor is the clinic owner and the only doctor in the system.
+ *
+ * Document ID: ownerUid (Firebase Auth UID)
+ * Collection: doctors/{ownerUid}
  */
 export interface Doctor {
   // Identity
-  id?: string;                      // Document ID (optional when creating)
-  userId: string;                   // Firebase Auth UID
-  clinicId: string;                 // Parent clinic ID
+  id?: string;                      // Document ID (same as ownerUid)
+  userId: string;                   // Firebase Auth UID (same as ownerUid)
+  clinicId: string;                 // Parent clinic ID (the clinic this doctor owns)
 
   // Profile Information
-  name: string;
-  email: string;
-  specialty: string;
-  avatarUrl?: string;
+  name: string;                     // Doctor's full name
+  email: string;                    // Doctor's email
+  specialty: string;                // Medical specialty
+  avatarUrl?: string;               // Profile picture URL
 
   // Doctor-Specific Settings
   personalPhoneNumbers?: string[];  // Doctor's direct line (optional)
   consultationLocations?: string[]; // Specific locations doctor works at
 
   // Status
-  isActive: boolean;                // Can be deactivated by clinic owner
+  isActive: boolean;                // Can be deactivated by platform admin
   isAvailable: boolean;             // Current availability (toggleable by doctor)
 
   // Permissions (optional - for fine-grained control)
@@ -151,7 +158,10 @@ export interface Doctor {
 /**
  * Nurse profile within a clinic
  *
- * Document ID: Auto-generated (NOT Firebase Auth UID after migration)
+ * IMPORTANT: Since each clinic has only ONE doctor, nurses don't need doctor assignment.
+ * All nurses in a clinic automatically work with that clinic's single doctor.
+ *
+ * Document ID: Auto-generated (NOT Firebase Auth UID)
  * Collection: nurses/{nurseId}
  */
 export interface Nurse {
@@ -161,12 +171,11 @@ export interface Nurse {
   clinicId: string;                 // Parent clinic ID
 
   // Profile Information
-  name: string;
-  email: string;
-  avatarUrl?: string;
+  name: string;                     // Nurse's full name
+  email: string;                    // Nurse's email
+  avatarUrl?: string;               // Profile picture URL
 
-  // Assignment (optional)
-  assignedDoctorIds?: string[];     // Specific doctors this nurse works with
+  // NOTE: No doctor assignment needed - clinic has only one doctor
 
   // Status
   isActive: boolean;                // Can be deactivated by clinic owner
@@ -267,6 +276,13 @@ export interface QueueState {
   // Current State
   currentConsultingQueueNumber: number | null;  // Queue number currently being served (null if none)
   currentMaxQueueNumberToday?: number;          // Highest queue number assigned today (for preview)
+  
+  // Queue Statistics (Updated on each change)
+  totalWaitingCount?: number;       // Total patients waiting
+  totalFinishedCount?: number;      // Total patients finished today
+  averageWaitTimeMinutes?: number;  // Average actual wait time today
+  queueStartedAt?: Timestamp | Date;// When first patient started consulting today
+  lastPatientFinishedAt?: Timestamp | Date; // When last patient finished
 
   // Status
   isOpen: boolean;                  // Whether queue is accepting patients

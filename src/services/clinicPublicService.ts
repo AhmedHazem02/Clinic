@@ -63,10 +63,13 @@ export async function getClinicById(clinicId: string): Promise<Clinic | null> {
 
 /**
  * List all active doctors for a clinic
- * Used in booking form to show available doctors
- * 
+ *
+ * @deprecated Single doctor model: Each clinic has exactly ONE doctor (the owner).
+ * Use clinic.ownerUid to get the doctor ID instead.
+ * This function is kept for backward compatibility only.
+ *
  * @param clinicId - Clinic document ID
- * @returns Promise resolving to array of doctors
+ * @returns Promise resolving to array of doctors (will always return 1 doctor)
  */
 export async function listActiveDoctorsForClinic(clinicId: string): Promise<Doctor[]> {
   const { db } = getFirebase();

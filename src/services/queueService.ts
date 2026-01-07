@@ -1,4 +1,3 @@
-
 import { getFirebase } from "@/lib/firebase";
 import {
     collection,
@@ -17,12 +16,112 @@ import {
     and,
     setDoc,
     getDoc,
-    increment
+    increment,
+    addDoc,
+    serverTimestamp
 } from "firebase/firestore";
 import { getCairoBookingDay } from "@/lib/bookingDay";
+import { logger } from "@/lib/logger";
 
 export type PatientStatus = 'Waiting' | 'Consulting' | 'Finished';
 export type QueueType = 'Consultation' | 'Re-consultation';
+
+/**
+ * Calculate queue statistics for a specific doctor/clinic/day
+ * Used to provide accurate wait time estimates for patients
+ */
+export const calculateQueueStats = async (
+    doctorId: string,
+    clinicId: string,
+    bookingDay: string
+): Promise<{
+    totalWaitingCount: number;
+    totalFinishedCount: number;
+    averageWaitTimeMinutes: number;
+    queueStartedAt?: Date;
+    lastPatientFinishedAt?: Date;
+}> => {
+    const { db } = getFirebase();
+    const patientsRef = collection(db, 'patients');
+    
+    // Query all patients for this doctor/clinic/day
+    const q = query(
+        patientsRef,
+        where('doctorId', '==', doctorId),
+        where('clinicId', '==', clinicId),
+        where('bookingDay', '==', bookingDay)
+    );
+    
+    const snapshot = await getDocs(q);
+    
+    let totalWaitingCount = 0;
+    let totalFinishedCount = 0;
+    let totalWaitTimeMinutes = 0;
+    let finishedWithWaitTime = 0;
+    let queueStartedAt: Date | undefined;
+    let lastPatientFinishedAt: Date | undefined;
+    
+    snapshot.docs.forEach(doc => {
+        const data = doc.data();
+        
+        if (data.status === 'Waiting') {
+            totalWaitingCount++;
+        } else if (data.status === 'Finished') {
+            totalFinishedCount++;
+            
+            // Calculate wait time if we have both creation and consulting start times
+            if (data.createdAt && data.consultingStartTime) {
+                const createdAt = data.createdAt instanceof Timestamp 
+                    ? data.createdAt.toDate() 
+                    : new Date(data.createdAt);
+                const consultingStartTime = data.consultingStartTime instanceof Timestamp 
+                    ? data.consultingStartTime.toDate() 
+                    : new Date(data.consultingStartTime);
+                
+                const waitTimeMs = consultingStartTime.getTime() - createdAt.getTime();
+                const waitTimeMinutes = waitTimeMs / (1000 * 60);
+                
+                if (waitTimeMinutes > 0 && waitTimeMinutes < 480) { // Max 8 hours
+                    totalWaitTimeMinutes += waitTimeMinutes;
+                    finishedWithWaitTime++;
+                }
+            }
+            
+            // Track last finished time
+            if (data.finishedAt) {
+                const finishedAt = data.finishedAt instanceof Timestamp 
+                    ? data.finishedAt.toDate() 
+                    : new Date(data.finishedAt);
+                if (!lastPatientFinishedAt || finishedAt > lastPatientFinishedAt) {
+                    lastPatientFinishedAt = finishedAt;
+                }
+            }
+        } else if (data.status === 'Consulting') {
+            // Track when queue started (first consulting patient)
+            if (data.consultingStartTime) {
+                const startTime = data.consultingStartTime instanceof Timestamp 
+                    ? data.consultingStartTime.toDate() 
+                    : new Date(data.consultingStartTime);
+                if (!queueStartedAt || startTime < queueStartedAt) {
+                    queueStartedAt = startTime;
+                }
+            }
+        }
+    });
+    
+    // Calculate average wait time
+    const averageWaitTimeMinutes = finishedWithWaitTime > 0 
+        ? Math.round(totalWaitTimeMinutes / finishedWithWaitTime) 
+        : 0;
+    
+    return {
+        totalWaitingCount,
+        totalFinishedCount,
+        averageWaitTimeMinutes,
+        queueStartedAt,
+        lastPatientFinishedAt,
+    };
+};
 
 export interface NewPatient {
     name: string;
@@ -139,7 +238,7 @@ export const listenToQueue = (
         });
         callback(patients);
     }, (error) => {
-        console.error("Error listening to queue:", error);
+        logger.error("Error listening to queue", error);
         if (errorCallback) {
             errorCallback(error);
         }
@@ -196,7 +295,7 @@ export const listenToQueueForNurse = (
         });
         callback(patients);
     }, (error) => {
-        console.error("Error listening to nurse's queue:", error);
+        logger.error("Error listening to nurse's queue", error);
         if (errorCallback) {
             errorCallback(error);
         }
@@ -280,6 +379,7 @@ export const getPatientByPhoneAcrossClinics = async (phone: string): Promise<Pat
 // Update a patient's status
 // Updated: also updates booking ticket status if ticketId exists
 // Updated: sets consultingStartTime when status changes to 'Consulting' for accurate wait time calculation
+// Updated: updates queue statistics in queueState
 export const updatePatientStatus = async (patientId: string, status: PatientStatus, prescription?: string) => {
     const { db } = getFirebase();
     const patientDocRef = doc(db, 'patients', patientId);
@@ -301,6 +401,7 @@ export const updatePatientStatus = async (patientId: string, status: PatientStat
         const clinicId = patientData.clinicId;
         const doctorId = patientData.doctorId;
         const queueNumber = patientData.queueNumber;
+        const bookingDay = patientData.bookingDay;
         
         // Update booking ticket status if ticketId exists
         if (ticketId) {
@@ -310,8 +411,14 @@ export const updatePatientStatus = async (patientId: string, status: PatientStat
 
         // Update queueState if patient is now consulting
         if (status === 'Consulting' && clinicId && doctorId && queueNumber !== undefined) {
-            const { updateQueueState } = await import('@/services/queueStateService');
+            const { updateQueueState, updateQueueStats } = await import('@/services/queueStateService');
             await updateQueueState(clinicId, doctorId, queueNumber);
+            
+            // Update queue statistics
+            if (bookingDay) {
+                const stats = await calculateQueueStats(doctorId, clinicId, bookingDay);
+                await updateQueueStats(clinicId, doctorId, stats);
+            }
         }
     }
 }
@@ -326,6 +433,7 @@ export const updateDoctorRevenue = async (doctorId: string, amount: number) => {
 
 // Finish consultation for current patient (marks as Finished)
 // Updated: also updates booking ticket status and queueState
+// Updated: updates queue statistics for accurate wait time calculation
 export const finishConsultation = async (patientId: string, prescription?: string) => {
     const { db } = getFirebase();
     const patientDocRef = doc(db, 'patients', patientId);
@@ -348,6 +456,7 @@ export const finishConsultation = async (patientId: string, prescription?: strin
         const clinicId = patientData.clinicId;
         const doctorId = patientData.doctorId;
         const queueNumber = patientData.queueNumber;
+        const bookingDay = patientData.bookingDay;
 
         // Update booking ticket status if ticketId exists
         if (ticketId) {
@@ -355,14 +464,22 @@ export const finishConsultation = async (patientId: string, prescription?: strin
             await updateBookingTicketStatus(ticketId, 'Finished');
         }
 
-        // Update queueState to clear the current patient (set to null)
+        // Update queueState to clear the current patient (set to null) and update stats
         if (clinicId && doctorId) {
-            const { updateQueueState } = await import('@/services/queueStateService');
-            await updateQueueState(clinicId, doctorId, null);
+            const { updateQueueState, updateQueueStats } = await import('@/services/queueStateService');
+            await updateQueueState(clinicId, doctorId, null, {
+                lastPatientFinishedAt: new Date(),
+            });
+            
+            // Update queue statistics
+            if (bookingDay) {
+                const stats = await calculateQueueStats(doctorId, clinicId, bookingDay);
+                await updateQueueStats(clinicId, doctorId, stats);
+            }
         }
     }
 
-    console.log(`✅ Finished consultation for patient ${patientId}`);
+    logger.debug(`Finished consultation for patient`, { patientId });
 };
 
 // Finish a consultation and call the next patient
@@ -459,7 +576,7 @@ export const reorganizeQueue = async (
     });
 
     await batch.commit();
-    console.log(`🔄 Reorganized ${snapshot.size} patients after queue #${deletedQueueNumber}`);
+    logger.debug(`Reorganized patients after queue deletion`, { count: snapshot.size, deletedQueueNumber });
 };
 
 // Remove a patient from the queue and reorganize queue numbers
@@ -488,15 +605,43 @@ export const removePatientFromQueue = async (patientId: string) => {
     }
 };
 
-// Update the doctor's global message
-export const updateDoctorMessage = async (message: string, doctorId: string) => {
+// Doctor Message Type
+export interface DoctorMessage {
+    id?: string;
+    doctorId: string;
+    clinicId: string;
+    message: string;
+    createdAt: any; // Firestore Timestamp
+    isRead: boolean; // For nurse notifications
+}
+
+// Update the doctor's global message (new system)
+export const updateDoctorMessage = async (message: string, doctorId: string, clinicId?: string) => {
     const { db } = getFirebase();
+    
+    // If no clinicId provided, fallback to old system for backward compatibility
+    if (!clinicId) {
+        const statusDocRef = doc(db, 'clinicInfo', 'status');
+        await setDoc(statusDocRef, { [`message_${doctorId}`]: message }, { merge: true });
+        return;
+    }
+    
+    // New system: Save message to collection with timestamp
+    const messagesRef = collection(db, 'doctorMessages');
+    await addDoc(messagesRef, {
+        doctorId,
+        clinicId,
+        message,
+        createdAt: serverTimestamp(),
+        isRead: false // For nurse notifications
+    } as Omit<DoctorMessage, 'id'>);
+    
+    // Also update the old location for backward compatibility
     const statusDocRef = doc(db, 'clinicInfo', 'status');
-    // Store message per doctor
     await setDoc(statusDocRef, { [`message_${doctorId}`]: message }, { merge: true });
 };
 
-// Listen to the doctor's global message
+// Listen to the doctor's global message (old system - backward compatibility)
 export const listenToDoctorMessage = (doctorId: string, callback: (message: string) => void) => {
     const { db } = getFirebase();
     const statusDocRef = doc(db, 'clinicInfo', 'status');
@@ -507,9 +652,74 @@ export const listenToDoctorMessage = (doctorId: string, callback: (message: stri
             callback("");
         }
     }, (error) => {
-        console.error("Error listening to doctor message:", error);
+        logger.error("Error listening to doctor message", error);
     });
     return unsubscribe;
+};
+
+// Get latest doctor message with timestamp
+export const getLatestDoctorMessage = async (doctorId: string, clinicId: string): Promise<DoctorMessage | null> => {
+    const { db } = getFirebase();
+    const messagesRef = collection(db, 'doctorMessages');
+    const q = query(
+        messagesRef,
+        where('doctorId', '==', doctorId),
+        where('clinicId', '==', clinicId),
+        orderBy('createdAt', 'desc'),
+        limit(1)
+    );
+    
+    const snapshot = await getDocs(q);
+    if (snapshot.empty) return null;
+    
+    const doc = snapshot.docs[0];
+    return { id: doc.id, ...doc.data() } as DoctorMessage;
+};
+
+// Listen to new doctor messages (for nurse notifications)
+export const listenToNewDoctorMessages = (
+    clinicId: string,
+    callback: (messages: DoctorMessage[]) => void,
+    onlyUnread: boolean = true
+) => {
+    const { db } = getFirebase();
+    const messagesRef = collection(db, 'doctorMessages');
+    
+    let q = query(
+        messagesRef,
+        where('clinicId', '==', clinicId),
+        orderBy('createdAt', 'desc'),
+        limit(10)
+    );
+    
+    if (onlyUnread) {
+        q = query(
+            messagesRef,
+            where('clinicId', '==', clinicId),
+            where('isRead', '==', false),
+            orderBy('createdAt', 'desc'),
+            limit(10)
+        );
+    }
+    
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+        const messages = snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+        } as DoctorMessage));
+        callback(messages);
+    }, (error) => {
+        logger.error('Error listening to doctor messages', error);
+    });
+    
+    return unsubscribe;
+};
+
+// Mark message as read
+export const markMessageAsRead = async (messageId: string) => {
+    const { db } = getFirebase();
+    const messageRef = doc(db, 'doctorMessages', messageId);
+    await updateDoc(messageRef, { isRead: true });
 };
 
 // Update clinic settings
@@ -548,7 +758,7 @@ export const listenToClinicSettings = (
                 callback(null);
             }
         }, (error) => {
-            console.error("Error listening to clinic settings (multi-tenant):", error);
+            logger.error("Error listening to clinic settings (multi-tenant)", error);
         });
     } else {
         // Legacy: settings are in clinicInfo/settings
@@ -560,7 +770,7 @@ export const listenToClinicSettings = (
                 callback(null);
             }
         }, (error) => {
-            console.error("Error listening to clinic settings (legacy):", error);
+            logger.error("Error listening to clinic settings (legacy)", error);
         });
     }
 };
@@ -601,7 +811,7 @@ export const listenToDoctorProfile = (uid: string, callback: (profile: DoctorPro
             callback(null);
         }
     }, (error) => {
-        console.error("Error listening to doctor profile:", error);
+        logger.error("Error listening to doctor profile", error);
     });
     return unsubscribe;
 };
@@ -619,7 +829,7 @@ export const listenToDoctorAvailability = (doctorId: string, callback: (isAvaila
             callback(true);
         }
     }, (error) => {
-        console.error("Error listening to doctor availability:", error);
+        logger.error("Error listening to doctor availability", error);
     });
 
     return unsubscribe;
@@ -927,7 +1137,7 @@ export const listenToClinicQueue = (
         });
         callback(patients);
     }, (error) => {
-        console.error("Error listening to clinic queue:", error);
+        logger.error("Error listening to clinic queue", error);
         if (errorCallback) {
             errorCallback(error);
         }

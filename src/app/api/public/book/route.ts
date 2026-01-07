@@ -8,10 +8,12 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { adminDb } from '@/lib/firebaseAdmin';
+import { adminDb, authAdmin } from '@/lib/firebaseAdmin';
 import { Timestamp } from 'firebase-admin/firestore';
-import { getDayRange } from '@/lib/dateRange';
 import { getCairoBookingDay } from '@/lib/bookingDay';
+import { checkRateLimit, getClientId, RATE_LIMITS, createRateLimitResponse } from '@/lib/rateLimit';
+import { logger, sanitizeErrorMessage } from '@/lib/logger';
+import { bookingSchema, validateRequestBody, sanitizeName, sanitizeText } from '@/lib/validation';
 
 // Validation helpers
 function validateEgyptianPhone(phone: string): boolean {
@@ -35,10 +37,29 @@ function getPhoneLast4(phone: string): string {
 
 export async function POST(request: NextRequest) {
   try {
+    // Rate limiting
+    const clientId = getClientId(request);
+    const rateLimitResult = checkRateLimit(clientId, RATE_LIMITS.booking);
+    
+    if (!rateLimitResult.success) {
+      logger.warn('Rate limit exceeded for booking', { clientId });
+      return createRateLimitResponse(rateLimitResult);
+    }
+
     const body = await request.json();
+    
+    // Validate and sanitize input
+    const validation = validateRequestBody(bookingSchema, body);
+    if (!validation.success) {
+      return NextResponse.json(
+        { ok: false, error: validation.error },
+        { status: 400 }
+      );
+    }
+
     const {
       clinicSlug,
-      clinicId: requestClinicId, // For nurse bookings
+      clinicId: requestClinicId,
       doctorId,
       name,
       phone,
@@ -46,7 +67,7 @@ export async function POST(request: NextRequest) {
       queueType = 'Consultation',
       consultationReason,
       chronicDiseases,
-      source = 'patient', // 'patient' or 'nurse'
+      source = 'patient',
       nurseId,
       nurseName,
     } = body;
@@ -96,11 +117,20 @@ export async function POST(request: NextRequest) {
     const db = adminDb();
 
     let clinicId: string;
+    let clinicDoc: FirebaseFirestore.DocumentSnapshot;
 
-    // Determine clinicId based on source
+    // Determine clinicId and fetch clinic document based on source
     if (source === 'nurse') {
       // Nurse booking: use clinicId directly from request
       clinicId = requestClinicId!;
+      clinicDoc = await db.collection('clinics').doc(clinicId).get();
+
+      if (!clinicDoc.exists) {
+        return NextResponse.json(
+          { ok: false, error: 'clinic not found' },
+          { status: 404 }
+        );
+      }
     } else {
       // Patient booking: lookup clinic by slug
       const clinicsRef = db.collection('clinics');
@@ -117,15 +147,18 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      const clinicDoc = clinicQuery.docs[0];
+      clinicDoc = clinicQuery.docs[0];
       clinicId = clinicDoc.id;
     }
 
-    // Verify based on source
-    let finalDoctorId = doctorId;
+    const clinicData = clinicDoc.data()!;
 
+    // SIMPLIFIED: Single doctor model - use clinic owner as the doctor
+    // The doctor document ID is the same as ownerUid
+    let finalDoctorId = clinicData.ownerUid;
+
+    // For nurse bookings: verify nurse exists
     if (source === 'nurse') {
-      // For nurse bookings: verify nurse exists and get assigned doctor
       if (!nurseId) {
         return NextResponse.json(
           { ok: false, error: 'nurseId is required for nurse bookings' },
@@ -149,30 +182,6 @@ export async function POST(request: NextRequest) {
           { ok: false, error: 'nurse does not belong to this clinic' },
           { status: 400 }
         );
-      }
-
-      // Use the doctor assigned to this nurse
-      if (nurseData.doctorId) {
-        finalDoctorId = nurseData.doctorId;
-      } else if (doctorId) {
-        // Fallback: use provided doctorId if nurse doesn't have assigned doctor
-        finalDoctorId = doctorId;
-      } else {
-        // Last resort: get first active doctor from clinic
-        const doctorsQuery = await db.collection('doctors')
-          .where('clinicId', '==', clinicId)
-          .where('isActive', '==', true)
-          .limit(1)
-          .get();
-
-        if (doctorsQuery.empty) {
-          return NextResponse.json(
-            { ok: false, error: 'no active doctors in this clinic' },
-            { status: 404 }
-          );
-        }
-
-        finalDoctorId = doctorsQuery.docs[0].id;
       }
     }
 
@@ -206,23 +215,7 @@ export async function POST(request: NextRequest) {
     const todayBookingDay = getCairoBookingDay(new Date());
     const patientsRef = db.collection('patients');
 
-    // Get next queue number for this doctor today using canonical bookingDay
-    // FIXED: Now matches nurse's queue numbering logic exactly
-    const queueQuery = await patientsRef
-      .where('doctorId', '==', finalDoctorId)
-      .where('clinicId', '==', clinicId)
-      .where('bookingDay', '==', todayBookingDay)
-      .orderBy('queueNumber', 'desc')
-      .limit(1)
-      .get();
-
-    let queueNumber = 1;
-    if (!queueQuery.empty) {
-      const lastPatient = queueQuery.docs[0].data();
-      queueNumber = (lastPatient.queueNumber || 0) + 1;
-    }
-
-    // Check for existing booking today (after we have finalDoctorId)
+    // Check for existing booking today BEFORE calculating queue number (to avoid skipping numbers)
     const existingQuery = await patientsRef
       .where('phone', '==', phone)
       .where('clinicId', '==', clinicId)
@@ -239,10 +232,27 @@ export async function POST(request: NextRequest) {
           return NextResponse.json({
             ok: true,
             ticketId: data.ticketId,
+            queueNumber: data.queueNumber,
             alreadyBooked: true,
           });
         }
       }
+    }
+
+    // Get next queue number for this doctor today using canonical bookingDay
+    // FIXED: Now matches nurse's queue numbering logic exactly
+    const queueQuery = await patientsRef
+      .where('doctorId', '==', finalDoctorId)
+      .where('clinicId', '==', clinicId)
+      .where('bookingDay', '==', todayBookingDay)
+      .orderBy('queueNumber', 'desc')
+      .limit(1)
+      .get();
+
+    let queueNumber = 1;
+    if (!queueQuery.empty) {
+      const lastPatient = queueQuery.docs[0].data();
+      queueNumber = (lastPatient.queueNumber || 0) + 1;
     }
 
     // Check if patient should be re-consultation
@@ -318,10 +328,10 @@ export async function POST(request: NextRequest) {
       queueNumber,
     });
 
-  } catch (error: any) {
-    console.error('Booking API error:', error);
+  } catch (error: unknown) {
+    logger.error('Booking API error', error);
     return NextResponse.json(
-      { ok: false, error: error.message || 'Internal server error' },
+      { ok: false, error: sanitizeErrorMessage(error) },
       { status: 500 }
     );
   }

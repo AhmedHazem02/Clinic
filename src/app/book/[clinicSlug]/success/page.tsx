@@ -4,11 +4,12 @@ import { Suspense, useEffect, useState } from "react";
 import { useParams, useSearchParams, useRouter } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, CheckCircle, QrCode as QrCodeIcon, Copy, Home } from "lucide-react";
+import { Loader2, CheckCircle, QrCode as QrCodeIcon, Copy, Home, Clock, Users, MapPin, Phone } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { getBookingTicket } from "@/services/bookingTicketService";
 import { getClinicById, getDoctorById } from "@/services/clinicPublicService";
-import { BookingTicket } from "@/types/multitenant";
+import { getQueueState } from "@/services/queueStateService";
+import { BookingTicket, QueueState } from "@/types/multitenant";
 import { Clinic, Doctor } from "@/types/multitenant";
 import { toast } from "@/hooks/use-toast";
 
@@ -23,7 +24,40 @@ function BookingSuccessContent() {
   const [ticket, setTicket] = useState<BookingTicket | null>(null);
   const [clinic, setClinic] = useState<Clinic | null>(null);
   const [doctor, setDoctor] = useState<Doctor | null>(null);
+  const [queueState, setQueueState] = useState<QueueState | null>(null);
   const [statusUrl, setStatusUrl] = useState("");
+
+  // Calculate accurate queue position
+  const calculatePeopleAhead = () => {
+    if (!ticket || !queueState) return ticket?.queueNumber ? ticket.queueNumber - 1 : 0;
+    
+    const currentQueueNumber = queueState.currentConsultingQueueNumber;
+    
+    if (currentQueueNumber === null) {
+      // No one is being seen yet, count from start
+      return ticket.queueNumber - 1;
+    } else if (ticket.queueNumber <= currentQueueNumber) {
+      // Your turn or already passed
+      return 0;
+    } else {
+      // Calculate based on current consulting number
+      return ticket.queueNumber - currentQueueNumber - 1;
+    }
+  };
+
+  // Calculate accurate estimated wait time
+  const calculateEstimatedWaitTime = () => {
+    const peopleAhead = calculatePeopleAhead();
+    
+    // If we have actual average wait time from queueState, use it
+    if (queueState?.averageWaitTimeMinutes && queueState.averageWaitTimeMinutes > 0) {
+      return Math.round(peopleAhead * queueState.averageWaitTimeMinutes);
+    }
+    
+    // Fallback to clinic's consultation time setting
+    const consultationTime = clinic?.settings?.consultationTime || 15;
+    return peopleAhead * consultationTime;
+  };
 
   useEffect(() => {
     async function loadBookingData() {
@@ -52,14 +86,16 @@ function BookingSuccessContent() {
 
         setTicket(ticketData);
 
-        // Fetch clinic and doctor info
-        const [clinicData, doctorData] = await Promise.all([
+        // Fetch clinic, doctor info, and queue state in parallel
+        const [clinicData, doctorData, queueStateData] = await Promise.all([
           getClinicById(ticketData.clinicId),
           getDoctorById(ticketData.doctorId),
+          getQueueState(ticketData.clinicId, ticketData.doctorId),
         ]);
 
         setClinic(clinicData);
         setDoctor(doctorData);
+        setQueueState(queueStateData);
 
         // Build status URL
         const url = `${window.location.origin}/status/${ticketData.clinicId}/${ticketData.doctorId}/${ticketId}`;
@@ -109,7 +145,8 @@ function BookingSuccessContent() {
 
   // Success state
   if (ticket && clinic && doctor) {
-    const estimatedWaitTime = ticket.queueNumber * (clinic.settings?.consultationTime || 15);
+    const peopleAhead = calculatePeopleAhead();
+    const estimatedWaitTime = calculateEstimatedWaitTime();
 
     return (
       <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-100 py-8 px-4">
@@ -138,7 +175,7 @@ function BookingSuccessContent() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <p className="text-sm text-gray-500">رقم الكشف</p>
-                  <p className="text-2xl font-bold text-blue-600">#{ticket.queueNumber}</p>
+                  <p className="text-3xl font-bold text-blue-600">#{ticket.queueNumber}</p>
                 </div>
                 <div>
                   <p className="text-sm text-gray-500">الحالة</p>
@@ -150,8 +187,31 @@ function BookingSuccessContent() {
                 </div>
               </div>
 
+              {/* Queue Position Info */}
+              <div className="grid grid-cols-2 gap-4 pt-4 border-t">
+                <div className="flex items-center gap-2">
+                  <Users className="h-5 w-5 text-gray-400" />
+                  <div>
+                    <p className="text-sm text-gray-500">عدد الأشخاص قبلك</p>
+                    <p className="text-xl font-bold text-blue-600">{peopleAhead}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Clock className="h-5 w-5 text-gray-400" />
+                  <div>
+                    <p className="text-sm text-gray-500">الوقت المتوقع</p>
+                    <p className="text-xl font-bold text-blue-600">
+                      {estimatedWaitTime > 0 
+                        ? `${estimatedWaitTime} دقيقة`
+                        : "دورك قريب!"}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Clinic Info */}
               <div className="pt-4 border-t">
-                <div className="space-y-2">
+                <div className="space-y-3">
                   <div className="flex justify-between">
                     <span className="text-gray-600">العيادة:</span>
                     <span className="font-semibold">{clinic.name}</span>
@@ -164,16 +224,50 @@ function BookingSuccessContent() {
                     <span className="text-gray-600">التخصص:</span>
                     <span className="font-semibold">{doctor.specialty}</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">الوقت المتوقع:</span>
-                    <span className="font-semibold">
-                      {estimatedWaitTime > 0 
-                        ? `حوالي ${estimatedWaitTime} دقيقة`
-                        : "قريباً"}
-                    </span>
-                  </div>
+                  {clinic.settings?.consultationCost && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">سعر الكشف:</span>
+                      <span className="font-semibold">{clinic.settings.consultationCost} جنيه</span>
+                    </div>
+                  )}
                 </div>
               </div>
+
+              {/* Contact & Location Info */}
+              {(clinic.phoneNumbers?.length > 0 || clinic.locations?.length > 0) && (
+                <div className="pt-4 border-t space-y-3">
+                  {clinic.phoneNumbers?.length > 0 && (
+                    <div className="flex items-start gap-2">
+                      <Phone className="h-5 w-5 text-gray-400 mt-0.5" />
+                      <div>
+                        <p className="text-sm text-gray-500">للتواصل:</p>
+                        <div className="flex flex-wrap gap-2">
+                          {clinic.phoneNumbers.map((phone, idx) => (
+                            <a 
+                              key={idx} 
+                              href={`tel:${phone}`}
+                              className="text-blue-600 hover:underline font-medium"
+                            >
+                              {phone}
+                            </a>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  {clinic.locations?.length > 0 && (
+                    <div className="flex items-start gap-2">
+                      <MapPin className="h-5 w-5 text-gray-400 mt-0.5" />
+                      <div>
+                        <p className="text-sm text-gray-500">العنوان:</p>
+                        {clinic.locations.map((location, idx) => (
+                          <p key={idx} className="font-medium">{location}</p>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </CardContent>
           </Card>
 

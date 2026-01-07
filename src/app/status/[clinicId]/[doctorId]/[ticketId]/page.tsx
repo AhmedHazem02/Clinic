@@ -12,7 +12,7 @@
  */
 
 import React, { useEffect, useState, use } from "react";
-import { ArrowLeft, Loader2, AlertCircle, CheckCircle, Clock, Users } from "lucide-react";
+import { ArrowLeft, Loader2, AlertCircle, CheckCircle, Clock, Users, MessageSquare, Phone, MapPin, RefreshCw, Stethoscope, Calendar } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -22,10 +22,14 @@ import Link from "next/link";
 import { getBookingTicket } from "@/services/bookingTicketService";
 import { getDoctorById, getClinicById } from "@/services/clinicPublicService";
 import { listenToQueueState } from "@/services/queueStateService";
+import { getLatestDoctorMessage } from "@/services/queueService";
+import type { DoctorMessage } from "@/services/queueService";
 import { BookingTicket, QueueState } from "@/types/multitenant";
 import { Clinic, Doctor } from "@/types/multitenant";
-import { doc, onSnapshot } from "firebase/firestore";
+import { doc, onSnapshot, Timestamp } from "firebase/firestore";
 import { getFirebase } from "@/lib/firebase";
+import { format } from "date-fns";
+import { ar } from "date-fns/locale";
 
 export default function PatientStatusPage({
   params,
@@ -38,10 +42,12 @@ export default function PatientStatusPage({
   const [queueState, setQueueState] = useState<QueueState | null>(null);
   const [clinic, setClinic] = useState<Clinic | null>(null);
   const [doctor, setDoctor] = useState<Doctor | null>(null);
+  const [doctorMessage, setDoctorMessage] = useState<DoctorMessage | null>(null);
   const [peopleAhead, setPeopleAhead] = useState(0);
   const [estimatedWaitTime, setEstimatedWaitTime] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
 
   // Load initial data
   useEffect(() => {
@@ -81,6 +87,17 @@ export default function PatientStatusPage({
 
         setClinic(clinicData);
         setDoctor(doctorData);
+
+        // Fetch latest doctor message
+        try {
+          const latestMessage = await getLatestDoctorMessage(doctorId, clinicId);
+          if (latestMessage) {
+            setDoctorMessage(latestMessage);
+          }
+        } catch (err) {
+          console.error("Error fetching doctor message:", err);
+        }
+
         setIsLoading(false);
       } catch (err) {
         console.error("Error loading status data:", err);
@@ -120,6 +137,7 @@ export default function PatientStatusPage({
 
     const unsubscribe = listenToQueueState(clinicId, doctorId, (state) => {
       setQueueState(state);
+      setLastUpdated(new Date());
     });
 
     return () => unsubscribe();
@@ -143,15 +161,21 @@ export default function PatientStatusPage({
     }
   }, [ticket, queueState]);
 
-  // Calculate estimated wait time
+  // Calculate estimated wait time (improved with actual average if available)
   useEffect(() => {
     if (clinic && peopleAhead > 0) {
-      const consultationTime = clinic.settings?.consultationTime || 15;
-      setEstimatedWaitTime(peopleAhead * consultationTime);
+      // Use actual average wait time if available from queueState
+      if (queueState?.averageWaitTimeMinutes && queueState.averageWaitTimeMinutes > 0) {
+        setEstimatedWaitTime(Math.round(peopleAhead * queueState.averageWaitTimeMinutes));
+      } else {
+        // Fallback to clinic's consultation time setting
+        const consultationTime = clinic.settings?.consultationTime || 15;
+        setEstimatedWaitTime(peopleAhead * consultationTime);
+      }
     } else {
       setEstimatedWaitTime(0);
     }
-  }, [clinic, peopleAhead]);
+  }, [clinic, peopleAhead, queueState]);
 
   // Loading state
   if (isLoading) {
@@ -225,7 +249,10 @@ export default function PatientStatusPage({
         <Card className="text-center">
           <CardHeader>
             <CardTitle className="text-2xl text-blue-900">{clinic.name}</CardTitle>
-            <p className="text-gray-600">د. {doctor.name} - {doctor.specialty}</p>
+            <div className="flex items-center justify-center gap-2 text-gray-600">
+              <Stethoscope className="h-4 w-4" />
+              <p>د. {doctor.name} - {doctor.specialty}</p>
+            </div>
           </CardHeader>
         </Card>
 
@@ -240,6 +267,13 @@ export default function PatientStatusPage({
               <Badge className={`${statusBadge.color} text-white px-4 py-2 text-lg`}>
                 {statusBadge.label}
               </Badge>
+              
+              {/* Show current consulting number if waiting */}
+              {ticket.status === 'Waiting' && queueState?.currentConsultingQueueNumber && (
+                <p className="text-sm text-gray-500 mt-2">
+                  جاري الكشف على رقم: <span className="font-bold text-blue-600">#{queueState.currentConsultingQueueNumber}</span>
+                </p>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -263,11 +297,36 @@ export default function PatientStatusPage({
           </Alert>
         )}
 
+        {ticket.status === 'Waiting' && peopleAhead === 0 && (
+          <Alert className="bg-green-50 border-green-300">
+            <CheckCircle className="h-5 w-5 text-green-600" />
+            <AlertDescription className="text-green-800 font-semibold">
+              🎉 دورك التالي! يرجى الاستعداد
+            </AlertDescription>
+          </Alert>
+        )}
+
         {ticket.status === 'Finished' && (
           <Alert className="bg-blue-50 border-blue-300">
             <AlertCircle className="h-5 w-5 text-blue-600" />
             <AlertDescription className="text-blue-800">
               تم الانتهاء من الكشف. شكراً لزيارتك!
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {/* Doctor Message Alert */}
+        {doctorMessage && doctorMessage.message && (
+          <Alert className="bg-purple-50 border-purple-200">
+            <MessageSquare className="h-5 w-5 text-purple-600" />
+            <AlertDescription className="text-purple-900">
+              <p className="font-semibold mb-1">رسالة من الطبيب:</p>
+              <p>{doctorMessage.message}</p>
+              {doctorMessage.createdAt?.toDate?.() && (
+                <p className="text-xs text-purple-600 mt-2">
+                  {format(doctorMessage.createdAt.toDate(), "dd/MM/yyyy - hh:mm a", { locale: ar })}
+                </p>
+              )}
             </AlertDescription>
           </Alert>
         )}
@@ -290,10 +349,30 @@ export default function PatientStatusPage({
               </div>
               
               {estimatedWaitTime > 0 && (
-                <div className="flex justify-between items-center py-3">
+                <div className="flex justify-between items-center py-3 border-b">
                   <span className="text-gray-600">الوقت المتوقع:</span>
                   <span className="text-xl font-semibold text-gray-800">
                     حوالي {estimatedWaitTime} دقيقة
+                  </span>
+                </div>
+              )}
+
+              {/* Show total waiting if available */}
+              {queueState?.totalWaitingCount !== undefined && (
+                <div className="flex justify-between items-center py-3 border-b">
+                  <span className="text-gray-600">إجمالي المنتظرين:</span>
+                  <span className="text-lg font-semibold text-gray-800">
+                    {queueState.totalWaitingCount} شخص
+                  </span>
+                </div>
+              )}
+
+              {/* Show consultation price */}
+              {clinic.settings?.consultationCost && (
+                <div className="flex justify-between items-center py-3">
+                  <span className="text-gray-600">سعر الكشف:</span>
+                  <span className="text-lg font-semibold text-green-600">
+                    {clinic.settings.consultationCost} جنيه
                   </span>
                 </div>
               )}
@@ -307,11 +386,58 @@ export default function PatientStatusPage({
           </Card>
         )}
 
+        {/* Clinic Contact Info */}
+        {(clinic.phoneNumbers?.length > 0 || clinic.locations?.length > 0) && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <Phone className="h-5 w-5" />
+                معلومات العيادة
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {clinic.phoneNumbers?.length > 0 && (
+                <div>
+                  <p className="text-sm text-gray-500 mb-2">للتواصل:</p>
+                  <div className="flex flex-wrap gap-2">
+                    {clinic.phoneNumbers.map((phone, idx) => (
+                      <a 
+                        key={idx} 
+                        href={`tel:${phone}`}
+                        className="inline-flex items-center gap-1 px-3 py-2 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition-colors"
+                      >
+                        <Phone className="h-4 w-4" />
+                        {phone}
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {clinic.locations?.length > 0 && (
+                <div>
+                  <p className="text-sm text-gray-500 mb-2">العنوان:</p>
+                  {clinic.locations.map((location, idx) => (
+                    <div key={idx} className="flex items-start gap-2 p-2 bg-gray-50 rounded-lg">
+                      <MapPin className="h-4 w-4 text-gray-400 mt-0.5" />
+                      <span className="text-gray-700">{location}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
         {/* Auto-refresh notice */}
-        <p className="text-center text-sm text-gray-500">
-          يتم تحديث الحالة تلقائياً • لا حاجة لتحديث الصفحة
-        </p>
+        <div className="text-center space-y-2">
+          <p className="text-sm text-gray-500 flex items-center justify-center gap-2">
+            <RefreshCw className="h-4 w-4" />
+            يتم تحديث الحالة تلقائياً • لا حاجة لتحديث الصفحة
+          </p>
+          <p className="text-xs text-gray-400">
+            آخر تحديث: {format(lastUpdated, "hh:mm:ss a", { locale: ar })}
+          </p>
+        </div>
       </div>
     </main>
   );

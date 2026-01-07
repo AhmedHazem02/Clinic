@@ -8,6 +8,7 @@
 import { doc, getDoc } from 'firebase/firestore';
 import { getFirebase } from '@/lib/firebase';
 import { PlatformAdmin } from '@/types/multitenant';
+import { logger } from '@/lib/logger';
 
 /**
  * Check if a user is an active platform admin
@@ -28,7 +29,7 @@ export async function isPlatformAdmin(uid: string): Promise<boolean> {
     const adminData = adminSnap.data() as PlatformAdmin;
     return adminData.isActive === true;
   } catch (error) {
-    console.error('Error checking platform admin status:', error);
+    logger.error('Error checking platform admin status', error, { uid });
     return false;
   }
 }
@@ -57,7 +58,7 @@ export async function getPlatformAdmin(uid: string): Promise<PlatformAdmin | nul
     
     return adminData;
   } catch (error) {
-    console.error('Error getting platform admin:', error);
+    logger.error('Error getting platform admin', error, { uid });
     return null;
   }
 }

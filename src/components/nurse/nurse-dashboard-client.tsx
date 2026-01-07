@@ -5,13 +5,18 @@ import { useEffect, useMemo, useState } from "react";
 import { PatientRegistrationForm } from "./patient-registration-form";
 import { QueueList } from "./queue-list";
 import { QrCodeDialog } from "./qr-code-dialog";
-import { listenToQueueForNurse, listenToClinicQueue, getClinicDoctors, type PatientInQueue, type QueueType } from "@/services/queueService";
+import { listenToQueueForNurse, listenToClinicQueue, getClinicDoctors, type PatientInQueue, type QueueType, listenToNewDoctorMessages, markMessageAsRead, type DoctorMessage } from "@/services/queueService";
 import { Input } from "../ui/input";
-import { Search, Stethoscope } from "lucide-react";
+import { Search, Stethoscope, Bell, X } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
 import { useNurseProfile } from "./nurse-profile-provider";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { Label } from "../ui/label";
+import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
+import { Button } from "../ui/button";
+import { Card, CardContent } from "../ui/card";
+import { format } from "date-fns";
+import { ar } from "date-fns/locale";
 
 export function NurseDashboardClient() {
     const { user, userProfile } = useNurseProfile();
@@ -21,6 +26,8 @@ export function NurseDashboardClient() {
     const [isLoading, setIsLoading] = useState(true);
     const [doctors, setDoctors] = useState<{ id: string; name: string; specialty: string }[]>([]);
     const [selectedDoctorFilter, setSelectedDoctorFilter] = useState<string>("all");
+    const [doctorMessages, setDoctorMessages] = useState<DoctorMessage[]>([]);
+    const [showNotifications, setShowNotifications] = useState(true);
 
     // Load clinic doctors for filter dropdown
     useEffect(() => {
@@ -39,6 +46,24 @@ export function NurseDashboardClient() {
         }
 
         loadClinicDoctors();
+    }, [userProfile]);
+
+    // Listen to doctor messages for notifications
+    useEffect(() => {
+        if (!userProfile) return;
+
+        const clinicId = 'clinicId' in userProfile ? userProfile.clinicId : undefined;
+        if (!clinicId) return;
+
+        const unsubscribe = listenToNewDoctorMessages(
+            clinicId,
+            (messages) => {
+                setDoctorMessages(messages);
+            },
+            true // Only unread messages
+        );
+
+        return () => unsubscribe();
     }, [userProfile]);
 
     // Queue listener - filter by nurse's assigned doctor
@@ -143,8 +168,58 @@ export function NurseDashboardClient() {
         return doctor ? `${doctor.name}` : 'غير معروف';
     };
 
+    // Handle dismissing a message
+    const handleDismissMessage = async (messageId: string) => {
+        try {
+            await markMessageAsRead(messageId);
+            setDoctorMessages(prev => prev.filter(m => m.id !== messageId));
+        } catch (error) {
+            console.error('Error marking message as read:', error);
+        }
+    };
+
     return (
         <>
+            {/* Doctor Messages Notifications */}
+            {doctorMessages.length > 0 && showNotifications && (
+                <div className="space-y-2 mb-4">
+                    {doctorMessages.map((msg) => {
+                        const doctor = doctors.find(d => d.id === msg.doctorId);
+                        const timestamp = msg.createdAt?.toDate?.();
+                        return (
+                            <Alert key={msg.id} className="bg-blue-50 border-blue-200">
+                                <div className="flex items-start justify-between gap-2">
+                                    <div className="flex items-start gap-2 flex-1">
+                                        <Bell className="h-5 w-5 text-blue-600 mt-0.5" />
+                                        <div className="flex-1">
+                                            <AlertTitle className="text-blue-900 mb-1">
+                                                رسالة من د. {doctor?.name || 'الطبيب'}
+                                            </AlertTitle>
+                                            <AlertDescription className="text-blue-800">
+                                                {msg.message}
+                                            </AlertDescription>
+                                            {timestamp && (
+                                                <p className="text-xs text-blue-600 mt-1">
+                                                    {format(timestamp, "dd/MM/yyyy - hh:mm a", { locale: ar })}
+                                                </p>
+                                            )}
+                                        </div>
+                                    </div>
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => msg.id && handleDismissMessage(msg.id)}
+                                        className="h-6 w-6 p-0"
+                                    >
+                                        <X className="h-4 w-4" />
+                                    </Button>
+                                </div>
+                            </Alert>
+                        );
+                    })}
+                </div>
+            )}
+
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
                 <div className="lg:col-span-1">
                     <PatientRegistrationForm onPatientRegistered={handlePatientRegistered} />

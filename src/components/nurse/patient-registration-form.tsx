@@ -4,12 +4,8 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { format } from "date-fns";
-import { CalendarIcon } from "lucide-react";
 
-import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Calendar } from "@/components/ui/calendar";
 import {
   Form,
   FormControl,
@@ -19,11 +15,6 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
 import {
   Card,
   CardContent,
@@ -44,9 +35,6 @@ import { isModernProfile } from "@/services/userProfileService";
 const formSchema = z.object({
   name: z.string().min(2, "يجب أن يتكون الاسم من حرفين على الأقل."),
   phone: z.string().regex(/^\d{11}$/, "الرجاء إدخال رقم هاتف صالح مكون من 11 رقمًا."),
-  bookingDate: z.date({
-    required_error: "تاريخ الحجز مطلوب.",
-  }),
   age: z.coerce.number().optional(),
   diseases: z.string().optional(),
   consultationReason: z.string().optional(),
@@ -72,13 +60,6 @@ export function PatientRegistrationForm({ onPatientRegistered }: PatientRegistra
       queueType: "Consultation",
     },
   });
-
-  useEffect(() => {
-    form.reset({
-        ...form.getValues(),
-        bookingDate: new Date(),
-    });
-  }, [form]);
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     if (!user || !profile) {
@@ -148,7 +129,6 @@ export function PatientRegistrationForm({ onPatientRegistered }: PatientRegistra
         age: undefined,
         diseases: "",
         consultationReason: "",
-        bookingDate: new Date(),
         queueType: "Consultation",
       });
     } catch (error: any) {
@@ -196,47 +176,6 @@ export function PatientRegistrationForm({ onPatientRegistered }: PatientRegistra
                   <FormControl>
                     <Input placeholder="01234567890" {...field} />
                   </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-             <FormField
-              control={form.control}
-              name="bookingDate"
-              render={({ field }) => (
-                <FormItem className="flex flex-col">
-                  <FormLabel>تاريخ الحجز</FormLabel>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <FormControl>
-                        <Button
-                          variant={"outline"}
-                          className={cn(
-                            "w-full pl-3 text-left font-normal",
-                            !field.value && "text-muted-foreground"
-                          )}
-                        >
-                          {field.value ? (
-                            format(field.value, "PPP")
-                          ) : (
-                            <span>اختر تاريخًا</span>
-                          )}
-                          <CalendarIcon className="mr-auto h-4 w-4 opacity-50" />
-                        </Button>
-                      </FormControl>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={field.value}
-                        onSelect={field.onChange}
-                        disabled={(date) =>
-                          date < new Date(new Date().setHours(0, 0, 0, 0))
-                        }
-                        initialFocus
-                      />
-                    </PopoverContent>
-                  </Popover>
                   <FormMessage />
                 </FormItem>
               )}

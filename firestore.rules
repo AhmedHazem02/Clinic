@@ -2,10 +2,12 @@ rules_version = '2';
 
 /**
  * Step 5 Security Rules: Multi-Tenant Isolation
- * 
+ *
  * This ruleset enforces strict multi-tenant isolation while allowing
  * controlled public access for booking and status pages.
- * 
+ *
+ * IMPORTANT: Single Doctor Model - Each clinic has exactly ONE doctor (the owner).
+ *
  * Key Security Principles:
  * 1. Default deny all access
  * 2. Public can GET (not list) specific active resources
@@ -77,10 +79,11 @@ service cloud.firestore {
 
     // Clinics: Public can get active clinics by ID
     match /clinics/{clinicId} {
-      // Public: Can get or list active clinics (for booking page and clinic selection)
-      allow get, list: if resource.data.isActive == true;
+      // Public: Can ONLY get (not list) active clinics by ID
+      // This prevents scraping of all clinics
+      allow get: if resource.data.isActive == true;
       
-      // Staff: Can read/write their own clinic
+      // Staff: Can read/write their own clinic (includes list for admin pages)
       allow read, write: if sameClinic(clinicId);
       
       // Invites subcollection: Only staff can manage
@@ -98,12 +101,14 @@ service cloud.firestore {
     }
     
     // Doctors: Public can get active doctors by ID
+    // NOTE: Single doctor model - each clinic has ONE doctor (the owner, doctorId = ownerUid)
     match /doctors/{doctorId} {
       // Doctor: Can read/write their own profile (even if deactivated, to show error message)
       allow read, write: if isAuthenticated() && request.auth.uid == doctorId;
       
-      // Public: Can get or list active doctors (for booking page)
-      allow get, list: if resource.data.isActive == true;
+      // Public: Can ONLY get (not list) active doctors by ID
+      // This prevents scraping of all doctors
+      allow get: if resource.data.isActive == true;
       
       // New doctor: Can create their own profile (for invite acceptance)
       allow create: if isAuthenticated() && 
@@ -176,6 +181,22 @@ service cloud.firestore {
     // User Profiles: Users can only access their own profile
     match /userProfiles/{userId} {
       allow read, write: if isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // ==========================================================================
+    // DOCTOR MESSAGES (Notifications for nurses and patients)
+    // ==========================================================================
+    
+    // Doctor Messages: Public can read latest message, staff can manage
+    match /doctorMessages/{messageId} {
+      // Public: Can read messages (for patient status page)
+      allow get, list: if true;
+      
+      // Staff: Can create messages for their clinic
+      allow create: if isAuthenticated() && sameClinic(request.resource.data.clinicId);
+      
+      // Staff: Can update/delete messages from their clinic
+      allow update, delete: if isAuthenticated() && sameClinic(resource.data.clinicId);
     }
 
     // ==========================================================================

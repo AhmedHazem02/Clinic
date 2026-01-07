@@ -23,18 +23,21 @@ export default function SelectClinicPage() {
 
   const loadActiveClinics = async () => {
     try {
+      console.log('[Book Page] Starting to load active clinics...');
       const { db } = getFirebase();
-      
+
       if (!db) {
-        console.error('Firebase not initialized');
+        console.error('[Book Page] Firebase not initialized');
         setError('فشل الاتصال بقاعدة البيانات');
         setLoading(false);
         return;
       }
-      
+
+      console.log('[Book Page] Firebase initialized, fetching clinics...');
       const clinicsRef = collection(db, 'clinics');
       const q = query(clinicsRef, where('isActive', '==', true));
       const snapshot = await getDocs(q);
+      console.log('[Book Page] Clinics fetched:', snapshot.size, 'clinics');
 
       const loadedClinics: Clinic[] = [];
       snapshot.forEach((doc) => {
@@ -56,16 +59,28 @@ export default function SelectClinicPage() {
         } as Clinic);
       });
 
+      console.log('[Book Page] Loaded clinics:', loadedClinics);
+
       if (loadedClinics.length === 1) {
         // If only one clinic, redirect directly
-        router.push(`/book/${loadedClinics[0].slug}`);
+        const clinic = loadedClinics[0];
+        if (!clinic.slug || clinic.slug.trim() === '') {
+          console.error('[Book Page] Clinic has no slug:', clinic.id);
+          setError(`العيادة "${clinic.name}" ليس لها معرف (slug) محدد. يرجى الاتصال بالإدارة.`);
+          setLoading(false);
+          return;
+        }
+        console.log('[Book Page] Only one clinic, redirecting to:', clinic.slug);
+        router.push(`/book/${clinic.slug}`);
       } else {
+        console.log('[Book Page] Multiple clinics, showing selection page');
         setClinics(loadedClinics);
         setLoading(false);
       }
-    } catch (err) {
-      console.error('Error loading clinics:', err);
-      setError('فشل تحميل العيادات المتاحة');
+    } catch (err: any) {
+      console.error('[Book Page] Error loading clinics:', err);
+      console.error('[Book Page] Error details:', err.message, err.code);
+      setError(`فشل تحميل العيادات المتاحة: ${err.message || 'خطأ غير معروف'}`);
       setLoading(false);
     }
   };

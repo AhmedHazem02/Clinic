@@ -222,13 +222,15 @@ export function DoctorDashboardClient() {
   }
   
   const handleUpdateMessage = async () => {
-    if (!user) return;
+    if (!user || !userProfile) return;
     setIsUpdatingMessage(true);
     try {
-      await updateDoctorMessage(doctorMessage, user.uid);
+      // Get clinicId from userProfile (multi-tenant)
+      const clinicId = 'clinicId' in userProfile ? userProfile.clinicId : undefined;
+      await updateDoctorMessage(doctorMessage, user.uid, clinicId);
       toast({
         title: "تم تحديث الرسالة",
-        description: "تم تحديث رسالتك لجميع المرضى.",
+        description: "تم تحديث رسالتك لجميع المرضى والممرضين.",
       });
     } catch (error) {
       toast({

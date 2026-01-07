@@ -328,7 +328,7 @@ export default function ClinicOnboardingPage() {
         <Card className="border-blue-200 bg-blue-50">
           <CardContent className="pt-6">
             <p className="text-sm text-blue-800">
-              <strong>ملاحظة:</strong> بعد إنشاء العيادة، ستتمكن من دعوة أطباء وممرضين آخرين للانضمام إلى فريقك.
+              <strong>ملاحظة:</strong> بعد إنشاء العيادة، ستتمكن من دعوة ممرضين للانضمام إلى فريقك ومساعدتك في تسجيل المرضى.
             </p>
           </CardContent>
         </Card>
