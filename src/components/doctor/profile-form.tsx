@@ -10,7 +10,7 @@ import { setDoctorProfile } from "@/services/queueService";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
 import { PlusCircle, Trash2, Upload } from "lucide-react";
 import { Label } from "@/components/ui/label";
