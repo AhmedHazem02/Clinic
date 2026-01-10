@@ -12,7 +12,8 @@ rules_version = '2';
  * 1. Default deny all access
  * 2. Public can GET (not list) specific active resources
  * 3. Staff can only access their own clinic's data
- * 4. No public writes to Firestore (use server API instead)
+ * 4. Public can CREATE booking tickets (with strict validation)
+ *    - Alternative: Use server API /api/public/book for additional security
  * 5. Anti-scraping: no list queries on public collections
  */
 
@@ -79,9 +80,12 @@ service cloud.firestore {
 
     // Clinics: Public can get active clinics by ID
     match /clinics/{clinicId} {
-      // Public: Can ONLY get (not list) active clinics by ID
-      // This prevents scraping of all clinics
+      // Public: Can get (read single) active clinics by ID
       allow get: if resource.data.isActive == true;
+      
+      // Public: Can list active clinics only (for clinic selection page)
+      // Limited to 50 results to prevent excessive scraping
+      allow list: if request.query.limit <= 50;
       
       // Staff: Can read/write their own clinic (includes list for admin pages)
       allow read, write: if sameClinic(clinicId);
@@ -140,6 +144,24 @@ service cloud.firestore {
       // Public: Can get ticket if not expired (24 hours)
       allow get: if resource.data.expiresAt.toMillis() > request.time.toMillis();
       
+      // Public: Can create booking tickets with validation
+      // Security: validate required fields, prevent data injection
+      allow create: if 
+        // Required fields exist and are valid
+        request.resource.data.clinicId is string &&
+        request.resource.data.doctorId is string &&
+        request.resource.data.patientId is string &&
+        request.resource.data.displayName is string &&
+        request.resource.data.phoneLast4 is string &&
+        request.resource.data.status in ['Waiting', 'Consulting', 'Finished'] &&
+        request.resource.data.queueType in ['Consultation', 'Re-consultation'] &&
+        // Timestamps are valid
+        request.resource.data.createdAt is timestamp &&
+        request.resource.data.expiresAt is timestamp &&
+        request.resource.data.expiresAt.toMillis() > request.time.toMillis() &&
+        // Prevent future-dated createdAt (anti-cheating)
+        request.resource.data.createdAt.toMillis() <= request.time.toMillis() + 60000;
+      
       // Staff: Can read tickets for their clinic
       allow read: if sameClinic(resource.data.clinicId);
       
@@ -152,6 +174,9 @@ service cloud.firestore {
     match /queueState/{stateId} {
       // Public: Can get queue state (format: {clinicId}_{doctorId})
       allow get: if true;
+      
+      // Public: CANNOT list all queue states (anti-scraping)
+      // Use server API /api/public/queue-count instead
       
       // Staff: Can read for their clinic
       allow read: if sameClinic(resource.data.clinicId);

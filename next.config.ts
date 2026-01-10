@@ -21,6 +21,17 @@ const nextConfig: NextConfig = {
     ],
   },
   serverExternalPackages: ['@firebase/auth', '@firebase/app'],
+  webpack: (config, { isServer }) => {
+    // Exclude AI development files from production build
+    if (isServer) {
+      config.externals = config.externals || [];
+      config.externals.push({
+        '@genkit-ai/firebase': 'commonjs @genkit-ai/firebase',
+        '@opentelemetry/exporter-jaeger': 'commonjs @opentelemetry/exporter-jaeger',
+      });
+    }
+    return config;
+  },
 };
 
 export default nextConfig;

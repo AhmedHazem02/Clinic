@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Stethoscope, MapPin, Clock, ArrowLeft } from "lucide-react";
-import { collection, getDocs, query, where } from "firebase/firestore";
+import { collection, getDocs, query, where, orderBy, limit } from "firebase/firestore";
 import { getFirebase } from "@/lib/firebase";
 import type { Clinic } from "@/types/multitenant";
 import Link from "next/link";
@@ -35,7 +35,12 @@ export default function SelectClinicPage() {
 
       console.log('[Book Page] Firebase initialized, fetching clinics...');
       const clinicsRef = collection(db, 'clinics');
-      const q = query(clinicsRef, where('isActive', '==', true));
+      const q = query(
+        clinicsRef, 
+        where('isActive', '==', true),
+        orderBy('name'),
+        limit(50)
+      );
       const snapshot = await getDocs(q);
       console.log('[Book Page] Clinics fetched:', snapshot.size, 'clinics');
 
