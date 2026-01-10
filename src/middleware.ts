@@ -27,6 +27,7 @@ const PROTECTED_ROUTES = [
 const PUBLIC_ROUTES = [
   '/',
   '/login',
+  '/platform/login',  // Platform admin login page
   '/book',
   '/status',
   '/accept-invite',
